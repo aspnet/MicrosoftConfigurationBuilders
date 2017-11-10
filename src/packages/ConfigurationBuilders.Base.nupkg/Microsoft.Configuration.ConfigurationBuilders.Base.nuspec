@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
+  <metadata>
+    <id>$NuGetPackageId$</id>
+    <version>$NuGetPackageVersion$</version>
+    <authors>Microsoft</authors>
+    <owners>Microsoft</owners>
+    <copyright>&#169; Microsoft Corporation. All rights reserved.</copyright>
+    <title>Microsoft Configuration Builders - Base</title>
+    <description>In .Net 4.7.1, the configuration system allows applications to use ConfigurationBuilders to build up and modify configuration at runtime when it is loaded. This package provides a base framework to ease development of simple key/value configuration builders.</description>
+    <summary>A base framework for simple key/value Configuration Builders for the .Net Desktop Framework.</summary>
+    <language>en-US</language>
+    <projectUrl>http://www.asp.net/</projectUrl>
+    <licenseUrl>http://www.microsoft.com/web/webpi/eula/net_library_eula_ENU.htm</licenseUrl>
+    <requireLicenseAcceptance>true</requireLicenseAcceptance>
+    <tags>Microsoft Configuration Builders</tags>
+  </metadata>
+</package>

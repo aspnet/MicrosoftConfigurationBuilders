@@ -1,0 +1,8 @@
+<Project DefaultTargets="UnitTest" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <!-- Update NuGet Package version for nightly build-->
+  <PropertyGroup Condition="'$(MSBuildProjectExtension)' == '.nuproj'">
+    <NuGetPackageVersion Condition="'$(UpdateNightlyPackages)' == 'true'">$(NuGetPackageVersion)-b$(VersionBuild)</NuGetPackageVersion>
+  </PropertyGroup>
+
+</Project>

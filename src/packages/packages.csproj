@@ -1,0 +1,63 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory),MicrosoftConfigurationBuilders.sln))\tools\MicrosoftConfigurationBuilders.settings.targets" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Release</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <SkipCopyBuildProduct>true</SkipCopyBuildProduct>
+    <ProductVersion>8.0.30703</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{7EC5863F-7FF1-41C7-A384-8FFF81531E7A}</ProjectGuid>
+    <SccProjectName>SAK</SccProjectName>
+    <SccLocalPath>SAK</SccLocalPath>
+    <SccAuxPath>SAK</SccAuxPath>
+    <SccProvider>SAK</SccProvider>
+    <TargetFrameworkVersion>v4.7.1</TargetFrameworkVersion>
+    <TargetFrameworkProfile />
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <UseVSHostingProcess>false</UseVSHostingProcess>
+    <OutputPath>bin\Debug\</OutputPath>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <OutputPath>bin\Release\</OutputPath>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <ItemGroup>
+    <NuGetProject Include="ConfigurationBuilders.Base.nupkg\Microsoft.Configuration.ConfigurationBuilders.Base.nuproj" />
+    <NuGetProject Include="ConfigurationBuilders.Azure.nupkg\Microsoft.Configuration.ConfigurationBuilders.Azure.nuproj" />
+    <NuGetProject Include="ConfigurationBuilders.Json.nupkg\Microsoft.Configuration.ConfigurationBuilders.Json.nuproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="app.config" />
+    <None Include="ConfigurationBuilders.Azure.nupkg\content\Net471\config.install.xdt" />
+    <None Include="ConfigurationBuilders.Azure.nupkg\content\Net471\config.uninstall.xdt" />
+    <None Include="ConfigurationBuilders.Azure.nupkg\Microsoft.Configuration.ConfigurationBuilders.Azure.nuspec" />
+    <None Include="ConfigurationBuilders.UserSecrets.nupkg\content\Net471\config.install.xdt">
+      <SubType>Designer</SubType>
+    </None>
+    <None Include="ConfigurationBuilders.UserSecrets.nupkg\content\Net471\config.uninstall.xdt" />
+    <NuGetProject Include="ConfigurationBuilders.UserSecrets.nupkg\Microsoft.Configuration.ConfigurationBuilders.UserSecrets.nuproj" />
+    <None Include="ConfigurationBuilders.UserSecrets.nupkg\Microsoft.Configuration.ConfigurationBuilders.UserSecrets.nuspec" />
+    <None Include="ConfigurationBuilders.Environment.nupkg\content\Net471\config.install.xdt" />
+    <None Include="ConfigurationBuilders.Environment.nupkg\content\Net471\config.uninstall.xdt" />
+    <NuGetProject Include="ConfigurationBuilders.Environment.nupkg\Microsoft.Configuration.ConfigurationBuilders.Environment.nuproj" />
+    <None Include="ConfigurationBuilders.Environment.nupkg\Microsoft.Configuration.ConfigurationBuilders.Environment.nuspec" />
+    <None Include="ConfigurationBuilders.Base.nupkg\content\Net471\config.install.xdt" />
+    <None Include="ConfigurationBuilders.Base.nupkg\content\Net471\config.uninstall.xdt" />
+    <None Include="ConfigurationBuilders.Base.nupkg\Microsoft.Configuration.ConfigurationBuilders.Base.nuspec" />
+    <None Include="ConfigurationBuilders.Json.nupkg\content\Net471\config.install.xdt" />
+    <None Include="ConfigurationBuilders.Json.nupkg\content\Net471\config.uninstall.xdt" />
+    <None Include="ConfigurationBuilders.Json.nupkg\Microsoft.Configuration.ConfigurationBuilders.Json.nuspec" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory),MicrosoftConfigurationBuilders.sln))\tools\cleanup.targets" />
+  <Target Name="Build">
+    <MSBuild Projects="@(NuGetProject)" Targets="Build" />
+  </Target>
+  <Target Name="Clean">
+    <MSBuild Projects="@(NuGetProject)" Targets="Clean" />
+  </Target>
+  <Target Name="Rebuild" DependsOnTargets="Clean;Build" />
+</Project>

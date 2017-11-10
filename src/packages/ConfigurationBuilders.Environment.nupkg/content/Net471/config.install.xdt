@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<configuration xmlns:xdt="http://schemas.microsoft.com/XML-Document-Transform">
+
+  <configBuilders xdt:Transform="InsertAfter(/configuration/configSections)" />
+  <configBuilders xdt:Locator="XPath(/configuration/configBuilders[last()])">
+    <builders xdt:Transform="InsertIfMissing">
+      <add name="Environment" xdt:Locator="Match(name)" xdt:Transform="InsertIfMissing" type="Microsoft.Configuration.ConfigurationBuilders.EnvironmentConfigBuilder, Microsoft.Configuration.ConfigurationBuilders.Environment, Version=$version$, Culture=neutral" />
+    </builders>
+  </configBuilders>
+  <configBuilders xdt:Transform="RemoveAll" xdt:Locator="Condition(count(*)=0)" />
+
+</configuration>

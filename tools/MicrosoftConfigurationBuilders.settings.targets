@@ -1,0 +1,52 @@
+<Project DefaultTargets="UnitTest" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <CustomBeforeProjectTargets>$(MSBuildThisFileDirectory)MicrosoftConfigurationBuilders.Extensions.settings.targets</CustomBeforeProjectTargets>
+  </PropertyGroup>
+  <Import Project="$(CustomBeforeProjectTargets)" Condition="Exists('$(CustomBeforeProjectTargets)')" Label="Pre-targets Build Extensibility Point"/>
+
+  <!-- Configurable properties-->
+
+  <PropertyGroup>
+    <BuildQuality Condition="'$(BuildQuality)' == ''">alpha1</BuildQuality>
+    <VersionStartYear>2016</VersionStartYear>
+    <VersionMajor>1</VersionMajor>
+    <VersionMinor>0</VersionMinor>
+    <VersionRelease>0</VersionRelease>
+    <VersionRelease Condition="'$(BuildQuality)' != 'rtm'">$(VersionRelease)-$(BuildQuality)</VersionRelease>
+  </PropertyGroup>
+
+  <PropertyGroup Label="NuGet package dependencies">
+    <MicrosoftConfigurationBuildersNuGetPackageVersion>1.0.0-alpha1</MicrosoftConfigurationBuildersNuGetPackageVersion>
+  </PropertyGroup>
+
+  <!-- Default properties -->
+
+  <PropertyGroup>
+    <RepositoryRoot Condition="'$(RepositoryRoot)' == ''">$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), MicrosoftConfigurationBuilders.sln))\</RepositoryRoot>
+    <SolutionDir>$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), MicrosoftConfigurationBuilders.sln))\</SolutionDir>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Common Configuration">
+    <Configuration Condition="'$(Configuration)' == ''">Release</Configuration>
+    <OutputPath>$(RepositoryRoot)\src\packages\bin\$(Configuration)\</OutputPath>
+    <IntermediateOutputPath>$(RepositoryRoot)\src\packages\obj\$(Configuration)\</IntermediateOutputPath>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <AssemblyPath Condition="'$(AssemblyPath)' == ''">$(OutputPath)</AssemblyPath>
+    <NuGetOutputPath>$(AssemblyPath)Packages</NuGetOutputPath>
+    <NuGetSymbolsOutputPath>$(AssemblyPath)\SymbolPackages</NuGetSymbolsOutputPath>
+    <TestOutputPath>$(OutputPath)test\</TestOutputPath>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <ReferencePackagesPath>$(RepositoryRoot)packages\</ReferencePackagesPath>
+    <NuGetPackSymbols Condition="'$(NuGetPackSymbols)' == ''">true</NuGetPackSymbols>
+    <SourceRootFullPath>$(RepositoryRoot)\src\$(MSBuildProjectName)\</SourceRootFullPath>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <CustomAfterMicrosoftCommonTargets>$(RepositoryRoot)tools\MicrosoftConfigurationBuilders.targets</CustomAfterMicrosoftCommonTargets>
+    <CustomAfterNuGetProjTargets>$(CustomAfterMicrosoftCommonTargets)</CustomAfterNuGetProjTargets>
+  </PropertyGroup>
+</Project>

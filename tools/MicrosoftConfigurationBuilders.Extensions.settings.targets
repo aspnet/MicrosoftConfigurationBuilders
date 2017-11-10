@@ -1,0 +1,32 @@
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <PropertyGroup>
+    <RepositoryRootEx Condition="'$(RepositoryRootEx)' == ''">$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory),MicrosoftConfigurationBuilders.sln))\</RepositoryRootEx>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <Configuration Condition="'$(Configuration)' == ''">Release</Configuration>
+    <BinPath>$(MSBuildProjectDirectory)\..\bin\</BinPath>
+    <ObjPath>$(MSBuildProjectDirectory)\..\obj\</ObjPath>
+    <OutputPath>$(BinPath)$(Configuration)\</OutputPath>
+    <IntermediateOutputPath>$(ObjPath)$(Configuration)\</IntermediateOutputPath>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <TestRoot>$(RepositoryRoot)\test\Microsoft.Configuration.ConfigurationBuilders.Test</TestRoot>
+    <BuildingTestProject Condition="$(MSBuildProjectDirectory.ToLower().Contains($(TestRoot.ToLower())))">true</BuildingTestProject>
+  </PropertyGroup>
+<!--
+  <Import Project="$(MSBuildThisFileDirectory)CI\CITask.targets" Condition="Exists('$(MSBuildThisFileDirectory)CI\CITask.targets')"/>
+-->
+
+
+  <PropertyGroup>
+    <AssemblyPath Condition="'$(CodeSignEnabled)' == 'true'">$(CodeSignOutputPath)</AssemblyPath>
+    <AssemblyPath Condition="'$(AssemblyPath)' == ''">$(OutputPath)</AssemblyPath>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <CustomAfterProjectTargets>$(MSBuildThisFileDirectory)MicrosoftConfigurationBuilders.Extensions.targets</CustomAfterProjectTargets>
+  </PropertyGroup>
+</Project>

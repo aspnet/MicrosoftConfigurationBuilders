@@ -1,0 +1,67 @@
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="tools\MicrosoftConfigurationBuilders.settings.targets"/>  
+
+  <ItemGroup>
+    <AssemblyProject Include="src\Base\Base.csproj" />
+    <AssemblyProject Include="src\Environment\Environment.csproj" />
+    <AssemblyProject Include="src\UserSecrets\UserSecrets.csproj" />
+    <AssemblyProject Include="src\Azure\Azure.csproj" />
+    <AssemblyProject Include="src\Json\Json.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(BuildCoreOnly)' != 'true'">
+    <AssemblyProject Include="test\Microsoft.Configuration.ConfigurationBuilders.Test\Test\Test.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageProject Include="src\Packages\Packages.csproj" />
+  </ItemGroup>
+  
+  <Target Name="Build" DependsOnTargets="BuildAssemblies;BuildPackages" />
+  <Target Name="Clean" DependsOnTargets="CleanPackages;CleanAssemblies" />
+  <Target Name="Rebuild" DependsOnTargets="Clean;Build" />
+  
+  <Target Name="BuildAssemblies" DependsOnTargets="RestorePackages">
+    <MSBuild Targets="Build" Projects="@(AssemblyProject)" />
+  </Target> 
+
+  <Target Name="CleanAssemblies">
+    <MSBuild Targets="Clean" Projects="MicrosoftConfigurationBuilders.sln" />
+  </Target>
+
+  <Target Name="RebuildAssemblies" DependsOnTargets="Clean;Build" />
+
+  <!-- Packages build -->
+
+  <Target Name="BuildPackages" DependsOnTargets="RestorePackages">
+    <MSBuild Targets="" Projects="@(PackageProject)" />
+  </Target>
+
+  <Target Name="CleanPackages">
+    <MSBuild Targets="Clean" Projects="@(PackageProject)" />
+  </Target>
+
+  <Target Name="RebuildPackages" DependsOnTargets="CleanPackages;BuildPackages" />
+
+  <Target Name="RestorePackages">
+    <Exec Command=".nuget\NuGet.exe restore" />
+  </Target>
+
+  <!--
+    <Target Name="UnitTest">
+        <ItemGroup>
+            <TestDLLs Include="test\Microsoft.Configuration.ConfigurationBuilders.Test\bin\$(Configuration)\*Test.dll" />
+        </ItemGroup>
+
+        <PropertyGroup>
+            <TestSettingsFile Condition=" '$(Configuration)' == 'CodeCoverage' ">$(MsBuildProjectDirectory)\test\CodeCoverage.testsettings</TestSettingsFile>
+            <TestSettingsFile Condition=" '$(Configuration)' != 'CodeCoverage' ">$(MsBuildProjectDirectory)\unittest.testsettings</TestSettingsFile>
+        </PropertyGroup>
+
+        <Delete Files="bin\$(Configuration)-TestResults.trx" />
+        <Exec
+            Command="&quot;$(VS100COMNTOOLS)..\IDE\MSTEST.EXE&quot; /nologo /usestderr /resultsfile:&quot;bin\$(Configuration)-TestResults.trx&quot; @(TestDLLs -> '/testcontainer:&quot;%(Identity)&quot;', ' ') /testsettings:&quot;$(TestSettingsFile)&quot;" />
+    </Target>
+-->
+  <Import Project="tools\MicrosoftConfigurationBuilders.targets"/>
+</Project>
