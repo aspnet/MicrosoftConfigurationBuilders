@@ -158,6 +158,7 @@ public class CustomConfigBuilder : KeyValueConfigBuilder
 ```
 
 ## Blog Posts
+[Announcing .NET 4.7.1 Tools for the Cloud](https://blogs.msdn.microsoft.com/webdev/2017/11/17/announcing-net-4-7-1-tools-for-the-cloud/)
 [Insert](sldfj)  
 [Blog Posts](sldkfjs)  
 [And References](sldkfj)  
