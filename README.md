@@ -59,7 +59,7 @@ This is the simplest of the config builders. It draws its values from Environmen
 ```xml
 <add name="UserSecrets"
     [mode|prefix|stripPrefix]
-    (userSecretId="12345678-90AB-CDEF-1234-567890" | userSecretFile="~\secrets.file")
+    (userSecretsId="12345678-90AB-CDEF-1234-567890" | userSecretsFile="~\secrets.file")
     [ignoreMissingFile="true"]
     type="Microsoft.Configuration.ConfigurationBuilders.UserSecretsConfigBuilder, Microsoft.Configuration.ConfigurationBuilders.UserSecrets" />
 ```
