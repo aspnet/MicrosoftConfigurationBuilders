@@ -31,6 +31,8 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         {
             base.Initialize(name, config);
 
+            _allSettings = new Dictionary<string, Dictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
+
             // IgnoreMissingFile
             bool ignoreMissing;
             IgnoreMissingFile = (Boolean.TryParse(config?[ignoreMissingFileTag], out ignoreMissing)) ? ignoreMissing : true;
@@ -42,8 +44,15 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                 throw new ArgumentException($"SimpleJsonConfigBuilder '{name}': Json file must be specified with the '{jsonFileTag}' attribute.");
             }
             JsonFile = Utils.MapPath(jsonFile);
-            if (!IgnoreMissingFile && !File.Exists(JsonFile))
+            if (!File.Exists(JsonFile))
             {
+                if (IgnoreMissingFile)
+                {
+                    // This empty dictionary allows us to effectively no-op any attempt to get values.
+                    _allSettings[""] = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                    return;
+                }
+
                 throw new ArgumentException($"SimpleJsonConfigBuilder '{name}': Json file does not exist.");
             }
 
@@ -56,7 +65,6 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
 
             // Now load up all the data for easy referencing later
-            _allSettings = new Dictionary<string, Dictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
             JObject root;
             using (JsonTextReader jtr = new JsonTextReader(new StreamReader(JsonFile))) {
                 root = JObject.Load(jtr);
