@@ -94,7 +94,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             if (!String.IsNullOrWhiteSpace(root))
                 return Path.Combine(root, "Microsoft", "UserSecrets", secretsId, "secrets.xml");
 
-            return Path.Combine(Utils.MapPath(@"~\App_Data"), "UserSecrets", secretsId, "secrets.xml");
+            return null;
         }
 
         // This is an implementation detail and subject to change - but the secrets file is xml-based and fits this format:
