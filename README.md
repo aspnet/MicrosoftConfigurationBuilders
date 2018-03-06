@@ -63,9 +63,13 @@ This is the simplest of the config builders. It draws its values from Environmen
     [optional="true"]
     type="Microsoft.Configuration.ConfigurationBuilders.UserSecretsConfigBuilder, Microsoft.Configuration.ConfigurationBuilders.UserSecrets" />
 ```
-To enable a feature similar to .Net Core's user secrets you can use this config builder. Microsoft is considering future plans to better integrate secret management
-into Visual Studio, and full-framework projects would use this config builder. In order to keep external dependencies out of the picture, the actual secret file will
-be xml formatted. (If you need to share a secrets.json file with Core projects, you could consider using the `SimpleJsonConfigBuilder` below.)
+To enable a feature similar to .Net Core's user secrets you can use this config builder. Microsoft is adding better secrets management in future releases
+of Visual Studio, and this config builder will be a part of that plan. Web Applications are the initial target for this work in Visual Studio, but this
+configuration builder can be used in any full-framework project if you specify your own secrets file. (Or define the 'UserSecretsId' property in your
+project file and create the raw secrets file in the correct location for reading.) In order to keep external dependencies out of the picture, the
+actual secret file will be xml formatted - though this should be considered an implementation detail, and the format should not be relied upon.
+(If you need to share a secrets.json file with Core projects, you could consider using the `SimpleJsonConfigBuilder` below... but as with this
+builder, the json format for Core secrets is technically an implementation detail subject to change as well.)
 
 There are three additional configuration attributes for this config builder:
   * `userSecretsId` - This is the preferred method for identifying an xml secrets file. It works similar to .Net Core, which uses a 'UserSecretsId' project
