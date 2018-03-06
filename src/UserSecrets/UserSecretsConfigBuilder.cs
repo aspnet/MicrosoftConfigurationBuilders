@@ -24,8 +24,8 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         {
             base.Initialize(name, config);
 
-            bool ignoreMissing;
-            Optional = (Boolean.TryParse(config?[optionalTag], out ignoreMissing)) ? ignoreMissing : true;
+            bool optional;
+            Optional = (Boolean.TryParse(config?[optionalTag], out optional)) ? optional : true;
 
             // Explicit file reference takes precedence over an identifier.
             string secretsFile = config?[userSecretsFileTag];

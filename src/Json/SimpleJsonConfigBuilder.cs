@@ -16,7 +16,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
     public class SimpleJsonConfigBuilder : KeyValueConfigBuilder
     {
         public const string jsonFileTag = "jsonFile";
-        public const string ignoreMissingFileTag = "ignoreMissingFile";
+        public const string optionalTag = "optional";
         public const string jsonModeTag = "jsonMode";
         public const string keyDelimiter = ":";
 
@@ -24,7 +24,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         private Dictionary<string, Dictionary<string, string>> _allSettings;
 
         public string JsonFile { get; protected set; }
-        public bool IgnoreMissingFile { get; protected set; }
+        public bool Optional { get; protected set; }
         public SimpleJsonConfigBuilderMode JsonMode { get; protected set; } = SimpleJsonConfigBuilderMode.Flat; // Flat dictionary, like core secrets.json
 
         public override void Initialize(string name, NameValueCollection config)
@@ -33,9 +33,9 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
             _allSettings = new Dictionary<string, Dictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
 
-            // IgnoreMissingFile
-            bool ignoreMissing;
-            IgnoreMissingFile = (Boolean.TryParse(config?[ignoreMissingFileTag], out ignoreMissing)) ? ignoreMissing : true;
+            // Optional
+            bool optional;
+            Optional = (Boolean.TryParse(config?[optionalTag], out optional)) ? optional : true;
 
             // JsonFile
             string jsonFile = config?[jsonFileTag];
@@ -46,7 +46,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             JsonFile = Utils.MapPath(jsonFile);
             if (!File.Exists(JsonFile))
             {
-                if (IgnoreMissingFile)
+                if (Optional)
                 {
                     // This empty dictionary allows us to effectively no-op any attempt to get values.
                     _allSettings[""] = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);

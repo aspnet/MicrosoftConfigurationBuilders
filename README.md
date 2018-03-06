@@ -101,7 +101,7 @@ up connection information from the execution environment.
 <add name="SimpleJson"
     [mode|prefix|stripPrefix]
     jsonFile="~\config.json"
-    [ignoreMissingFile="true"]
+    [optional="true"]
     [jsonMode="(Flat|Sectional)"]
     type="Microsoft.Configuration.ConfigurationBuilders.SimpleJsonConfigBuilder, Microsoft.Configuration.ConfigurationBuilders.Json" />
 ```
@@ -114,7 +114,7 @@ begins with 'Simple.' Think of the backing json file as a simple dictionary, rat
 
 There are three additional attributes that can be used to configure this builder:
   * `jsonFile` - A required attribute specifying the json file to draw from. The '~' character can be used at the start to reference the app root.
-  * `ignoreMissingFile` - A simple boolean to avoid throwing exceptions if the secrets file cannot be found. The default is `true`.
+  * `optional` - A simple boolean to avoid throwing exceptions if the json file cannot be found. The default is `true`.
   * `jsonMode` - `[Flat|Sectional]`. 'Flat' is the default.
     - This attribute requires a little more explanation. It says above to think of the json file as a single flat key/value source. This is the usual that applies to other key/value config builders like `EnvironmentConfigBuilder` and `AzureKeyVaultConfigBuilder` because those sources provide no other option. If the `SimpleJsonConfigBuilder` is configured in 'Sectional' mode, then the json file is conceptually divided just at the top level into multiple simple dictionaries. Each one of those dictionaries will only be applied to the config section that matches the top-level property name attached to them. For example:
 ```json
