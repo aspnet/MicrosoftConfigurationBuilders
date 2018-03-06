@@ -12,30 +12,26 @@ namespace Microsoft.Configuration.ConfigurationBuilders
     {
         public const string userSecretsFileTag = "userSecretsFile";
         public const string userSecretsIdTag = "userSecretsId";
-        public const string ignoreMissingFileTag = "ignoreMissingFile";
+        public const string optionalTag = "optional";
 
         private ConcurrentDictionary<string, string> _secrets;
 
         public string UserSecretsId { get; protected set; }
         public string UserSecretsFile { get; protected set; }
-        public bool IgnoreMissingFile { get; protected set; }
+        public bool Optional { get; protected set; }
 
         public override void Initialize(string name, NameValueCollection config)
         {
             base.Initialize(name, config);
 
             bool ignoreMissing;
-            IgnoreMissingFile = (Boolean.TryParse(config?[ignoreMissingFileTag], out ignoreMissing)) ? ignoreMissing : true;
+            Optional = (Boolean.TryParse(config?[optionalTag], out ignoreMissing)) ? ignoreMissing : true;
 
             // Explicit file reference takes precedence over an identifier.
             string secretsFile = config?[userSecretsFileTag];
             if (String.IsNullOrWhiteSpace(secretsFile))
             {
                 string secretsId = config?[userSecretsIdTag];
-                if (String.IsNullOrWhiteSpace(secretsId))
-                {
-                    throw new ArgumentException($"UserSecretsConfigBuilder '{name}': Secrets file must be specified with either the '{userSecretsFileTag}' or the '{userSecretsIdTag}' attribute.");
-                }
                 secretsFile = GetSecretsFileFromId(secretsId);
             }
 
@@ -44,9 +40,14 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             {
                 ReadUserSecrets(UserSecretsFile);
             }
-            else if (!IgnoreMissingFile)
+            else if (!Optional)
             {
                 throw new ArgumentException($"UserSecretsConfigBuilder '{name}': Secrets file does not exist.");
+            }
+            else
+            {
+                // If the file was optional and not found, create an empty collection to effectively no-op GetValue.
+                _secrets = new ConcurrentDictionary<string, string>();
             }
         }
 
@@ -66,6 +67,21 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         // This method is based heavily on .Net Core's Config.UserSecrets project in an attempt to keep similar conventions. 
         private string GetSecretsFileFromId(string secretsId)
         {
+            // The common VS scenario will leave this Id attribute empty, or as a place-holding token. In that case,
+            // go look up the user secrets id from the magic file.
+            if (String.IsNullOrWhiteSpace(secretsId) || secretsId.Equals("${UserSecretsId}", StringComparison.InvariantCultureIgnoreCase))
+            {
+                // The magic file should be deployed in our codebase
+                string codebase = System.Reflection.Assembly.GetExecutingAssembly().CodeBase;
+                string localpath = new Uri(codebase).LocalPath;
+                string magicId = File.ReadAllText(localpath + ".UserSecretsId.txt");
+
+                if (!String.IsNullOrWhiteSpace(magicId))
+                {
+                    secretsId = magicId.Trim();
+                }
+            }
+
             // Make sure the identifier is legal for file paths.
             int badCharIndex = secretsId.IndexOfAny(Path.GetInvalidFileNameChars());
             if (badCharIndex != -1)
@@ -74,7 +90,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             }
 
             string root = Environment.GetEnvironmentVariable("APPDATA") ?? Environment.GetEnvironmentVariable("HOME");
-            
+
             if (!String.IsNullOrWhiteSpace(root))
                 return Path.Combine(root, "Microsoft", "UserSecrets", secretsId, "secrets.xml");
 

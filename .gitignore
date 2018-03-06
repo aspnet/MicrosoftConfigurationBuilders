@@ -6,5 +6,5 @@ test/**/[Bb]in/
 test/**/[Oo]bj/
 .vs/
 msbuild.*
-packages/
+/packages/
 samples/ConfigBuildersSample/ConfigBuildersSample/Bin/

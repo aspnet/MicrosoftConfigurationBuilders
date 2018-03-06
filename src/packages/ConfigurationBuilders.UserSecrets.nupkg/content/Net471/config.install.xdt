@@ -3,24 +3,10 @@
 
   <configBuilders xdt:Transform="InsertAfter(/configuration/configSections)" />
 
-  <!-- First, try using $(UserSecretsId) property from the project file. -->
-  <!-- And yes, this is atrocious xml styling, but it get comments inserted AND tied to our 'add' entry so it can be removed by us as well. -->
+  <!-- Always configure for $(UserSecretsId), since the VS dev scenario is the target use case for this feature -->
   <configBuilders xdt:Locator="XPath(/configuration/configBuilders[last()])">
     <builders xdt:Transform="InsertIfMissing">
-      <add name="Secrets" xdt:Locator="Match(name)" xdt:Transform="InsertIfMissing" userSecretsId="$UserSecretsId$" type="Microsoft.Configuration.ConfigurationBuilders.UserSecretsConfigBuilder, Microsoft.Configuration.ConfigurationBuilders.UserSecrets, Version=$version$, Culture=neutral">
-        <!-- The attribute 'userSecretsId' should match the MSBuild property '$(UserSecretsId)' for this project if using "Manage User Secrets" in Visual Studio. -->
-        <!-- Alternatively, a direct pointer to a secrets file can be supplied with the attribute 'userSecretsFile' attribute. -->
-      </add>
-    </builders>
-  </configBuilders>
-
-  <!-- If $(UserSecretsId) property doesn't exist, link directly to a file. -->
-  <configBuilders xdt:Locator="XPath(/configuration/configBuilders[last()])">
-    <builders>
-      <add name="Secrets" xdt:Locator="Condition(@name = 'Secrets' and @userSecretsId = '')" xdt:Transform="Replace" userSecretsFile="~/App_Data/secrets.xml" type="Microsoft.Configuration.ConfigurationBuilders.UserSecretsConfigBuilder, Microsoft.Configuration.ConfigurationBuilders.UserSecrets, Version=$version$, Culture=neutral">
-        <!-- If using the "Manage User Secrets" feature in Visual Studio, use the 'userSecretsId' instead of the 'userSecretsFile' attribute. -->
-        <!-- The 'userSecretsId' attribute should match the MSBuild property '$(UserSecretsId)'. -->
-      </add>
+      <add name="Secrets" xdt:Locator="Match(name)" xdt:Transform="InsertIfMissing" type="Microsoft.Configuration.ConfigurationBuilders.UserSecretsConfigBuilder, Microsoft.Configuration.ConfigurationBuilders.UserSecrets, Version=$version$, Culture=neutral" />
     </builders>
   </configBuilders>
 

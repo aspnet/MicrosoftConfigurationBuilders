@@ -13,7 +13,7 @@
     <projectUrl>http://www.asp.net/</projectUrl>
     <licenseUrl>http://www.microsoft.com/web/webpi/eula/net_library_eula_ENU.htm</licenseUrl>
     <requireLicenseAcceptance>true</requireLicenseAcceptance>
-    <tags>Microsoft Configuration Builders Environment</tags>
+    <tags>Microsoft Configuration Builders - Environment</tags>
 
     <dependencies>
       <dependency id="Microsoft.Configuration.ConfigurationBuilders.Base" version="[$NuGetPackageVersion$]" />

@@ -60,7 +60,7 @@ This is the simplest of the config builders. It draws its values from Environmen
 <add name="UserSecrets"
     [mode|prefix|stripPrefix]
     (userSecretsId="12345678-90AB-CDEF-1234-567890" | userSecretsFile="~\secrets.file")
-    [ignoreMissingFile="true"]
+    [optional="true"]
     type="Microsoft.Configuration.ConfigurationBuilders.UserSecretsConfigBuilder, Microsoft.Configuration.ConfigurationBuilders.UserSecrets" />
 ```
 To enable a feature similar to .Net Core's user secrets you can use this config builder. Microsoft is considering future plans to better integrate secret management
@@ -70,11 +70,12 @@ be xml formatted. (If you need to share a secrets.json file with Core projects, 
 There are three additional configuration attributes for this config builder:
   * `userSecretsId` - This is the preferred method for identifying an xml secrets file. It works similar to .Net Core, which uses a 'UserSecretsId' project
   property to store this identifier. (The string does not have to be a Guid. Just unique. The VS "Manage User Secrets" experience produces a Guid.) With this
-  attribute, the `UserSecretsConfigBuilder` will look in a well-known local location for a secrets file belonging to this identifier. One of this attribute or
-  the 'userSecretsFile' attribute is required.
+  attribute, the `UserSecretsConfigBuilder` will look in a well-known local location for a secrets file belonging to this identifier. In MSBuild environments,
+  the value of this attribute will be replaced with the project property $(UserSecretsId) in the output directory iff the initial value is '${UserSecretsId}'.
+  One of this attribute or the 'userSecretsFile' attribute is required.
   * `userSecretsFile` - An optional attribute specifying the file containing the secrets. The '~' character can be used at the start to reference the app root.
   One of this attribute or the 'userSecretsId' attribute is required. If both are specified, 'userSecretsFile' takes precedence.
-  * `ignoreMissingFile` - A simple boolean to avoid throwing exceptions if the secrets file cannot be found. The default is `true`.
+  * `optional` - A simple boolean to avoid throwing exceptions if the secrets file cannot be found. The default is `true`.
 
 ### AzureKeyVaultConfigBuilder
 ```xml
