@@ -7,4 +7,5 @@ test/**/[Oo]bj/
 .vs/
 msbuild.*
 /packages/
-samples/ConfigBuildersSample/ConfigBuildersSample/Bin/
+samples/SampleWebApp/bin/
+samples/SampleWebApp/obj/
