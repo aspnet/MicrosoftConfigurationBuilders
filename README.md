@@ -1,6 +1,6 @@
 # Configuration Builders
 
-Configuration Builders are a new feature of the full .Net Framework, introduced in .Net 4.7.1. You can read about the concept in [this blog post](http://www.msdn.com).
+Configuration Builders are a new feature of the full .Net Framework, introduced in .Net 4.7.1. You can read about the concept in [this blog post](http://jeffreyfritz.com/2017/11/modern-configuration-for-asp-net-4-7-1-with-configurationbuilders/).
 With this project, Microsoft is providing a basic set of Configuration Builders that should make it easy for developers to get started with the new feature. They
 are also intended to address some of the basic needs of applications as they move into a container and cloud focused environment.
 
@@ -87,17 +87,15 @@ There are three additional configuration attributes for this config builder:
     [mode|prefix|stripPrefix]
     (vaultName="MyVaultName" |
      uri="https://MyVaultName.vault.azure.net")
-    [clientId="12345678-9012-3456-7890-123456789012"
-     clientSecret="8eNKl240FSfhgY909unhg23DKNj3b2cOO8bVvd+wdCc="]
+    [connectionString="connection string"]
     type="Microsoft.Configuration.ConfigurationBuilders.AzureKeyVaultConfigBuilder, Microsoft.Configuration.ConfigurationBuilders.Azure" />
 ```
-If your secrets are kept in Azure Key Vault, then this config builder is for you. There are four additional attributes for this config builder. The `vaultName` is
+If your secrets are kept in Azure Key Vault, then this config builder is for you. There are three additional attributes for this config builder. The `vaultName` is
 required. The other attributes allow you some manual control about which vault to connect to, but are only necessary if the application is not running in an
-environment that works well with `Microsoft.Azure.Services.AppAuthentication`. Otherwise, the Azure Services Authentication library is used to automatically pick
-up connection information from the execution environment.
+environment that works magically with `Microsoft.Azure.Services.AppAuthentication`. The Azure Services Authentication library is used to automatically pick
+up connection information from the execution environment if possible, but you can override that feature by providing a connection string instead.
   * `vaultName` - This is a required attribute. It specifies the name of the vault in your Azure subscription from which to read key/value pairs.
-  * `clientId` - This is the Azure Active Directory App Id. A string representation of a GUID.
-  * `clientSecret` - This is the Azure Active Directory App Key. A string.
+  * `connectionString` - A connection string usable by [AzureServiceTokenProvider](https://docs.microsoft.com/en-us/azure/key-vault/service-to-service-authentication#connection-string-support)
   * `uri` - Connect to other Key Vault providers with this attribute. If not specified, Azure is the assumed Vault provider. If the uri _is_specified, then `vaultName` is no longer a required parameter.
 
 ### SimpleJsonConfigBuilder
@@ -163,7 +161,6 @@ public class CustomConfigBuilder : KeyValueConfigBuilder
 ```
 
 ## Blog Posts
-[Insert](sldfj)  
-[Blog Posts](sldkfjs)  
-[And References](sldkfj)  
-[Here](lskdjf)  
+[.Net Framework 4.7.1 ASP.NET and Configuration features](https://blogs.msdn.microsoft.com/dotnet/2017/09/13/net-framework-4-7-1-asp-net-and-configuration-features/)
+[Modern Configuration for ASP.NET 4.7.1 with ConfigurationBuilders](http://jeffreyfritz.com/2017/11/modern-configuration-for-asp-net-4-7-1-with-configurationbuilders/)  
+[Service-to-service authentication to Azure Key Vault using .NET](https://docs.microsoft.com/en-us/azure/key-vault/service-to-service-authentication#connection-string-support)
