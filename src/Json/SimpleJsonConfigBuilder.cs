@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT license.
+
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
@@ -16,7 +19,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
     public class SimpleJsonConfigBuilder : KeyValueConfigBuilder
     {
         public const string jsonFileTag = "jsonFile";
-        public const string ignoreMissingFileTag = "ignoreMissingFile";
+        public const string optionalTag = "optional";
         public const string jsonModeTag = "jsonMode";
         public const string keyDelimiter = ":";
 
@@ -24,16 +27,18 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         private Dictionary<string, Dictionary<string, string>> _allSettings;
 
         public string JsonFile { get; protected set; }
-        public bool IgnoreMissingFile { get; protected set; }
+        public bool Optional { get; protected set; }
         public SimpleJsonConfigBuilderMode JsonMode { get; protected set; } = SimpleJsonConfigBuilderMode.Flat; // Flat dictionary, like core secrets.json
 
         public override void Initialize(string name, NameValueCollection config)
         {
             base.Initialize(name, config);
 
-            // IgnoreMissingFile
-            bool ignoreMissing;
-            IgnoreMissingFile = (Boolean.TryParse(config?[ignoreMissingFileTag], out ignoreMissing)) ? ignoreMissing : true;
+            _allSettings = new Dictionary<string, Dictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
+
+            // Optional
+            bool optional;
+            Optional = (Boolean.TryParse(config?[optionalTag], out optional)) ? optional : true;
 
             // JsonFile
             string jsonFile = config?[jsonFileTag];
@@ -42,8 +47,15 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                 throw new ArgumentException($"SimpleJsonConfigBuilder '{name}': Json file must be specified with the '{jsonFileTag}' attribute.");
             }
             JsonFile = Utils.MapPath(jsonFile);
-            if (!IgnoreMissingFile && !File.Exists(JsonFile))
+            if (!File.Exists(JsonFile))
             {
+                if (Optional)
+                {
+                    // This empty dictionary allows us to effectively no-op any attempt to get values.
+                    _allSettings[""] = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                    return;
+                }
+
                 throw new ArgumentException($"SimpleJsonConfigBuilder '{name}': Json file does not exist.");
             }
 
@@ -56,7 +68,6 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
 
             // Now load up all the data for easy referencing later
-            _allSettings = new Dictionary<string, Dictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
             JObject root;
             using (JsonTextReader jtr = new JsonTextReader(new StreamReader(JsonFile))) {
                 root = JObject.Load(jtr);

@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT license.
+
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Specialized;
@@ -14,13 +17,11 @@ namespace Microsoft.Configuration.ConfigurationBuilders
     public class AzureKeyVaultConfigBuilder : KeyValueConfigBuilder
     {
         public const string vaultNameTag = "vaultName";
-        public const string clientIdTag = "clientId";
-        public const string clientSecretTag = "clientSecret";
+        public const string connectionStringTag = "connectionString";
         public const string uriTag = "uri";
 
         private string _vaultName;
-        private string _clientId;
-        private string _clientSecret;
+        private string _connectionString;
         private string _uri;
 
         private KeyVaultClient _kvClient;
@@ -42,24 +43,12 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             }
             _uri = _uri.TrimEnd(new char[] { '/' });
 
-            string tmp = config?[clientIdTag];
-            _clientId = (String.IsNullOrWhiteSpace(tmp)) ? null : tmp;
-            tmp = config?[clientSecretTag];
-            _clientSecret = (String.IsNullOrWhiteSpace(tmp)) ? null : tmp;
+            _connectionString = config?[connectionStringTag];
+            _connectionString = String.IsNullOrWhiteSpace(_connectionString) ? null : _connectionString;
 
-
-            // If Client ID and Secret are provided, connect to KeyVault that way.
-            if (!String.IsNullOrWhiteSpace(_clientId) && !String.IsNullOrWhiteSpace(_clientSecret))
-            {
-                _kvClient = new KeyVaultClient(new KeyVaultClient.AuthenticationCallback(GetTokenFromClientSecret));
-            }
-
-            // Otherwise, fall back on the magic of Microsoft.Azure.Services.AppAuthentication.
-            else
-            {
-                AzureServiceTokenProvider tokenProvider = new AzureServiceTokenProvider();
-                _kvClient = new KeyVaultClient(new KeyVaultClient.AuthenticationCallback(tokenProvider.KeyVaultTokenCallback));
-            }
+            // Connect to KeyValut
+            AzureServiceTokenProvider tokenProvider = new AzureServiceTokenProvider(_connectionString);
+            _kvClient = new KeyVaultClient(new KeyVaultClient.AuthenticationCallback(tokenProvider.KeyVaultTokenCallback));
 
             _allKeys = GetAllKeys();
         }
@@ -98,18 +87,6 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             }
 
             return null;
-        }
-
-        private async Task<string> GetTokenFromClientSecret(string authority, string resource, string scope)
-        {
-            AuthenticationContext authContext = new AuthenticationContext(authority);
-            ClientCredential clientCred = new ClientCredential(_clientId, _clientSecret);
-            AuthenticationResult result = await authContext.AcquireTokenAsync(resource, clientCred);
-
-            if (result == null)
-                throw new InvalidOperationException("Failed to obtain token from client secret.");
-
-            return result.AccessToken;
         }
 
         private List<string> GetAllKeys()

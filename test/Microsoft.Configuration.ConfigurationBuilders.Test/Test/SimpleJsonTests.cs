@@ -18,7 +18,7 @@ namespace Test
         // ======================================================================
         //    - See Parameters section of BaseTests for examples
         // jsonFile
-        // ignoreMissingFile
+        // optional
         // jsonMode
 
         // ======================================================================
@@ -40,6 +40,6 @@ namespace Test
         // ======================================================================
         // Make sure various expected exceptions from SimpleJson contain the name of the builder
         // no file specified
-        // can't find file and ignoreMissingFile is false
+        // can't find file and optional is false
     }
 }

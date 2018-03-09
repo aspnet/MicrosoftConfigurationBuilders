@@ -7,7 +7,7 @@
   <!-- Configurable properties-->
 
   <PropertyGroup>
-    <BuildQuality Condition="'$(BuildQuality)' == ''">alpha1</BuildQuality>
+    <BuildQuality Condition="'$(BuildQuality)' == ''">preview2</BuildQuality>
     <VersionStartYear>2016</VersionStartYear>
     <VersionMajor>1</VersionMajor>
     <VersionMinor>0</VersionMinor>
@@ -16,7 +16,7 @@
   </PropertyGroup>
 
   <PropertyGroup Label="NuGet package dependencies">
-    <MicrosoftConfigurationBuildersNuGetPackageVersion>1.0.0-alpha1</MicrosoftConfigurationBuildersNuGetPackageVersion>
+    <MicrosoftConfigurationBuildersNuGetPackageVersion>1.0.0-preview2</MicrosoftConfigurationBuildersNuGetPackageVersion>
   </PropertyGroup>
 
   <!-- Default properties -->

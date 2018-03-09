@@ -11,6 +11,7 @@
 
   <ItemGroup Condition="'$(BuildCoreOnly)' != 'true'">
     <AssemblyProject Include="test\Microsoft.Configuration.ConfigurationBuilders.Test\Test\Test.csproj" />
+    <AssemblyProject Include="samples\SampleWebApp\SampleWebApp.csproj" />
   </ItemGroup>
 
   <ItemGroup>
