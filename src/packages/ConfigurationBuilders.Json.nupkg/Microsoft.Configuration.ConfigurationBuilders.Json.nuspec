@@ -10,7 +10,7 @@
     <description>A simple key/value Configuration Builder for the .Net Desktop Framework that draws from a json file.</description>
     <summary>A simple key/value Configuration Builder for the .Net Desktop Framework that draws from a json file.</summary>
     <language>en-US</language>
-    <projectUrl>http://www.asp.net/</projectUrl>
+    <projectUrl>https://github.com/aspnet/MicrosoftConfigurationBuilders</projectUrl>
     <licenseUrl>http://www.microsoft.com/web/webpi/eula/net_library_eula_ENU.htm</licenseUrl>
     <requireLicenseAcceptance>true</requireLicenseAcceptance>
     <tags>Microsoft Configuration Builders Json</tags>

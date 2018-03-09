@@ -10,7 +10,7 @@
     <description>A set of Configuration Builders for the .Net Desktop Framework that draw from Azure resources.</description>
     <summary>A set of Configuration Builders for the .Net Desktop Framework that draw from Azure resources.</summary>
     <language>en-US</language>
-    <projectUrl>http://www.asp.net/</projectUrl>
+    <projectUrl>https://github.com/aspnet/MicrosoftConfigurationBuilders</projectUrl>
     <licenseUrl>http://www.microsoft.com/web/webpi/eula/net_library_eula_ENU.htm</licenseUrl>
     <requireLicenseAcceptance>true</requireLicenseAcceptance>
     <tags>Microsoft Configuration Builders Azure</tags>
