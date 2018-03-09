@@ -10,14 +10,14 @@
     <description>A simple key/value Configuration Builder for the .Net Desktop Framework that draws from a json file.</description>
     <summary>A simple key/value Configuration Builder for the .Net Desktop Framework that draws from a json file.</summary>
     <language>en-US</language>
-    <projectUrl>http://www.asp.net/</projectUrl>
+    <projectUrl>https://github.com/aspnet/MicrosoftConfigurationBuilders</projectUrl>
     <licenseUrl>http://www.microsoft.com/web/webpi/eula/net_library_eula_ENU.htm</licenseUrl>
     <requireLicenseAcceptance>true</requireLicenseAcceptance>
     <tags>Microsoft Configuration Builders Json</tags>
 
     <dependencies>
       <dependency id="Microsoft.Configuration.ConfigurationBuilders.Base" version="[$NuGetPackageVersion$]" />
-      <dependency id="Newtonsoft.Json" version="10.0.1" />
+      <dependency id="Newtonsoft.Json" version="11.0" />
     </dependencies>
   </metadata>
 </package>

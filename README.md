@@ -1,6 +1,6 @@
 # Configuration Builders
 
-Configuration Builders are a new feature of the full .Net Framework, introduced in .Net 4.7.1. You can read about the concept in [this blog post](http://www.msdn.com).
+Configuration Builders are a new feature of the full .Net Framework, introduced in .Net 4.7.1. You can read about the concept in [this blog post](http://jeffreyfritz.com/2017/11/modern-configuration-for-asp-net-4-7-1-with-configurationbuilders/).
 With this project, Microsoft is providing a basic set of Configuration Builders that should make it easy for developers to get started with the new feature. They
 are also intended to address some of the basic needs of applications as they move into a container and cloud focused environment.
 
@@ -59,22 +59,27 @@ This is the simplest of the config builders. It draws its values from Environmen
 ```xml
 <add name="UserSecrets"
     [mode|prefix|stripPrefix]
-    (userSecretId="12345678-90AB-CDEF-1234-567890" | userSecretFile="~\secrets.file")
-    [ignoreMissingFile="true"]
+    (userSecretsId="12345678-90AB-CDEF-1234-567890" | userSecretsFile="~\secrets.file")
+    [optional="true"]
     type="Microsoft.Configuration.ConfigurationBuilders.UserSecretsConfigBuilder, Microsoft.Configuration.ConfigurationBuilders.UserSecrets" />
 ```
-To enable a feature similar to .Net Core's user secrets you can use this config builder. Microsoft is considering future plans to better integrate secret management
-into Visual Studio, and full-framework projects would use this config builder. In order to keep external dependencies out of the picture, the actual secret file will
-be xml formatted. (If you need to share a secrets.json file with Core projects, you could consider using the `SimpleJsonConfigBuilder` below.)
+To enable a feature similar to .Net Core's user secrets you can use this config builder. Microsoft is adding better secrets management in future releases
+of Visual Studio, and this config builder will be a part of that plan. Web Applications are the initial target for this work in Visual Studio, but this
+configuration builder can be used in any full-framework project if you specify your own secrets file. (Or define the 'UserSecretsId' property in your
+project file and create the raw secrets file in the correct location for reading.) In order to keep external dependencies out of the picture, the
+actual secret file will be xml formatted - though this should be considered an implementation detail, and the format should not be relied upon.
+(If you need to share a secrets.json file with Core projects, you could consider using the `SimpleJsonConfigBuilder` below... but as with this
+builder, the json format for Core secrets is technically an implementation detail subject to change as well.)
 
 There are three additional configuration attributes for this config builder:
   * `userSecretsId` - This is the preferred method for identifying an xml secrets file. It works similar to .Net Core, which uses a 'UserSecretsId' project
   property to store this identifier. (The string does not have to be a Guid. Just unique. The VS "Manage User Secrets" experience produces a Guid.) With this
-  attribute, the `UserSecretsConfigBuilder` will look in a well-known local location for a secrets file belonging to this identifier. One of this attribute or
-  the 'userSecretsFile' attribute is required.
+  attribute, the `UserSecretsConfigBuilder` will look in a well-known local location for a secrets file belonging to this identifier. In MSBuild environments,
+  the value of this attribute will be replaced with the project property $(UserSecretsId) in the output directory iff the initial value is '${UserSecretsId}'.
+  One of this attribute or the 'userSecretsFile' attribute is required.
   * `userSecretsFile` - An optional attribute specifying the file containing the secrets. The '~' character can be used at the start to reference the app root.
   One of this attribute or the 'userSecretsId' attribute is required. If both are specified, 'userSecretsFile' takes precedence.
-  * `ignoreMissingFile` - A simple boolean to avoid throwing exceptions if the secrets file cannot be found. The default is `true`.
+  * `optional` - A simple boolean to avoid throwing exceptions if the secrets file cannot be found. The default is `true`.
 
 ### AzureKeyVaultConfigBuilder
 ```xml
@@ -82,17 +87,15 @@ There are three additional configuration attributes for this config builder:
     [mode|prefix|stripPrefix]
     (vaultName="MyVaultName" |
      uri="https://MyVaultName.vault.azure.net")
-    [clientId="12345678-9012-3456-7890-123456789012"
-     clientSecret="8eNKl240FSfhgY909unhg23DKNj3b2cOO8bVvd+wdCc="]
+    [connectionString="connection string"]
     type="Microsoft.Configuration.ConfigurationBuilders.AzureKeyVaultConfigBuilder, Microsoft.Configuration.ConfigurationBuilders.Azure" />
 ```
-If your secrets are kept in Azure Key Vault, then this config builder is for you. There are four additional attributes for this config builder. The `vaultName` is
+If your secrets are kept in Azure Key Vault, then this config builder is for you. There are three additional attributes for this config builder. The `vaultName` is
 required. The other attributes allow you some manual control about which vault to connect to, but are only necessary if the application is not running in an
-environment that works well with `Microsoft.Azure.Services.AppAuthentication`. Otherwise, the Azure Services Authentication library is used to automatically pick
-up connection information from the execution environment.
+environment that works magically with `Microsoft.Azure.Services.AppAuthentication`. The Azure Services Authentication library is used to automatically pick
+up connection information from the execution environment if possible, but you can override that feature by providing a connection string instead.
   * `vaultName` - This is a required attribute. It specifies the name of the vault in your Azure subscription from which to read key/value pairs.
-  * `clientId` - This is the Azure Active Directory App Id. A string representation of a GUID.
-  * `clientSecret` - This is the Azure Active Directory App Key. A string.
+  * `connectionString` - A connection string usable by [AzureServiceTokenProvider](https://docs.microsoft.com/en-us/azure/key-vault/service-to-service-authentication#connection-string-support)
   * `uri` - Connect to other Key Vault providers with this attribute. If not specified, Azure is the assumed Vault provider. If the uri _is_specified, then `vaultName` is no longer a required parameter.
 
 ### SimpleJsonConfigBuilder
@@ -100,7 +103,7 @@ up connection information from the execution environment.
 <add name="SimpleJson"
     [mode|prefix|stripPrefix]
     jsonFile="~\config.json"
-    [ignoreMissingFile="true"]
+    [optional="true"]
     [jsonMode="(Flat|Sectional)"]
     type="Microsoft.Configuration.ConfigurationBuilders.SimpleJsonConfigBuilder, Microsoft.Configuration.ConfigurationBuilders.Json" />
 ```
@@ -113,7 +116,7 @@ begins with 'Simple.' Think of the backing json file as a simple dictionary, rat
 
 There are three additional attributes that can be used to configure this builder:
   * `jsonFile` - A required attribute specifying the json file to draw from. The '~' character can be used at the start to reference the app root.
-  * `ignoreMissingFile` - A simple boolean to avoid throwing exceptions if the secrets file cannot be found. The default is `true`.
+  * `optional` - A simple boolean to avoid throwing exceptions if the json file cannot be found. The default is `true`.
   * `jsonMode` - `[Flat|Sectional]`. 'Flat' is the default.
     - This attribute requires a little more explanation. It says above to think of the json file as a single flat key/value source. This is the usual that applies to other key/value config builders like `EnvironmentConfigBuilder` and `AzureKeyVaultConfigBuilder` because those sources provide no other option. If the `SimpleJsonConfigBuilder` is configured in 'Sectional' mode, then the json file is conceptually divided just at the top level into multiple simple dictionaries. Each one of those dictionaries will only be applied to the config section that matches the top-level property name attached to them. For example:
 ```json
@@ -158,7 +161,6 @@ public class CustomConfigBuilder : KeyValueConfigBuilder
 ```
 
 ## Blog Posts
-[Insert](sldfj)  
-[Blog Posts](sldkfjs)  
-[And References](sldkfj)  
-[Here](lskdjf)  
+[.Net Framework 4.7.1 ASP.NET and Configuration features](https://blogs.msdn.microsoft.com/dotnet/2017/09/13/net-framework-4-7-1-asp-net-and-configuration-features/)
+[Modern Configuration for ASP.NET 4.7.1 with ConfigurationBuilders](http://jeffreyfritz.com/2017/11/modern-configuration-for-asp-net-4-7-1-with-configurationbuilders/)  
+[Service-to-service authentication to Azure Key Vault using .NET](https://docs.microsoft.com/en-us/azure/key-vault/service-to-service-authentication#connection-string-support)

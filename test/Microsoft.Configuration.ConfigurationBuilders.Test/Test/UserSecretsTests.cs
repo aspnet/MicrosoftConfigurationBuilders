@@ -19,7 +19,7 @@ namespace Test
         //    - See Parameters section of BaseTests for examples
         // userSecretsFile
         // userSecretsId
-        // ignoreMissingFile
+        // optional
         // Verify that userSecretsFile takes priority over userSecretsId when both are given
 
  
@@ -41,6 +41,6 @@ namespace Test
         // ======================================================================
         // Make sure various expected exceptions from UserSecrets contain the name of the builder
         // No file AND no ID specified
-        // File and/or ID specified, but can't be found and ignoreMissingFile = false
+        // File and/or ID specified, but can't be found and optional = false
     }
 }

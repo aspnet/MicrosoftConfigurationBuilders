@@ -1,11 +1,12 @@
 @ECHO OFF
 
 setlocal
+set EnableNuGetPackageRestore=true
 
 REM msbuild will compile in Debug mode by default. The nuget packages project is Release by default.
 REM Long story short... be explicit. Don't use defaults.
-REM set cfgOption=/p:Configuration=Release
- set cfgOption=/p:Configuration=Debug
+set cfgOption=/p:Configuration=Release
+REM set cfgOption=/p:Configuration=Debug
 REM set cfgOption=/p:Configuration=Debug;Release
 
 set logOptions=/flp:Summary;Verbosity=diag;LogFile=msbuild.log /flp1:warningsonly;logfile=msbuild.wrn /flp2:errorsonly;logfile=msbuild.err

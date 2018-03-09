@@ -1,0 +1,11 @@
+[Bb]in/
+[Oo]bj/
+src/**/[Bb]in/
+src/**/[Oo]bj/
+test/**/[Bb]in/
+test/**/[Oo]bj/
+.vs/
+msbuild.*
+/packages/
+samples/SampleWebApp/bin/
+samples/SampleWebApp/obj/
