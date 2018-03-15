@@ -3,10 +3,10 @@
 One of the easiest ways to contribute is to participate in discussions and discuss issues. You can also contribute by submitting pull requests with code changes.
 
 ## General feedback and discussions?
-Please start a discussion on the [Home repo issue tracker](https://github.com/aspnet/MicrosoftConfigurationBuilders/issues).
+Please start a discussion on the [ConfigurationBuilders repo issue tracker](https://github.com/aspnet/MicrosoftConfigurationBuilders/issues).
 
 ## Bugs and feature requests?
-For non-security related bugs please log a new issue on the [Home repo issue tracker](https://github.com/aspnet/MicrosoftConfigurationBuilders/issues).
+For non-security related bugs please log a new issue on the [ConfigurationBuilders repo issue tracker](https://github.com/aspnet/MicrosoftConfigurationBuilders/issues).
 
 ## Reporting security issues and bugs
 Security issues and bugs should be reported privately, via email, to the Microsoft Security Response Center (MSRC)  secure@microsoft.com. You should receive a response within 24 hours. If for some reason you do not, please follow up via email to ensure we received your original message. Further information, including the MSRC PGP key, can be found in the [Security TechCenter](https://technet.microsoft.com/en-us/security/ff852094.aspx).
