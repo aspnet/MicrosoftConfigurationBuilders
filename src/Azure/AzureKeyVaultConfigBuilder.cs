@@ -47,7 +47,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             if (String.IsNullOrWhiteSpace(_uri))
             {
                 if (String.IsNullOrWhiteSpace(_vaultName))
-                    throw new ArgumentException($"AzureKeyVaultConfigBuilder {name}: Vault must be specified by name or URI using the '{vaultNameTag}' or '{uriTag}' attribute.");
+                    throw new ArgumentException($"Vault must be specified by name or URI using the '{vaultNameTag}' or '{uriTag}' attribute.");
                 else
                     _uri = $"https://{_vaultName}.vault.azure.net";
             }
