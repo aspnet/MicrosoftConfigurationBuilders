@@ -15,11 +15,13 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         public const string modeTag = "mode";
         public const string prefixTag = "prefix";
         public const string stripPrefixTag = "stripPrefix";
+        public const string tokenPatternTag = "tokenPattern";
 
         private bool _greedyInited;
         private IDictionary<string, string> _cachedValues;
         private bool _stripPrefix = false;  // Prefix-stripping is all handled in this class; this is private so it doesn't confuse sub-classes.
 
+        public string TokenPattern { get; protected set; } = @"\$\{(\w+)\}";
         public KeyValueMode Mode { get; private set; } = KeyValueMode.Strict;
         public string KeyPrefix { get; private set; }
 
@@ -32,18 +34,21 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             {
                 base.Initialize(name, config);
 
-                KeyPrefix = config?[prefixTag] ?? "";
-
-                if (config != null && config[stripPrefixTag] != null)
+                // Override default config
+                if (config != null)
                 {
-                    // We want an exception here if 'stripPrefix' is specified but unrecognized.
-                    _stripPrefix = Boolean.Parse(config[stripPrefixTag]);
-                }
+                    KeyPrefix = config[prefixTag] ?? "";
+                    TokenPattern = config[tokenPatternTag] ?? TokenPattern;
 
-                if (config != null && config[modeTag] != null)
-                {
-                    // We want an exception here if 'mode' is specified but unrecognized.
-                    Mode = (KeyValueMode)Enum.Parse(typeof(KeyValueMode), config[modeTag], true);
+                    if (config[stripPrefixTag] != null) {
+                        // We want an exception here if 'stripPrefix' is specified but unrecognized.
+                        _stripPrefix = Boolean.Parse(config[stripPrefixTag]);
+                    }
+
+                    if (config[modeTag] != null) {
+                        // We want an exception here if 'mode' is specified but unrecognized.
+                        Mode = (KeyValueMode)Enum.Parse(typeof(KeyValueMode), config[modeTag], true);
+                    }
                 }
 
                 _cachedValues = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -115,7 +120,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             if (String.IsNullOrEmpty(rawXmlString))
                 return rawXml;
 
-            rawXmlString = Regex.Replace(rawXmlString, @"\$\{(\w+)\}", (m) =>
+            rawXmlString = Regex.Replace(rawXmlString, TokenPattern, (m) =>
                 {
                     string key = m.Groups[1].Value;
 
