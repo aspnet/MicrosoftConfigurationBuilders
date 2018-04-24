@@ -88,6 +88,8 @@ There are three additional configuration attributes for this config builder:
     (vaultName="MyVaultName" |
      uri="https://MyVaultName.vault.azure.net")
     [connectionString="connection string"]
+	[version="secrets version"]
+	[preloadSecretNames="true"]
     type="Microsoft.Configuration.ConfigurationBuilders.AzureKeyVaultConfigBuilder, Microsoft.Configuration.ConfigurationBuilders.Azure" />
 ```
 If your secrets are kept in Azure Key Vault, then this config builder is for you. There are three additional attributes for this config builder. The `vaultName` is
@@ -97,6 +99,10 @@ up connection information from the execution environment if possible, but you ca
   * `vaultName` - This is a required attribute. It specifies the name of the vault in your Azure subscription from which to read key/value pairs.
   * `connectionString` - A connection string usable by [AzureServiceTokenProvider](https://docs.microsoft.com/en-us/azure/key-vault/service-to-service-authentication#connection-string-support)
   * `uri` - Connect to other Key Vault providers with this attribute. If not specified, Azure is the assumed Vault provider. If the uri _is_specified, then `vaultName` is no longer a required parameter.
+  * `version` - Azure Key Vault provides a versioning feature for secrets. If this is specified, the builder will only retrieve secrets matching this version.
+  * `preloadSecretNames` - By default, this builder will query __all__ the key names in the key vault when it is initialized. If this is a concern, set
+  this attribute to 'false', and secrets will be retrieved one at a time. This could also be useful if the vault allows "Get" access but not
+  "List" access. (NOTE: Disabling preload is incompatible with Greedy mode.)
 
 ### SimpleJsonConfigBuilder
 ```xml
