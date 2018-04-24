@@ -38,7 +38,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             if (!Boolean.TryParse(config?[preloadTag], out _preload))
                 _preload = true;
             if (!_preload && Mode == KeyValueMode.Greedy)
-                throw new ArgumentException($"AzureKeyVaultConfigBuilder {name}: '{preloadTag}'='false' is not compatible with {KeyValueMode.Greedy} mode.");
+                throw new ArgumentException($"'{preloadTag}'='false' is not compatible with {KeyValueMode.Greedy} mode.");
 
             _uri = config?[uriTag];
             _vaultName = config?[vaultNameTag];
