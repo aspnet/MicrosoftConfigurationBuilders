@@ -28,84 +28,64 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
         public override void Initialize(string name, NameValueCollection config)
         {
-            try
+            base.Initialize(name, config);
+
+            KeyPrefix = config?[prefixTag] ?? "";
+
+            if (config != null && config[stripPrefixTag] != null)
             {
-                base.Initialize(name, config);
-
-                KeyPrefix = config?[prefixTag] ?? "";
-
-                if (config != null && config[stripPrefixTag] != null)
-                {
-                    // We want an exception here if 'stripPrefix' is specified but unrecognized.
-                    _stripPrefix = Boolean.Parse(config[stripPrefixTag]);
-                }
-
-                if (config != null && config[modeTag] != null)
-                {
-                    // We want an exception here if 'mode' is specified but unrecognized.
-                    Mode = (KeyValueMode)Enum.Parse(typeof(KeyValueMode), config[modeTag], true);
-                }
-
-                _cachedValues = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                // We want an exception here if 'stripPrefix' is specified but unrecognized.
+                _stripPrefix = Boolean.Parse(config[stripPrefixTag]);
             }
-            catch (Exception e)
+
+            if (config != null && config[modeTag] != null)
             {
-                throw new ConfigurationErrorsException($"Error while initializing Configuration Builder '{name}'. ({e.Message})", e);
+                // We want an exception here if 'mode' is specified but unrecognized.
+                Mode = (KeyValueMode)Enum.Parse(typeof(KeyValueMode), config[modeTag], true);
             }
+
+            _cachedValues = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         }
 
         public override XmlNode ProcessRawXml(XmlNode rawXml)
         {
-            try
-            {
-                if (Mode == KeyValueMode.Expand)
-                    return ExpandTokens(rawXml);
+            if (Mode == KeyValueMode.Expand)
+                return ExpandTokens(rawXml);
 
-                return rawXml;
-            }
-            catch (Exception e)
-            {
-                throw new ConfigurationErrorsException($"Error while processing xml in Configuration Builder '{Name}'. ({e.Message})", e);
-            }
+            return rawXml;
         }
 
         public override ConfigurationSection ProcessConfigurationSection(ConfigurationSection configSection)
         {
-            try {
-                // Expand mode works on the raw string input
-                if (Mode == KeyValueMode.Expand)
-                    return configSection;
+            // Expand mode works on the raw string input
+            if (Mode == KeyValueMode.Expand)
+                return configSection;
 
-                // In Greedy mode, we need to know all the key/value pairs from this config source. So we
-                // can't 'cache' them as we go along. Slurp them all up now. But only once. ;)
-                if ((Mode == KeyValueMode.Greedy) && (!_greedyInited))
+            // In Greedy mode, we need to know all the key/value pairs from this config source. So we
+            // can't 'cache' them as we go along. Slurp them all up now. But only once. ;)
+            if ((Mode == KeyValueMode.Greedy) && (!_greedyInited))
+            {
+                lock (_cachedValues)
                 {
-                    lock (_cachedValues)
+                    if (!_greedyInited)
                     {
-                        if (!_greedyInited)
+                        foreach (KeyValuePair<string, string> kvp in GetAllValuesInternal(KeyPrefix))
                         {
-                            foreach (KeyValuePair<string, string> kvp in GetAllValuesInternal(KeyPrefix))
-                            {
-                                _cachedValues.Add(kvp);
-                            }
-                            _greedyInited = true;
+                            _cachedValues.Add(kvp);
                         }
+                        _greedyInited = true;
                     }
                 }
-
-                if (configSection is AppSettingsSection) {
-                    return ProcessAppSettings((AppSettingsSection)configSection);
-                }
-                else if (configSection is ConnectionStringsSection) {
-                    return ProcessConnectionStrings((ConnectionStringsSection)configSection);
-                }
-
-                return configSection;
             }
-            catch (Exception e)
-            {
-                throw new ConfigurationErrorsException($"Error while processing configSection in Configuration Builder '{Name}'. ({e.Message})", e);
+
+            if (configSection is AppSettingsSection) {
+                return ProcessAppSettings((AppSettingsSection)configSection);
             }
+            else if (configSection is ConnectionStringsSection) {
+                return ProcessConnectionStrings((ConnectionStringsSection)configSection);
+            }
+
+            return configSection;
         }
 
         private XmlNode ExpandTokens(XmlNode rawXml)
@@ -239,7 +219,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             }
             catch (Exception e)
             {
-                throw new ConfigurationErrorsException($"Error in Configuration Builder '{Name}'::GetValue({key})", e);
+                throw new Exception($"Error in Configuration Builder '{Name}'::GetValue({key})", e);
             }
         }
 
@@ -251,7 +231,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             }
             catch (Exception e)
             {
-                throw new ConfigurationErrorsException($"Error in Configuration Builder '{Name}'::GetAllValues({prefix})", e);
+                throw new Exception($"Error in Configuration Builder '{Name}'::GetAllValues({prefix})", e);
             }
         }
     }
