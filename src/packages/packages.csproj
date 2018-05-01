@@ -40,7 +40,6 @@
       <SubType>Designer</SubType>
     </None>
     <None Include="ConfigurationBuilders.UserSecrets.nupkg\content\Net471\config.uninstall.xdt" />
-    <None Include="ConfigurationBuilders.UserSecrets.nupkg\tools\Net471\Install - Copy.ps1" />
     <None Include="ConfigurationBuilders.UserSecrets.nupkg\tools\Net471\Uninstall.ps1" />
     <None Include="ConfigurationBuilders.UserSecrets.nupkg\tools\Net471\Install.ps1" />
     <NuGetProject Include="ConfigurationBuilders.UserSecrets.nupkg\Microsoft.Configuration.ConfigurationBuilders.UserSecrets.nuproj" />

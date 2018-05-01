@@ -23,19 +23,19 @@ function EnsureUserSecretsId {
 
 function EnsureUserSecretsFile {
 	$datadir=$env:APPDATA
-	$datadirVariable='$(APPDATA)'
+	$dirpath=[io.path]::combine($datadir, "Microsoft", "UserSecrets", $userSecretsId)
+	$envpath=[io.path]::combine('$(APPDATA)', "Microsoft", "UserSecrets", $userSecretsId, "secrets.xml")
 	if ([string]::IsNullOrEmpty($datadir) -or !(Test-Path $datadir)) {
 		$datadir=$env:HOME
-		$datadirVariable='$(HOME)'
+		$dirpath=[io.path]::combine($datadir, ".microsoft", "usersecrets", $userSecretsId)
+		$envpath=[io.path]::combine('~', ".microsoft", "usersecrets", $userSecretsId, "secrets.xml")
 	}
 	if ([string]::IsNullOrEmpty($datadir) -or !(Test-Path $datadir)) {
-		return $null
+		return $null,$null
 	}
 
-	$dirpath=[io.path]::combine($datadir, "Microsoft", "UserSecrets", $userSecretsId)
 	$filepath=[io.path]::combine($dirpath, "secrets.xml")
 	$sourcepath=[io.path]::combine($installPath, "content", "sample.xml")
-	$envpath=[io.path]::combine($datadirVariable, "Microsoft", "UserSecrets", $userSecretsId, "secrets.xml")
 
 
 	# Don't overwrite an existing secrets file
