@@ -160,6 +160,10 @@ public class CustomConfigBuilder : KeyValueConfigBuilder
 }
 ```
 
+## How to contribute
+
+Information on contributing to this repo is in the [Contributing Guide](CONTRIBUTING.md).
+
 ## Blog Posts
 [Announcing .NET 4.7.1 Tools for the Cloud](https://blogs.msdn.microsoft.com/webdev/2017/11/17/announcing-net-4-7-1-tools-for-the-cloud/)
 [.Net Framework 4.7.1 ASP.NET and Configuration features](https://blogs.msdn.microsoft.com/dotnet/2017/09/13/net-framework-4-7-1-asp-net-and-configuration-features/)
