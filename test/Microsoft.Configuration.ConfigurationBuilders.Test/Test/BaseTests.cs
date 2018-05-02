@@ -359,6 +359,24 @@ namespace Test
             Assert.IsNull(GetValueFromXml(xmlOutput, "TestKey2"));
             Assert.IsNull(GetValueFromXml(xmlOutput, "TestKey1Value"));
 
+            // Expand - ProcessRawXml does not blow up with alternate tokenPattern with empty capture group
+            builder = new FakeConfigBuilder();
+            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Expand" }, { "tokenPattern", @"%(.?)%" } });
+            xmlInput = GetNode(rawXmlInput);
+            xmlOutput = builder.ProcessRawXml(xmlInput);
+            Assert.AreEqual("appSettings", xmlOutput.Name);
+            Assert.AreEqual("val1", GetValueFromXml(xmlOutput, "TestKey1"));
+            Assert.AreEqual("${TestKey1}", GetValueFromXml(xmlOutput, "test1"));
+            Assert.AreEqual("expandTestValue", GetValueFromXml(xmlOutput, "${TestKey1}"));
+            Assert.AreEqual("PrefixTest1", GetValueFromXml(xmlOutput, "TestKey"));
+            Assert.AreEqual("PrefixTest2", GetValueFromXml(xmlOutput, "Prefix_TestKey"));
+            Assert.AreEqual("${Prefix_TestKey1}", GetValueFromXml(xmlOutput, "PreTest2"));
+            Assert.AreEqual("%%Alt:Token%%", GetValueFromXml(xmlOutput, "AltTokenTest"));
+            Assert.AreEqual("%%Prefix_Alt:Token%%", GetValueFromXml(xmlOutput, "AltTokenTest2"));
+            Assert.IsNull(GetValueFromXml(xmlOutput, "Prefix_TestKey1"));
+            Assert.IsNull(GetValueFromXml(xmlOutput, "TestKey2"));
+            Assert.IsNull(GetValueFromXml(xmlOutput, "TestKey1Value"));
+
             // Expand - ProcessRawXml with alternate tokenPattern and prefix
             builder = new FakeConfigBuilder();
             builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Expand" }, { "tokenPattern", @"%%([\w:]+)%%" }, { "prefix", "Prefix_" } });
