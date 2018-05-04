@@ -3,10 +3,10 @@
 
   <configBuilders xdt:Transform="InsertAfter(/configuration/configSections)" />
 
-  <!-- Always configure for $(UserSecretsId), since the VS dev scenario is the target use case for this feature -->
+  <!-- Always configure for ${UserSecretsId}, since the VS dev scenario is the target use case for this feature -->
   <configBuilders xdt:Locator="XPath(/configuration/configBuilders[last()])">
     <builders xdt:Transform="InsertIfMissing">
-      <add name="Secrets" xdt:Locator="Match(name)" xdt:Transform="InsertIfMissing" type="Microsoft.Configuration.ConfigurationBuilders.UserSecretsConfigBuilder, Microsoft.Configuration.ConfigurationBuilders.UserSecrets, Version=$version$, Culture=neutral" />
+      <add name="Secrets" xdt:Locator="Match(name)" xdt:Transform="InsertIfMissing" userSecretsId="${UserSecretsId}" type="Microsoft.Configuration.ConfigurationBuilders.UserSecretsConfigBuilder, Microsoft.Configuration.ConfigurationBuilders.UserSecrets, Version=$version$, Culture=neutral" />
     </builders>
   </configBuilders>
 

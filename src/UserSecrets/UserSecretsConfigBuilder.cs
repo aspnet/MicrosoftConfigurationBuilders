@@ -92,10 +92,15 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                 throw new InvalidOperationException($"UserSecretsConfigBuilder '{Name}': Invalid character '{secretsId[badCharIndex]}' in '{userSecretsIdTag}'.");
             }
 
-            string root = Environment.GetEnvironmentVariable("APPDATA") ?? Environment.GetEnvironmentVariable("HOME");
-
+            // Try Windows-style first
+            string root = Environment.GetEnvironmentVariable("APPDATA");
             if (!String.IsNullOrWhiteSpace(root))
                 return Path.Combine(root, "Microsoft", "UserSecrets", secretsId, "secrets.xml");
+
+            // Then try unix-style
+            root = Environment.GetEnvironmentVariable("HOME");
+            if (!String.IsNullOrWhiteSpace(root))
+                return Path.Combine(root, ".microsoft", "usersecrets", secretsId, "secrets.xml");
 
             return null;
         }
