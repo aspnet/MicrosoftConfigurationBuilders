@@ -68,7 +68,10 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         public override string GetValue(string key)
         {
             // Azure Key Vault keys are case-insensitive, so this should be fine.
-            return GetValueAsync(key).Result;
+            // Also, this is a synchronous method. And in single-threaded contexts like ASP.Net
+            // it can be bad/dangerous to block on async calls. So lets work some TPL voodoo
+            // to avoid potential deadlocks.
+            return Task.Run(async () => { return await GetValueAsync(key); }).Result;
         }
 
         public override ICollection<KeyValuePair<string, string>> GetAllValues(string prefix)
@@ -94,14 +97,17 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         {
             if (!_preload || _allKeys.Contains(key, StringComparer.OrdinalIgnoreCase))
             {
-                if (!String.IsNullOrWhiteSpace(_version))
+                try
                 {
-                    var versionedSecret = await _kvClient.GetSecretAsync(_uri, key, _version);
-                    return versionedSecret?.Value;
-                }
+                    if (!String.IsNullOrWhiteSpace(_version))
+                    {
+                        var versionedSecret = await _kvClient.GetSecretAsync(_uri, key, _version);
+                        return versionedSecret?.Value;
+                    }
 
-                var secret = await _kvClient.GetSecretAsync(_uri, key);
-                return secret?.Value;
+                    var secret = await _kvClient.GetSecretAsync(_uri, key);
+                    return secret?.Value;
+                } catch { }
             }
 
             return null;
