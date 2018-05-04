@@ -10,6 +10,7 @@ If you read the blog post linked above, you probably recognize that Configuratio
 concept to construct incredibly complex configuration on the fly. But for the most common usage scenarios, a simple key/value replacement mechanism is all that
 is needed. Most of the config builders in this project are such key/value builders.
 
+#### mode
 The basic concept of these config builders is to draw on an external source of key/value information to populate parts of the config system that are key/value in
 nature. Specifically, the `appSettings` and `connectionStrings` sections receive special treatment from these key/value config builders. These builders can be
 set to run in three different modes:
@@ -22,6 +23,7 @@ set to run in three different modes:
 		string. Any part of the raw xml string that matches the pattern __`${token}`__ is a candidate for token expansion. If no corresponding value is found in the
 		external source, then the token is left alone.
 
+#### prefix
 Another feature of these key/value Configuration Builders is prefix handling. Because full-framework .Net configuration is complex and nested, and external key/value
 sources are by nature quite simple and flat, leveraging key prefixes can be useful. For example, if you want to inject both App Settings and Connection Strings into
 your configuration via environment variables, you could accomplish this in two ways. Use the `EnvironmentConfigBuilder` in the default `Strict` mode and make sure you
@@ -41,9 +43,20 @@ so they can slurp up any setting or connection string you provide without needin
 ```
 This way the same flat key/value source can be used to populate configuration for two different sections.
 
-One final setting that is common among all of these key/value builders is `stripPrefix`. The code above does a good job of separating app settings from connection
+#### stripPrefix
+A related setting that is common among all of these key/value builders is `stripPrefix`. The code above does a good job of separating app settings from connection
 strings... but now all the keys in AppSettings start with "AppSetting_". Maybe this is fine for code you wrote. Chances are that prefix is better off stripped from the
 key name before being inserted into AppSettings. `stripPrefix` is a simple boolean value, and accomplishes just that. It's default value is `false`.
+
+#### tokenPattern
+The final setting that is shared between all KeyValueConfigBuilder-derived builders is `tokenPattern`. When describing the `Expand` behavior of these builders
+above, it was mentioned that the raw xml is searched for tokens that look like __`${token}`__. This is done with a regular expression. `@"\$\{(\w+)\}"` to be exact.
+The set of characters that matches `\w` is more strict than xml and many sources of config values allow, and some applications may need to allow more exotic characters
+in their token names. Additionally there might be scenarios where the `${}` pattern is not acceptable.
+
+`tokenPattern` allows developers to change the regex that is used for token matching. It is a simple string argument, and no validation is done to make sure it is
+a well-formed non-dangerous regex - so use it wisely. The only real restriction is that is must contain a capture group. The entire regex must match the entire token,
+and the first capture must be the token name to look up in the config source.
 
 ## Config Builders In This Project
 

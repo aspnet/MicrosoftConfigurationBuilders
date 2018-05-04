@@ -71,7 +71,7 @@ namespace Test
 
             // Case sensitive attribute name
             builder = new FakeConfigBuilder();
-            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "prefix", "$This_is_my_other_PREFIX#" } });
+            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "PREfix", "$This_is_my_other_PREFIX#" } });
             Assert.AreEqual(builder.KeyPrefix, "$This_is_my_other_PREFIX#");
         }
 
@@ -112,6 +112,31 @@ namespace Test
             builder = new FakeConfigBuilder();
             builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "STRIppreFIX", "true" } });
             Assert.AreEqual(builder.StripPrefix, true);
+        }
+
+        [TestMethod]
+        public void BaseParameters_TokenPattern()
+        {
+            // Default string. (Not null)
+            var builder = new FakeConfigBuilder();
+            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection());
+            Assert.AreEqual(builder.TokenPattern, @"\$\{(\w+)\}");
+
+            // TokenPattern, case preserved
+            builder = new FakeConfigBuilder();
+            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "tokenPattern", @"%([^\s+\W*#$&_-])}%" } });
+            Assert.AreEqual(builder.TokenPattern, @"%([^\s+\W*#$&_-])}%");
+
+            // Case sensitive attribute name
+            builder = new FakeConfigBuilder();
+            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "TOKenpaTTerN", @"\[pattern\]" } });
+            Assert.AreEqual(builder.TokenPattern, @"\[pattern\]");
+
+            // Protected setter
+            builder = new FakeConfigBuilder();
+            builder.Initialize("test", null);
+            builder.SetTokenPattern("TestPattern");
+            Assert.AreEqual(builder.TokenPattern, @"TestPattern");
         }
 
         // ======================================================================
@@ -297,6 +322,96 @@ namespace Test
             Assert.IsNull(GetValueFromXml(xmlOutput, "Prefix_TestKey1"));
             Assert.IsNull(GetValueFromXml(xmlOutput, "TestKey2"));
             Assert.IsNull(GetValueFromXml(xmlOutput, "${TestKey1}"));
+
+            // Expand - ProcessRawXml with alternate tokenPattern
+            builder = new FakeConfigBuilder();
+            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Expand" }, { "tokenPattern", @"%%([\w:]+)%%" } });
+            xmlInput = GetNode(rawXmlInput);
+            xmlOutput = builder.ProcessRawXml(xmlInput);
+            Assert.AreEqual("appSettings", xmlOutput.Name);
+            Assert.AreEqual("val1", GetValueFromXml(xmlOutput, "TestKey1"));
+            Assert.AreEqual("${TestKey1}", GetValueFromXml(xmlOutput, "test1"));
+            Assert.AreEqual("expandTestValue", GetValueFromXml(xmlOutput, "${TestKey1}"));
+            Assert.AreEqual("PrefixTest1", GetValueFromXml(xmlOutput, "TestKey"));
+            Assert.AreEqual("PrefixTest2", GetValueFromXml(xmlOutput, "Prefix_TestKey"));
+            Assert.AreEqual("${Prefix_TestKey1}", GetValueFromXml(xmlOutput, "PreTest2"));
+            Assert.AreEqual("ThisWasAnAlternateTokenPattern", GetValueFromXml(xmlOutput, "AltTokenTest"));
+            Assert.AreEqual("ThisWasAnAltTokenPatternWithPrefix", GetValueFromXml(xmlOutput, "AltTokenTest2"));
+            Assert.IsNull(GetValueFromXml(xmlOutput, "Prefix_TestKey1"));
+            Assert.IsNull(GetValueFromXml(xmlOutput, "TestKey2"));
+            Assert.IsNull(GetValueFromXml(xmlOutput, "TestKey1Value"));
+
+            // Expand - ProcessRawXml does not work with alternate tokenPattern with no capture group
+            builder = new FakeConfigBuilder();
+            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Expand" }, { "tokenPattern", @"%%[\w:]+%%" } });
+            xmlInput = GetNode(rawXmlInput);
+            xmlOutput = builder.ProcessRawXml(xmlInput);
+            Assert.AreEqual("appSettings", xmlOutput.Name);
+            Assert.AreEqual("val1", GetValueFromXml(xmlOutput, "TestKey1"));
+            Assert.AreEqual("${TestKey1}", GetValueFromXml(xmlOutput, "test1"));
+            Assert.AreEqual("expandTestValue", GetValueFromXml(xmlOutput, "${TestKey1}"));
+            Assert.AreEqual("PrefixTest1", GetValueFromXml(xmlOutput, "TestKey"));
+            Assert.AreEqual("PrefixTest2", GetValueFromXml(xmlOutput, "Prefix_TestKey"));
+            Assert.AreEqual("${Prefix_TestKey1}", GetValueFromXml(xmlOutput, "PreTest2"));
+            Assert.AreEqual("%%Alt:Token%%", GetValueFromXml(xmlOutput, "AltTokenTest"));
+            Assert.AreEqual("%%Prefix_Alt:Token%%", GetValueFromXml(xmlOutput, "AltTokenTest2"));
+            Assert.IsNull(GetValueFromXml(xmlOutput, "Prefix_TestKey1"));
+            Assert.IsNull(GetValueFromXml(xmlOutput, "TestKey2"));
+            Assert.IsNull(GetValueFromXml(xmlOutput, "TestKey1Value"));
+
+            // Expand - ProcessRawXml does not blow up with alternate tokenPattern with empty capture group
+            builder = new FakeConfigBuilder();
+            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Expand" }, { "tokenPattern", @"%(.?)%" } });
+            xmlInput = GetNode(rawXmlInput);
+            xmlOutput = builder.ProcessRawXml(xmlInput);
+            Assert.AreEqual("appSettings", xmlOutput.Name);
+            Assert.AreEqual("val1", GetValueFromXml(xmlOutput, "TestKey1"));
+            Assert.AreEqual("${TestKey1}", GetValueFromXml(xmlOutput, "test1"));
+            Assert.AreEqual("expandTestValue", GetValueFromXml(xmlOutput, "${TestKey1}"));
+            Assert.AreEqual("PrefixTest1", GetValueFromXml(xmlOutput, "TestKey"));
+            Assert.AreEqual("PrefixTest2", GetValueFromXml(xmlOutput, "Prefix_TestKey"));
+            Assert.AreEqual("${Prefix_TestKey1}", GetValueFromXml(xmlOutput, "PreTest2"));
+            Assert.AreEqual("%%Alt:Token%%", GetValueFromXml(xmlOutput, "AltTokenTest"));
+            Assert.AreEqual("%%Prefix_Alt:Token%%", GetValueFromXml(xmlOutput, "AltTokenTest2"));
+            Assert.IsNull(GetValueFromXml(xmlOutput, "Prefix_TestKey1"));
+            Assert.IsNull(GetValueFromXml(xmlOutput, "TestKey2"));
+            Assert.IsNull(GetValueFromXml(xmlOutput, "TestKey1Value"));
+
+            // Expand - ProcessRawXml with alternate tokenPattern and prefix
+            builder = new FakeConfigBuilder();
+            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Expand" }, { "tokenPattern", @"%%([\w:]+)%%" }, { "prefix", "Prefix_" } });
+            xmlInput = GetNode(rawXmlInput);
+            xmlOutput = builder.ProcessRawXml(xmlInput);
+            Assert.AreEqual("appSettings", xmlOutput.Name);
+            Assert.AreEqual("val1", GetValueFromXml(xmlOutput, "TestKey1"));
+            Assert.AreEqual("${TestKey1}", GetValueFromXml(xmlOutput, "test1"));
+            Assert.AreEqual("expandTestValue", GetValueFromXml(xmlOutput, "${TestKey1}"));
+            Assert.AreEqual("PrefixTest1", GetValueFromXml(xmlOutput, "TestKey"));
+            Assert.AreEqual("PrefixTest2", GetValueFromXml(xmlOutput, "Prefix_TestKey"));
+            Assert.AreEqual("${Prefix_TestKey1}", GetValueFromXml(xmlOutput, "PreTest2"));
+            Assert.AreEqual("%%Alt:Token%%", GetValueFromXml(xmlOutput, "AltTokenTest"));
+            Assert.AreEqual("ThisWasAnAltTokenPatternWithPrefix", GetValueFromXml(xmlOutput, "AltTokenTest2"));
+            Assert.IsNull(GetValueFromXml(xmlOutput, "Prefix_TestKey1"));
+            Assert.IsNull(GetValueFromXml(xmlOutput, "TestKey2"));
+            Assert.IsNull(GetValueFromXml(xmlOutput, "TestKey1Value"));
+
+            // Expand - ProcessRawXml with alternate tokenPattern and strip prefix
+            builder = new FakeConfigBuilder();
+            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Expand" }, { "tokenPattern", @"%%([\w:]+)%%" }, { "prefix", "Prefix_" }, { "stripPrefix", "true" } });
+            xmlInput = GetNode(rawXmlInput);
+            xmlOutput = builder.ProcessRawXml(xmlInput);
+            Assert.AreEqual("appSettings", xmlOutput.Name);
+            Assert.AreEqual("val1", GetValueFromXml(xmlOutput, "TestKey1"));
+            Assert.AreEqual("${TestKey1}", GetValueFromXml(xmlOutput, "test1"));
+            Assert.AreEqual("expandTestValue", GetValueFromXml(xmlOutput, "${TestKey1}"));
+            Assert.AreEqual("PrefixTest1", GetValueFromXml(xmlOutput, "TestKey"));
+            Assert.AreEqual("PrefixTest2", GetValueFromXml(xmlOutput, "Prefix_TestKey"));
+            Assert.AreEqual("${Prefix_TestKey1}", GetValueFromXml(xmlOutput, "PreTest2"));
+            Assert.AreEqual("ThisWasAnAltTokenPatternWithPrefix", GetValueFromXml(xmlOutput, "AltTokenTest"));
+            Assert.AreEqual("%%Prefix_Alt:Token%%", GetValueFromXml(xmlOutput, "AltTokenTest2"));
+            Assert.IsNull(GetValueFromXml(xmlOutput, "Prefix_TestKey1"));
+            Assert.IsNull(GetValueFromXml(xmlOutput, "TestKey2"));
+            Assert.IsNull(GetValueFromXml(xmlOutput, "TestKey1Value"));
         }
 
         [TestMethod]
@@ -470,6 +585,8 @@ namespace Test
                     <add key=""TestKey"" value=""PrefixTest1"" />
                     <add key=""Prefix_TestKey"" value=""PrefixTest2"" />
                     <add key=""PreTest2"" value=""${Prefix_TestKey1}"" />
+                    <add key=""AltTokenTest"" value=""%%Alt:Token%%"" />
+                    <add key=""AltTokenTest2"" value=""%%Prefix_Alt:Token%%"" />
                 </appSettings>";
 
         XmlNode GetNode(string xmlInput)
@@ -510,7 +627,9 @@ namespace Test
                 { "TestKey1", "TestKey1Value" },
                 { "TestKey2", "TestKey2Value" },
                 { "Prefix_TestKey", "Prefix_TestKeyValue" },
-                { "Prefix_TestKey1", "Prefix_TestKey1Value" }
+                { "Prefix_TestKey1", "Prefix_TestKey1Value" },
+                { "Alt:Token", "ThisWasAnAlternateTokenPattern" },
+                { "Prefix_Alt:Token", "ThisWasAnAltTokenPatternWithPrefix" }
             };
 
         public bool FailInit = false;
@@ -548,6 +667,11 @@ namespace Test
                 throw new Exception("Unique Exception Message in GetAllValues");
 
             return sourceValues.Where(s => s.Key.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)).ToList();
+        }
+
+        public void SetTokenPattern(string newPattern)
+        {
+            this.TokenPattern = newPattern;
         }
     }
 }

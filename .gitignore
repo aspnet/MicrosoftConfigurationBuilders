@@ -9,3 +9,4 @@ msbuild.*
 /packages/
 samples/SampleWebApp/bin/
 samples/SampleWebApp/obj/
+*.user
