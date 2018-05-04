@@ -19,10 +19,14 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         public const string vaultNameTag = "vaultName";
         public const string connectionStringTag = "connectionString";
         public const string uriTag = "uri";
+        public const string versionTag = "version";
+        public const string preloadTag = "preloadSecretNames";
 
         private string _vaultName;
         private string _connectionString;
         private string _uri;
+        private string _version;
+        private bool _preload;
 
         private KeyVaultClient _kvClient;
         private List<string> _allKeys;
@@ -31,8 +35,14 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         {
             base.Initialize(name, config);
 
+            if (!Boolean.TryParse(config?[preloadTag], out _preload))
+                _preload = true;
+            if (!_preload && Mode == KeyValueMode.Greedy)
+                throw new ArgumentException($"'{preloadTag}'='false' is not compatible with {KeyValueMode.Greedy} mode.");
+
             _uri = config?[uriTag];
             _vaultName = config?[vaultNameTag];
+            _version = config?[versionTag];
 
             if (String.IsNullOrWhiteSpace(_uri))
             {
@@ -50,7 +60,9 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             AzureServiceTokenProvider tokenProvider = new AzureServiceTokenProvider(_connectionString);
             _kvClient = new KeyVaultClient(new KeyVaultClient.AuthenticationCallback(tokenProvider.KeyVaultTokenCallback));
 
-            _allKeys = GetAllKeys();
+            if (_preload) {
+                _allKeys = GetAllKeys();
+            }
         }
 
         public override string GetValue(string key)
@@ -80,8 +92,14 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
         private async Task<string> GetValueAsync(string key)
         {
-            if (_allKeys.Contains(key, StringComparer.OrdinalIgnoreCase))
+            if (!_preload || _allKeys.Contains(key, StringComparer.OrdinalIgnoreCase))
             {
+                if (!String.IsNullOrWhiteSpace(_version))
+                {
+                    var versionedSecret = await _kvClient.GetSecretAsync(_uri, key, _version);
+                    return versionedSecret?.Value;
+                }
+
                 var secret = await _kvClient.GetSecretAsync(_uri, key);
                 return secret?.Value;
             }
@@ -91,13 +109,22 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
         private List<string> GetAllKeys()
         {
-            var allSecrets = Task.Run(async () => { return await _kvClient.GetSecretsAsync(_uri); }).Result;
-
-            List<Task> tasks = new List<Task>();
             List<string> keys = new List<string>(); // KeyVault keys are case-insensitive. There won't be case-duplicates. List<> should be fine.
 
+            // Get first page of secret keys
+            var allSecrets = Task.Run(async () => { return await _kvClient.GetSecretsAsync(_uri); }).Result;
             foreach (var secretItem in allSecrets)
                 keys.Add(secretItem.Identifier.Name);
+
+            // If there more more pages, get those too
+            string nextPage = allSecrets.NextPageLink;
+            while (!String.IsNullOrWhiteSpace(nextPage))
+            {
+                var moreSecrets = Task.Run(async () => { return await _kvClient.GetSecretsNextAsync(nextPage); }).Result;
+                foreach (var secretItem in moreSecrets)
+                    keys.Add(secretItem.Identifier.Name);
+                nextPage = moreSecrets.NextPageLink;
+            }
 
             return keys;
         }
