@@ -9,6 +9,7 @@ using System.Linq;
 using System.Threading.Tasks;
 
 using Microsoft.Azure.KeyVault;
+using Microsoft.Azure.KeyVault.Models;
 using Microsoft.Azure.Services.AppAuthentication;
 using Microsoft.IdentityModel.Clients.ActiveDirectory;
 
@@ -107,7 +108,15 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
                     var secret = await _kvClient.GetSecretAsync(_uri, key);
                     return secret?.Value;
-                } catch { }
+                } catch (KeyVaultErrorException kve) {
+                    // Simply return null if the secret wasn't found
+                    if (kve.Body.Error.Code == "SecretNotFound")
+                        return null;
+
+                    // If there was a permission issue or some other error, let the exception bubble
+                    // FYI: kve.Body.Error.Code == "Forbidden" :: No Rights, or secret is disabled.
+                    throw;
+                }
             }
 
             return null;

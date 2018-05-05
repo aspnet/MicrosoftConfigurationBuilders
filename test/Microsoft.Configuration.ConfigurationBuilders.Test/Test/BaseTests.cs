@@ -41,7 +41,7 @@ namespace Test
 
             // Invalid
             builder = new FakeConfigBuilder();
-            Assert.ThrowsException<ConfigurationErrorsException>(() => {
+            Assert.ThrowsException<ArgumentException>(() => {
                 builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "InvalidModeDoesNotExist" } });
             });
 
