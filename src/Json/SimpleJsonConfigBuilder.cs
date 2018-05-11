@@ -44,7 +44,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             string jsonFile = config?[jsonFileTag];
             if (String.IsNullOrWhiteSpace(jsonFile))
             {
-                throw new ArgumentException($"SimpleJsonConfigBuilder '{name}': Json file must be specified with the '{jsonFileTag}' attribute.");
+                throw new ArgumentException($"Json file must be specified with the '{jsonFileTag}' attribute.");
             }
             JsonFile = Utils.MapPath(jsonFile);
             if (!File.Exists(JsonFile))
@@ -56,7 +56,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                     return;
                 }
 
-                throw new ArgumentException($"SimpleJsonConfigBuilder '{name}': Json file does not exist.");
+                throw new ArgumentException($"Json file does not exist.");
             }
 
             // JsonMode

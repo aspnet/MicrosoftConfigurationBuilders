@@ -45,7 +45,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             }
             else if (!Optional)
             {
-                throw new ArgumentException($"UserSecretsConfigBuilder '{name}': Secrets file does not exist.");
+                throw new ArgumentException($"Secrets file does not exist.");
             }
             else
             {
@@ -89,7 +89,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             int badCharIndex = secretsId.IndexOfAny(Path.GetInvalidFileNameChars());
             if (badCharIndex != -1)
             {
-                throw new InvalidOperationException($"UserSecretsConfigBuilder '{Name}': Invalid character '{secretsId[badCharIndex]}' in '{userSecretsIdTag}'.");
+                throw new InvalidOperationException($"Invalid character '{secretsId[badCharIndex]}' in '{userSecretsIdTag}'.");
             }
 
             // Try Windows-style first
