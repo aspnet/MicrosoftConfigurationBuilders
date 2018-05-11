@@ -7,7 +7,7 @@
   <!-- Configurable properties-->
 
   <PropertyGroup>
-    <BuildQuality Condition="'$(BuildQuality)' == ''">preview3</BuildQuality>
+    <BuildQuality Condition="'$(BuildQuality)' == ''">rtm</BuildQuality>
     <VersionStartYear>2016</VersionStartYear>
     <VersionMajor>1</VersionMajor>
     <VersionMinor>0</VersionMinor>
@@ -16,7 +16,7 @@
   </PropertyGroup>
 
   <PropertyGroup Label="NuGet package dependencies">
-    <MicrosoftConfigurationBuildersNuGetPackageVersion>1.0.0-preview3</MicrosoftConfigurationBuildersNuGetPackageVersion>
+    <MicrosoftConfigurationBuildersNuGetPackageVersion>$(VersionMajor).$(VersionMinor).$(VersionRelease)</MicrosoftConfigurationBuildersNuGetPackageVersion>
   </PropertyGroup>
 
   <!-- Default properties -->
