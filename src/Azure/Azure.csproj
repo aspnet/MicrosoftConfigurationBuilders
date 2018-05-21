@@ -87,4 +87,12 @@
     <Error Condition="!Exists('..\..\packages\Microsoft.Azure.Services.AppAuthentication.1.0.1\build\Microsoft.Azure.Services.AppAuthentication.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\Microsoft.Azure.Services.AppAuthentication.1.0.1\build\Microsoft.Azure.Services.AppAuthentication.targets'))" />
   </Target>
   <Import Project="..\..\packages\Microsoft.Azure.Services.AppAuthentication.1.0.1\build\Microsoft.Azure.Services.AppAuthentication.targets" Condition="Exists('..\..\packages\Microsoft.Azure.Services.AppAuthentication.1.0.1\build\Microsoft.Azure.Services.AppAuthentication.targets')" />
+  <Target Name="AfterBuild">
+    <ItemGroup>
+      <FilesToSign Include="$(TargetPath)" Condition="'$(SignAssembly)' == 'true'">
+        <Authenticode>Microsoft</Authenticode>
+        <StrongName>MsSharedLib72</StrongName>
+      </FilesToSign>
+    </ItemGroup>
+  </Target>
 </Project>
