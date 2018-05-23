@@ -7,12 +7,12 @@
     </builders>
   </configBuilders>
 
-  <configBuilders xdt:Transform="Remove" xdt:Locator="Condition(count(/configuration/configBuilders/builders/*)=0)" />
-
   <configSections>
     <section name="configBuilders" xdt:Locator="Condition(@name='configBuilders' and count(/configuration/configBuilders/builders/*)=0)" xdt:Transform="Remove" />
   </configSections>
 
   <configSections xdt:Transform="RemoveAll" xdt:Locator="Condition(count(*)=0)" />
+
+  <configBuilders xdt:Transform="Remove" xdt:Locator="Condition(count(/configuration/configBuilders/builders/*)=0)" />
 
 </configuration>

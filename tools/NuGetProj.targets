@@ -304,10 +304,12 @@ GetNuGetProjectOutputs: Reads build-generated files from outputs file.
   <Target Name="GetNuGetProjectOutputs">
     <PropertyGroup>
       <NuGetPackTargetFile>$(PackageOutputDir)\$(NuGetPackageId).$(NuGetPackageVersion).nupkg</NuGetPackTargetFile>
-      <NuGetPackTargetFile Condition="'$(NuGetPackSymbols)' == 'true'">$(PackageOutputDir)\$(NuGetPackageId).$(NuGetPackageVersion).symbols.nupkg</NuGetPackTargetFile>
+      <NuGetSymbolPackTargetFile Condition="'$(NuGetPackSymbols)' == 'true'">$(PackageOutputDir)\$(NuGetPackageId).$(NuGetPackageVersion).symbols.nupkg</NuGetSymbolPackTargetFile>
     </PropertyGroup>
     <ItemGroup>
       <NuGetProjectOutput Include="$(NuGetPackTargetFile)" />
+      <NuGetProjectOutput Include="$(NuGetSymbolPackTargetFile)" Condition="'$(NuGetSymbolPackTargetFile)' != ''" />
+
       <NuGetProjectOutput Include="$(NuGetProjectOutputsFile)" />
     </ItemGroup>
   </Target>
