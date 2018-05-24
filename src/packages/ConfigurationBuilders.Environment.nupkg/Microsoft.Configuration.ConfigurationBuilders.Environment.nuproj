@@ -5,6 +5,7 @@
         <AssemblyName>Microsoft.Configuration.ConfigurationBuilders.Environment</AssemblyName>
         <NuGetPackageId>$(MSBuildProjectName)</NuGetPackageId>
         <NuSpecFile>Microsoft.Configuration.ConfigurationBuilders.Environment.nuspec</NuSpecFile>
+        <IsPackage>true</IsPackage>
     </PropertyGroup>
     <ItemGroup>
         <NuGetContent Include="$(AssemblyName).dll">
