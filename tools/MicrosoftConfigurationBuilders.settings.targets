@@ -35,8 +35,8 @@
 
   <PropertyGroup Label="Common Configuration">
     <Configuration Condition="'$(Configuration)' == ''">Release</Configuration>
-    <OutputPath>$(RepositoryRoot)\src\packages\bin\$(Configuration)\</OutputPath>
-    <IntermediateOutputPath>$(RepositoryRoot)\src\packages\obj\$(Configuration)\</IntermediateOutputPath>
+    <OutputPath>$(RepositoryRoot)bin\$(Configuration)\</OutputPath>
+    <IntermediateOutputPath>$(RepositoryRoot)obj\$(Configuration)\$(MSBuildProjectName)\</IntermediateOutputPath>
   </PropertyGroup>
 
   <PropertyGroup>

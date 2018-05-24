@@ -8,17 +8,17 @@
     </PropertyGroup>
     <ItemGroup>
         <NuGetContent Include="$(AssemblyName).dll">
-            <Source>$(RepositoryRoot)\src\Base\bin\$(Configuration)\</Source>
+            <Source>$(AssemblyPath)</Source>
             <Destination>lib\Net471</Destination>
         </NuGetContent>
         <!--
         <NuGetContent Include="$(AssemblyName).xml">
-            <Source>$(RepositoryRoot)\src\Base\bin\$(Configuration)\</Source>
+            <Source>$(OutputPath)</Source>
             <Destination>lib\Net471</Destination>
         </NuGetContent>
         -->
         <NuGetContent Include="$(AssemblyName).pdb" Condition="'$(NuGetPackSymbols)' == 'true'">
-            <Source>$(RepositoryRoot)\src\Base\bin\$(Configuration)\</Source>
+            <Source>$(OutputPath)</Source>
             <Destination>lib\Net471</Destination>
         </NuGetContent>
         <NuGetContentProject Include="$(RepositoryRoot)\src\Base\Base.csproj" Condition="'$(NuGetPackSymbols)' == 'true'" />
