@@ -5,6 +5,7 @@
         <AssemblyName>Microsoft.Configuration.ConfigurationBuilders.Json</AssemblyName>
         <NuGetPackageId>$(MSBuildProjectName)</NuGetPackageId>
         <NuSpecFile>Microsoft.Configuration.ConfigurationBuilders.Json.nuspec</NuSpecFile>
+        <IsPackage>true</IsPackage>
     </PropertyGroup>
     <ItemGroup>
         <NuGetContent Include="$(AssemblyName).dll">
