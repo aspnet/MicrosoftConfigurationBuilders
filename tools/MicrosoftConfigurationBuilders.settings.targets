@@ -17,12 +17,13 @@
     <VersionStartYear>2016</VersionStartYear>
     <VersionMajor>1</VersionMajor>
     <VersionMinor>0</VersionMinor>
-    <VersionRelease>1</VersionRelease>
+    <VersionRelease>0</VersionRelease>
     <VersionRelease Condition="'$(BuildQuality)' != 'rtm'">$(VersionRelease)-$(BuildQuality)</VersionRelease>
   </PropertyGroup>
 
   <PropertyGroup Label="NuGet package dependencies">
-    <MicrosoftConfigurationBuildersNuGetPackageVersion>$(VersionMajor).$(VersionMinor).$(VersionRelease)</MicrosoftConfigurationBuildersNuGetPackageVersion>
+    <NuGetPackageVersion>$(VersionMajor).$(VersionMinor).1</NuGetPackageVersion>
+    <MicrosoftConfigurationBuildersNuGetPackageVersion>$(VersionMajor).$(VersionMinor).1</MicrosoftConfigurationBuildersNuGetPackageVersion>
   </PropertyGroup>
 
   <!-- Default properties -->
