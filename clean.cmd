@@ -38,5 +38,8 @@ if not defined MSBUILDEXE (
 :BUILD
 	REM %MSBUILDEXE% "%~dp0\MicrosoftConfigurationBuilders.msbuild" /t:Clean %logOptions% /v:d /maxcpucount /nodeReuse:false %*
 	%MSBUILDEXE% "%~dp0\MicrosoftConfigurationBuilders.msbuild" /t:Clean %logOptions% /v:diag /maxcpucount /nodeReuse:false %*
+	del /F msbuild.log
+	del /F msbuild.wrn
+	del /F msbuild.err
 
 endlocal

@@ -1,6 +1,4 @@
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="tools\MicrosoftConfigurationBuilders.settings.targets"/>  
-
   <ItemGroup>
     <AssemblyProject Include="src\Base\Base.csproj" />
     <AssemblyProject Include="src\Environment\Environment.csproj" />

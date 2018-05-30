@@ -42,8 +42,8 @@
     <Reference Include="Microsoft.Azure.KeyVault.WebKey, Version=2.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <HintPath>..\..\packages\Microsoft.Azure.KeyVault.WebKey.2.0.7\lib\net452\Microsoft.Azure.KeyVault.WebKey.dll</HintPath>
     </Reference>
-    <Reference Include="Microsoft.Azure.Services.AppAuthentication, Version=1.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\Microsoft.Azure.Services.AppAuthentication.1.0.0\lib\net452\Microsoft.Azure.Services.AppAuthentication.dll</HintPath>
+    <Reference Include="Microsoft.Azure.Services.AppAuthentication, Version=1.0.1.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\Microsoft.Azure.Services.AppAuthentication.1.0.1\lib\net452\Microsoft.Azure.Services.AppAuthentication.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.IdentityModel.Clients.ActiveDirectory, Version=3.19.2.6005, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <HintPath>..\..\packages\Microsoft.IdentityModel.Clients.ActiveDirectory.3.19.2\lib\net45\Microsoft.IdentityModel.Clients.ActiveDirectory.dll</HintPath>
@@ -75,6 +75,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <None Include="app.config" />
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
@@ -83,5 +84,15 @@
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
+    <Error Condition="!Exists('..\..\packages\Microsoft.Azure.Services.AppAuthentication.1.0.1\build\Microsoft.Azure.Services.AppAuthentication.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\Microsoft.Azure.Services.AppAuthentication.1.0.1\build\Microsoft.Azure.Services.AppAuthentication.targets'))" />
+  </Target>
+  <Import Project="..\..\packages\Microsoft.Azure.Services.AppAuthentication.1.0.1\build\Microsoft.Azure.Services.AppAuthentication.targets" Condition="Exists('..\..\packages\Microsoft.Azure.Services.AppAuthentication.1.0.1\build\Microsoft.Azure.Services.AppAuthentication.targets')" />
+  <Target Name="AfterBuild">
+    <ItemGroup>
+      <FilesToSign Include="$(TargetPath)" Condition="'$(SignAssembly)' == 'true'">
+        <Authenticode>Microsoft</Authenticode>
+        <StrongName>MsSharedLib72</StrongName>
+      </FilesToSign>
+    </ItemGroup>
   </Target>
 </Project>
