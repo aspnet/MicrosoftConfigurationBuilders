@@ -6,10 +6,10 @@
 
   <PropertyGroup>
     <Configuration Condition="'$(Configuration)' == ''">Release</Configuration>
-    <BinPath>$(MSBuildProjectDirectory)\..\bin\</BinPath>
-    <ObjPath>$(MSBuildProjectDirectory)\..\obj\</ObjPath>
+    <BinPath>$(RepositoryRootEx)bin\</BinPath>
+    <ObjPath>$(RepositoryRootEx)obj\</ObjPath>
     <OutputPath>$(BinPath)$(Configuration)\</OutputPath>
-    <IntermediateOutputPath>$(ObjPath)$(Configuration)\</IntermediateOutputPath>
+    <IntermediateOutputPath>$(ObjPath)$(Configuration)\$(MSBuildProjectName)\</IntermediateOutputPath>
   </PropertyGroup>
 
   <PropertyGroup>

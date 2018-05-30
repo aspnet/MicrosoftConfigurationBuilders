@@ -5,20 +5,21 @@
         <AssemblyName>Microsoft.Configuration.ConfigurationBuilders.Environment</AssemblyName>
         <NuGetPackageId>$(MSBuildProjectName)</NuGetPackageId>
         <NuSpecFile>Microsoft.Configuration.ConfigurationBuilders.Environment.nuspec</NuSpecFile>
+        <IsPackage>true</IsPackage>
     </PropertyGroup>
     <ItemGroup>
         <NuGetContent Include="$(AssemblyName).dll">
-            <Source>$(RepositoryRoot)\src\Environment\bin\$(Configuration)\</Source>
+            <Source>$(AssemblyPath)</Source>
             <Destination>lib\Net471</Destination>
         </NuGetContent>
         <!--
         <NuGetContent Include="$(AssemblyName).xml">
-            <Source>$(RepositoryRoot)\src\Environment\bin\$(Configuration)\</Source>
+            <Source>$(OutputPath)</Source>
             <Destination>lib\Net471</Destination>
         </NuGetContent>
         -->
         <NuGetContent Include="$(AssemblyName).pdb" Condition="'$(NuGetPackSymbols)' == 'true'">
-            <Source>$(RepositoryRoot)\src\Environment\bin\$(Configuration)\</Source>
+            <Source>$(OutputPath)</Source>
             <Destination>lib\Net471</Destination>
         </NuGetContent>
         <NuGetContentProject Include="$(RepositoryRoot)\src\Environment\Environment.csproj" Condition="'$(NuGetPackSymbols)' == 'true'" />

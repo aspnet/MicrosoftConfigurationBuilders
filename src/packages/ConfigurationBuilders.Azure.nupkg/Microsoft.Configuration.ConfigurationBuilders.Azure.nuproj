@@ -5,20 +5,21 @@
         <AssemblyName>Microsoft.Configuration.ConfigurationBuilders.Azure</AssemblyName>
         <NuGetPackageId>$(MSBuildProjectName)</NuGetPackageId>
         <NuSpecFile>Microsoft.Configuration.ConfigurationBuilders.Azure.nuspec</NuSpecFile>
+        <IsPackage>true</IsPackage>
     </PropertyGroup>
     <ItemGroup>
         <NuGetContent Include="$(AssemblyName).dll">
-            <Source>$(RepositoryRoot)\src\Azure\bin\$(Configuration)\</Source>
+            <Source>$(AssemblyPath)</Source>
             <Destination>lib\Net471</Destination>
         </NuGetContent>
         <!--
         <NuGetContent Include="$(AssemblyName).xml">
-            <Source>$(RepositoryRoot)\src\Azure\bin\$(Configuration)\</Source>
+            <Source>$(OutputPath)</Source>
             <Destination>lib\Net471</Destination>
         </NuGetContent>
         -->
         <NuGetContent Include="$(AssemblyName).pdb" Condition="'$(NuGetPackSymbols)' == 'true'">
-            <Source>$(RepositoryRoot)\src\Azure\bin\$(Configuration)\</Source>
+            <Source>$(OutputPath)</Source>
             <Destination>lib\Net471</Destination>
         </NuGetContent>
         <NuGetContentProject Include="$(RepositoryRoot)\src\Azure\Azure.csproj" Condition="'$(NuGetPackSymbols)' == 'true'" />

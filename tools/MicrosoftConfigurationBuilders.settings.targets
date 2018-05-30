@@ -1,4 +1,4 @@
-<Project DefaultTargets="UnitTest" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <CustomBeforeProjectTargets>$(MSBuildThisFileDirectory)MicrosoftConfigurationBuilders.Extensions.settings.targets</CustomBeforeProjectTargets>
     <RepositoryRoot>$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), 'MicrosoftConfigurationBuilders.sln'))\</RepositoryRoot>
@@ -22,7 +22,8 @@
   </PropertyGroup>
 
   <PropertyGroup Label="NuGet package dependencies">
-    <MicrosoftConfigurationBuildersNuGetPackageVersion>$(VersionMajor).$(VersionMinor).$(VersionRelease)</MicrosoftConfigurationBuildersNuGetPackageVersion>
+    <NuGetPackageVersion>$(VersionMajor).$(VersionMinor).1</NuGetPackageVersion>
+    <MicrosoftConfigurationBuildersNuGetPackageVersion>$(VersionMajor).$(VersionMinor).1</MicrosoftConfigurationBuildersNuGetPackageVersion>
   </PropertyGroup>
 
   <!-- Default properties -->
@@ -34,8 +35,8 @@
 
   <PropertyGroup Label="Common Configuration">
     <Configuration Condition="'$(Configuration)' == ''">Release</Configuration>
-    <OutputPath>$(RepositoryRoot)\src\packages\bin\$(Configuration)\</OutputPath>
-    <IntermediateOutputPath>$(RepositoryRoot)\src\packages\obj\$(Configuration)\</IntermediateOutputPath>
+    <OutputPath>$(RepositoryRoot)bin\$(Configuration)\</OutputPath>
+    <IntermediateOutputPath>$(RepositoryRoot)obj\$(Configuration)\$(MSBuildProjectName)\</IntermediateOutputPath>
   </PropertyGroup>
 
   <PropertyGroup>
