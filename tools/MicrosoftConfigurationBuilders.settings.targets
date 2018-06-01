@@ -28,8 +28,8 @@
     <VersionRevision>0</VersionRevision>
     <VersionRelease>1</VersionRelease>
     <VersionRelease Condition="'$(BuildQuality)' != 'rtm'">$(VersionRelease)-$(BuildQuality)</VersionRelease>
+    <CustomAfterProjectTargets>$(MSBuildThisFileDirectory)version.targets</CustomAfterProjectTargets>
   </PropertyGroup>
-  <Import Project="$(MSBuildThisFileDirectory)version.targets"/>
 
   <PropertyGroup>
     <SatelliteContractVersion Condition="'$(SatelliteContractVersion)' == ''">$(AssemblyVersion)</SatelliteContractVersion>
@@ -84,6 +84,16 @@
         <StrongName>MsSharedLib72</StrongName>
       </FilesToSign>
     </ItemGroup>
+  </Target>
+
+  <Target Name="SuperClean" AfterTargets="Clean"  Condition="'$(MSBuildProjectExtension)' != '.nuproj'">
+    <RemoveDir Directories="$(OutputPath)" />
+    <RemoveDir Directories="$(IntermediateOutputRoot)" />
+  </Target>
+
+  <Target Name="SuperCleanPackage" AfterTargets="Clean" Condition="'$(MSBuildProjectExtension)' == '.nuproj'">
+    <RemoveDir Directories="$(NuGetOutputPath)" />
+    <RemoveDir Directories="$(NuGetSymbolsOutputPath)" />
   </Target>
 
 </Project>

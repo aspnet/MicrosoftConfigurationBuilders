@@ -22,7 +22,7 @@
   
   <!-- <Target Name="Build" DependsOnTargets="BuildAssemblies;UnitTest;BuildPackages" /> -->
   <Target Name="Build" DependsOnTargets="BuildAssemblies;BuildPackages" />
-  <Target Name="Clean" DependsOnTargets="CleanPackages;CleanAssemblies;SpicNSpan" />
+  <Target Name="Clean" DependsOnTargets="CleanPackages;CleanAssemblies" />
   <Target Name="Rebuild" DependsOnTargets="Clean;Build" />
   
   <Target Name="BuildAssemblies" DependsOnTargets="RestorePackages">
@@ -30,16 +30,7 @@
   </Target> 
 
   <Target Name="CleanAssemblies">
-    <MSBuild Targets="Clean" Projects="MicrosoftConfigurationBuilders.sln" />
-  </Target>
-
-  <Target Name="SpicNSpan">
-    <!-- Remove bin folder -->
-    <RemoveDir Directories="$(MSBuildProjectDirectory)\bin" />
-    <RemoveDir Directories="$(OutputPath)" />
-    <!-- Remove obj folder -->
-    <RemoveDir Directories="$(MSBuildProjectDirectory)\obj" />
-    <RemoveDir Directories="$(IntermediateOutputRoot)" />
+    <MSBuild Targets="Clean" Projects="@(AssemblyProject);@(TestProject);@(SampleProject)" />
   </Target>
 
   <Target Name="RebuildAssemblies" DependsOnTargets="Clean;Build" />
