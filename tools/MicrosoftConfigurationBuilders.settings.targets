@@ -1,59 +1,89 @@
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
   <PropertyGroup>
-    <CustomBeforeProjectTargets>$(MSBuildThisFileDirectory)MicrosoftConfigurationBuilders.Extensions.settings.targets</CustomBeforeProjectTargets>
     <RepositoryRoot>$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), 'MicrosoftConfigurationBuilders.sln'))\</RepositoryRoot>
+    <RepositoryRootEx Condition="'$(RepositoryRootEx)' == ''">$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory),MicrosoftConfigurationBuilders.sln))\</RepositoryRootEx>
+    <SolutionDir>$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), 'MicrosoftConfigurationBuilders.sln'))\</SolutionDir>
   </PropertyGroup>
 
   <Import Project="$(RepositoryRoot)\packages\microbuild.core.0.3.0\build\MicroBuild.Core.props"
       Condition="Exists('$(RepositoryRoot)\packages\microbuild.core.0.3.0\build\MicroBuild.Core.props')" />
   <Import Project="$(RepositoryRoot)\packages\microbuild.core.0.3.0\build\MicroBuild.Core.targets"
       Condition="Exists('$(RepositoryRoot)\packages\microbuild.core.0.3.0\build\MicroBuild.Core.targets')" />
-  <Import Project="$(CustomBeforeProjectTargets)" Condition="Exists('$(CustomBeforeProjectTargets)')" Label="Pre-targets Build Extensibility Point"/>
 
   <!-- Configurable properties-->
 
   <PropertyGroup>
+    <!-- Versioning:
+            Major:	'Major' for Assembly, File, Info, and Package.
+            Minor:	'Minor' for Assembly, File, Info, and Package.
+            Build:	Third (auto-generated) for File and Info. (Assembly is always 0)
+            Revision:	'Revision' for Assembly and File.
+            Release:	Third for Info and Package.
+         Update package and file without touching assembly, except for major releases.
+    -->
     <BuildQuality Condition="'$(BuildQuality)' == ''">rtm</BuildQuality>
-    <VersionStartYear>2016</VersionStartYear>
     <VersionMajor>1</VersionMajor>
     <VersionMinor>0</VersionMinor>
-    <VersionRelease>0</VersionRelease>
+    <VersionRevision>0</VersionRevision>
+    <VersionRelease>1</VersionRelease>
     <VersionRelease Condition="'$(BuildQuality)' != 'rtm'">$(VersionRelease)-$(BuildQuality)</VersionRelease>
+  </PropertyGroup>
+  <Import Project="$(MSBuildThisFileDirectory)version.targets"/>
+
+  <PropertyGroup>
+    <SatelliteContractVersion Condition="'$(SatelliteContractVersion)' == ''">$(AssemblyVersion)</SatelliteContractVersion>
   </PropertyGroup>
 
   <PropertyGroup Label="NuGet package dependencies">
-    <NuGetPackageVersion>$(VersionMajor).$(VersionMinor).1</NuGetPackageVersion>
-    <MicrosoftConfigurationBuildersNuGetPackageVersion>$(VersionMajor).$(VersionMinor).1</MicrosoftConfigurationBuildersNuGetPackageVersion>
+    <NuGetPackageVersion>$(VersionMajor).$(VersionMinor).$(VersionRelease)</NuGetPackageVersion>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(MSBuildProjectExtension)' == '.nuproj'">
+    <NuGetPackageVersion Condition="'$(UpdateNightlyPackages)' == 'true'">$(NuGetPackageVersion)-b$(VersionBuild)</NuGetPackageVersion>
   </PropertyGroup>
 
   <!-- Default properties -->
 
-  <PropertyGroup>
-    <RepositoryRoot Condition="'$(RepositoryRoot)' == ''">$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), MicrosoftConfigurationBuilders.sln))\</RepositoryRoot>
-    <SolutionDir>$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), MicrosoftConfigurationBuilders.sln))\</SolutionDir>
-  </PropertyGroup>
-
   <PropertyGroup Label="Common Configuration">
     <Configuration Condition="'$(Configuration)' == ''">Release</Configuration>
-    <OutputPath>$(RepositoryRoot)bin\$(Configuration)\</OutputPath>
-    <IntermediateOutputPath>$(RepositoryRoot)obj\$(Configuration)\$(MSBuildProjectName)\</IntermediateOutputPath>
-  </PropertyGroup>
-
-  <PropertyGroup>
+    <OutputPath>$(RepositoryRoot).binaries\bin\$(Configuration)\</OutputPath>
+    <IntermediateOutputRoot>$(RepositoryRoot).binaries\obj\$(Configuration)\</IntermediateOutputRoot>
+    <IntermediateOutputPath>$(IntermediateOutputRoot)$(MSBuildProjectName)\</IntermediateOutputPath>
+    <AssemblyPath Condition="'$(CodeSignEnabled)' == 'true'">$(CodeSignOutputPath)</AssemblyPath>
     <AssemblyPath Condition="'$(AssemblyPath)' == ''">$(OutputPath)</AssemblyPath>
-    <NuGetOutputPath>$(AssemblyPath)Packages</NuGetOutputPath>
-    <NuGetSymbolsOutputPath>$(AssemblyPath)\SymbolPackages</NuGetSymbolsOutputPath>
-    <TestOutputPath>$(OutputPath)test\</TestOutputPath>
+    <DocumentationFile>$(OutputPath)$(AssemblyName).xml</DocumentationFile>
   </PropertyGroup>
 
-  <PropertyGroup>
-    <ReferencePackagesPath>$(RepositoryRoot)packages\</ReferencePackagesPath>
+  <PropertyGroup Label="Nuget Configuration">
+    <NuGetOutputPath>$(RepositoryRoot).binaries\Packages\$(Configuration)</NuGetOutputPath>
+    <NuGetSymbolsOutputPath>$(RepositoryRoot).binaries\SymbolPackages\$Configuration</NuGetSymbolsOutputPath>
     <NuGetPackSymbols Condition="'$(NuGetPackSymbols)' == ''">true</NuGetPackSymbols>
+    <ReferencePackagesPath>$(RepositoryRoot)packages\</ReferencePackagesPath>
     <SourceRootFullPath>$(RepositoryRoot)\src\$(MSBuildProjectName)\</SourceRootFullPath>
   </PropertyGroup>
 
   <PropertyGroup>
-    <CustomAfterMicrosoftCommonTargets>$(RepositoryRoot)tools\MicrosoftConfigurationBuilders.targets</CustomAfterMicrosoftCommonTargets>
-    <CustomAfterNuGetProjTargets>$(CustomAfterMicrosoftCommonTargets)</CustomAfterNuGetProjTargets>
+    <TestRoot>$(RepositoryRoot)\test\Microsoft.Configuration.ConfigurationBuilders.Test</TestRoot>
+    <BuildingTestProject Condition="$(MSBuildProjectDirectory.ToLower().Contains($(TestRoot.ToLower())))">true</BuildingTestProject>
   </PropertyGroup>
+
+  <Target Name="SetNuSpecProperties" BeforeTargets="GenerateNuSpecFile">
+    <PropertyGroup>
+      <NuSpecProperties>
+          NuGetPackageVersion=$(NuGetPackageVersion);
+          NuGetPackageId=$(NuGetPackageId);
+      </NuSpecProperties>
+    </PropertyGroup>
+  </Target>
+
+  <Target Name="AfterBuild">
+    <ItemGroup>
+      <FilesToSign Include="$(TargetPath)" Condition="'$(SignAssembly)' == 'true'">
+        <Authenticode>Microsoft</Authenticode>
+        <StrongName>MsSharedLib72</StrongName>
+      </FilesToSign>
+    </ItemGroup>
+  </Target>
+
 </Project>

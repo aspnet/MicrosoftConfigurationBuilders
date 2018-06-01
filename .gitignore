@@ -5,6 +5,7 @@ src/**/[Oo]bj/
 test/**/[Bb]in/
 test/**/[Oo]bj/
 .vs/
+.binaries/
 msbuild.*
 /packages/
 samples/SampleWebApp/bin/

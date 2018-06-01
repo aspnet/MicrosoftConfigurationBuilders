@@ -59,7 +59,6 @@
     <Content Include="ConfigurationBuilders.UserSecrets.nupkg\content\sample.xml" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory),MicrosoftConfigurationBuilders.sln))\tools\cleanup.targets" />
   <Target Name="Build">
     <MSBuild Projects="@(NuGetProject)" Targets="Build" />
   </Target>

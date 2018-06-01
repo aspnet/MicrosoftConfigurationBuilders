@@ -1,4 +1,5 @@
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
   <ItemGroup>
     <AssemblyProject Include="src\Base\Base.csproj" />
     <AssemblyProject Include="src\Environment\Environment.csproj" />
@@ -7,25 +8,38 @@
     <AssemblyProject Include="src\Json\Json.csproj" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(BuildCoreOnly)' != 'true'">
-    <AssemblyProject Include="test\Microsoft.Configuration.ConfigurationBuilders.Test\Test\Test.csproj" />
-    <AssemblyProject Include="samples\SampleWebApp\SampleWebApp.csproj" />
+  <ItemGroup>
+    <TestProject Include="test\Microsoft.Configuration.ConfigurationBuilders.Test\Test\Test.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <SampleProject Include="samples\SampleWebApp\SampleWebApp.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageProject Include="src\Packages\Packages.csproj" />
   </ItemGroup>
   
+  <!-- <Target Name="Build" DependsOnTargets="BuildAssemblies;UnitTest;BuildPackages" /> -->
   <Target Name="Build" DependsOnTargets="BuildAssemblies;BuildPackages" />
-  <Target Name="Clean" DependsOnTargets="CleanPackages;CleanAssemblies" />
+  <Target Name="Clean" DependsOnTargets="CleanPackages;CleanAssemblies;SpicNSpan" />
   <Target Name="Rebuild" DependsOnTargets="Clean;Build" />
   
   <Target Name="BuildAssemblies" DependsOnTargets="RestorePackages">
-    <MSBuild Targets="Build" Projects="@(AssemblyProject)" />
+    <MSBuild Targets="Build" Projects="@(AssemblyProject);@(TestProject);@(SampleProject)" />
   </Target> 
 
   <Target Name="CleanAssemblies">
     <MSBuild Targets="Clean" Projects="MicrosoftConfigurationBuilders.sln" />
+  </Target>
+
+  <Target Name="SpicNSpan">
+    <!-- Remove bin folder -->
+    <RemoveDir Directories="$(MSBuildProjectDirectory)\bin" />
+    <RemoveDir Directories="$(OutputPath)" />
+    <!-- Remove obj folder -->
+    <RemoveDir Directories="$(MSBuildProjectDirectory)\obj" />
+    <RemoveDir Directories="$(IntermediateOutputRoot)" />
   </Target>
 
   <Target Name="RebuildAssemblies" DependsOnTargets="Clean;Build" />
@@ -46,21 +60,8 @@
     <Exec Command=".nuget\NuGet.exe restore" />
   </Target>
 
-  <!--
-    <Target Name="UnitTest">
-        <ItemGroup>
-            <TestDLLs Include="test\Microsoft.Configuration.ConfigurationBuilders.Test\bin\$(Configuration)\*Test.dll" />
-        </ItemGroup>
+  <Target Name="UnitTest">
+    <MSBuild Targets="XunitTest" Projects="@(TestProject)" />
+  </Target>
 
-        <PropertyGroup>
-            <TestSettingsFile Condition=" '$(Configuration)' == 'CodeCoverage' ">$(MsBuildProjectDirectory)\test\CodeCoverage.testsettings</TestSettingsFile>
-            <TestSettingsFile Condition=" '$(Configuration)' != 'CodeCoverage' ">$(MsBuildProjectDirectory)\unittest.testsettings</TestSettingsFile>
-        </PropertyGroup>
-
-        <Delete Files="bin\$(Configuration)-TestResults.trx" />
-        <Exec
-            Command="&quot;$(VS100COMNTOOLS)..\IDE\MSTEST.EXE&quot; /nologo /usestderr /resultsfile:&quot;bin\$(Configuration)-TestResults.trx&quot; @(TestDLLs -> '/testcontainer:&quot;%(Identity)&quot;', ' ') /testsettings:&quot;$(TestSettingsFile)&quot;" />
-    </Target>
--->
-  <Import Project="tools\MicrosoftConfigurationBuilders.targets"/>
 </Project>
