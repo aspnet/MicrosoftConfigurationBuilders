@@ -12,12 +12,10 @@
             <Source>$(AssemblyPath)</Source>
             <Destination>lib\Net471</Destination>
         </NuGetContent>
-        <!--
         <NuGetContent Include="$(AssemblyName).xml">
             <Source>$(OutputPath)</Source>
             <Destination>lib\Net471</Destination>
         </NuGetContent>
-        -->
         <NuGetContent Include="$(AssemblyName).pdb" Condition="'$(NuGetPackSymbols)' == 'true'">
             <Source>$(OutputPath)</Source>
             <Destination>lib\Net471</Destination>

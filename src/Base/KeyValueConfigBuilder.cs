@@ -10,24 +10,55 @@ using System.Xml;
 
 namespace Microsoft.Configuration.ConfigurationBuilders
 {
+    /// <summary>
+    /// Base class for a set of ConfigurationBuilders that follow a simple key/value pair substitution model. This base
+    /// class handles substitution modes and most prefix concerns, so implementing classes only need to be a simple
+    /// source of key/value pairs through the <see cref="GetValue(string)"/> and <see cref="GetAllValues(string)"/> methods.
+    /// </summary>
     public abstract class KeyValueConfigBuilder : ConfigurationBuilder
     {
+        #pragma warning disable CS1591 // No xml comments for tag literals.
         public const string modeTag = "mode";
         public const string prefixTag = "prefix";
         public const string stripPrefixTag = "stripPrefix";
         public const string tokenPatternTag = "tokenPattern";
+        #pragma warning restore CS1591 // No xml comments for tag literals.
 
         private bool _greedyInited;
         private IDictionary<string, string> _cachedValues;
         private bool _stripPrefix = false;  // Prefix-stripping is all handled in this class; this is private so it doesn't confuse sub-classes.
 
+        /// <summary>
+        /// Gets or sets a regular expression used for matching tokens in raw xml during Greedy substitution.
+        /// </summary>
         public string TokenPattern { get; protected set; } = @"\$\{(\w+)\}";
+        /// <summary>
+        /// Gets or sets the substitution pattern to be used by the KeyValueConfigBuilder.
+        /// </summary>
         public KeyValueMode Mode { get; private set; } = KeyValueMode.Strict;
+        /// <summary>
+        /// Gets or sets a prefix string that must be matched by keys to be considered for value substitution.
+        /// </summary>
         public string KeyPrefix { get; private set; }
 
+        /// <summary>
+        /// Looks up a single 'value' for the given 'key.'
+        /// </summary>
+        /// <param name="key">The 'key' to look up in the config source. (Prefix handling is not needed here.)</param>
+        /// <returns>The value corresponding to the given 'key' or null if no value is found.</returns>
         public abstract string GetValue(string key);
+        /// <summary>
+        /// Retrieves all known key/value pairs for the configuration source where the key begins with with <paramref name="prefix"/>.
+        /// </summary>
+        /// <param name="prefix">A prefix string to filter the list of potential keys retrieved from the source.</param>
+        /// <returns>A collection of key/value pairs.</returns>
         public abstract ICollection<KeyValuePair<string, string>> GetAllValues(string prefix);
 
+        /// <summary>
+        /// Initializes the configuration builder.
+        /// </summary>
+        /// <param name="name">The friendly name of the provider.</param>
+        /// <param name="config">A collection of the name/value pairs representing builder-specific attributes specified in the configuration for this provider.</param>
         public override void Initialize(string name, NameValueCollection config)
         {
             base.Initialize(name, config);
@@ -52,6 +83,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             _cachedValues = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         }
 
+        #pragma warning disable CS1591 // No xml comments for overrides that implementing classes shouldn't worry about.
         public override XmlNode ProcessRawXml(XmlNode rawXml)
         {
             if (Mode == KeyValueMode.Expand)
@@ -92,6 +124,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
             return configSection;
         }
+        #pragma warning restore CS1591 // No xml comments for overrides that implementing classes shouldn't worry about.
 
         private XmlNode ExpandTokens(XmlNode rawXml)
         {

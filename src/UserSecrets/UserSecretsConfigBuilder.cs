@@ -11,18 +11,38 @@ using System.Xml.Linq;
 
 namespace Microsoft.Configuration.ConfigurationBuilders
 {
+    /// <summary>
+    /// A ConfigurationProvider that retrieves values from a local secrets file.
+    /// </summary>
     public class UserSecretsConfigBuilder : KeyValueConfigBuilder
     {
+        #pragma warning disable CS1591 // No xml comments for tag literals.
         public const string userSecretsFileTag = "userSecretsFile";
         public const string userSecretsIdTag = "userSecretsId";
         public const string optionalTag = "optional";
+        #pragma warning restore CS1591 // No xml comments for tag literals.
 
         private ConcurrentDictionary<string, string> _secrets;
 
+        /// <summary>
+        /// Gets or sets an identifier string used to compose an out-of-solution path to a file that contains secrets.
+        /// (Set to ${UserSecretsId} to reference the similarly named project property in Visual Studio environments.
+        /// </summary>
         public string UserSecretsId { get; protected set; }
+        /// <summary>
+        /// Gets or sets a path to the secrets file to be used.
+        /// </summary>
         public string UserSecretsFile { get; protected set; }
+        /// <summary>
+        /// Specifies whether the config builder should cause errors if the secrets file source cannot be found.
+        /// </summary>
         public bool Optional { get; protected set; }
 
+        /// <summary>
+        /// Initializes the configuration builder.
+        /// </summary>
+        /// <param name="name">The friendly name of the provider.</param>
+        /// <param name="config">A collection of the name/value pairs representing builder-specific attributes specified in the configuration for this provider.</param>
         public override void Initialize(string name, NameValueCollection config)
         {
             base.Initialize(name, config);
@@ -54,11 +74,21 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             }
         }
 
+        /// <summary>
+        /// Retrieves all known key/value pairs from the secrets file where the key begins with with <paramref name="prefix"/>.
+        /// </summary>
+        /// <param name="prefix">A prefix string to filter the list of potential keys retrieved from the source.</param>
+        /// <returns>A collection of key/value pairs.</returns>
         public override ICollection<KeyValuePair<string, string>> GetAllValues(string prefix)
         {
             return _secrets?.Where(s => s.Key.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)).ToList();
         }
 
+        /// <summary>
+        /// Looks up a single 'value' for the given 'key.'
+        /// </summary>
+        /// <param name="key">The 'key' to look up in the secrets file. (Prefix handling is not needed here.)</param>
+        /// <returns>The value corresponding to the given 'key' or null if no value is found.</returns>
         public override string GetValue(string key)
         {
             if (_secrets != null && _secrets.TryGetValue(key, out string val))

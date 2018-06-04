@@ -7,11 +7,19 @@ using System.Reflection;
 
 namespace Microsoft.Configuration.ConfigurationBuilders
 {
+    /// <summary>
+    /// Utility methods commonly used by KeyValueConfigBuilders. 
+    /// </summary>
     public class Utils
     {
         private static bool? s_isAspNet = null;
         private static Type s_hostingEnvironmentType = null;
 
+        /// <summary>
+        /// Returns the physical file path that corresponds to the specified relative path. 
+        /// </summary>
+        /// <param name="path"></param>
+        /// <returns></returns>
         public static string MapPath(string path)
         {
             if (String.IsNullOrWhiteSpace(path))
