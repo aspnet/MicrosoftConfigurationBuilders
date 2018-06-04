@@ -22,7 +22,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "packages", "src\packages\pa
 		{F382FBF8-146D-4968-A199-90D37F9EF9A7} = {F382FBF8-146D-4968-A199-90D37F9EF9A7}
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test", "test\Microsoft.Configuration.ConfigurationBuilders.Test\Test\Test.csproj", "{9371A23F-BCB8-4429-8652-0A12D43F14F3}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test", "test\Microsoft.Configuration.ConfigurationBuilders.Test\Test.csproj", "{9371A23F-BCB8-4429-8652-0A12D43F14F3}"
 	ProjectSection(ProjectDependencies) = postProject
 		{345C5437-4990-45DC-BE34-6E37AA05D8D2} = {345C5437-4990-45DC-BE34-6E37AA05D8D2}
 		{84E0CE5D-4AF2-414F-A940-22B3F93FC727} = {84E0CE5D-4AF2-414F-A940-22B3F93FC727}

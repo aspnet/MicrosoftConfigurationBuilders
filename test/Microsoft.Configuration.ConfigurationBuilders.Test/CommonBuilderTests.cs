@@ -2,12 +2,11 @@
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using Microsoft.Configuration.ConfigurationBuilders;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
 
 
 namespace Test
 {
-    [TestClass]
     public class CommonBuilderTests
     {
         public static NameValueCollection CommonKeyValuePairs = new NameValueCollection() {
@@ -28,16 +27,13 @@ namespace Test
             builder.Initialize(name, attrs ?? new NameValueCollection());
 
             // Gets what is there.
-            Assert.AreEqual(CommonKeyValuePairs["TestKey"], builder.GetValue("TestKey"),
-                $"GetValue[{name}]: Failed to retrieve existing value.");
+            Assert.Equal(CommonKeyValuePairs["TestKey"], builder.GetValue("TestKey"));
 
             // Does not get what is not there.
-            Assert.IsNull(builder.GetValue("This_Value_Does_Not_Exist"),
-                $"GetValue[{name}]: Returned non-null value for a key that doesn't exist.");
+            Assert.Null(builder.GetValue("This_Value_Does_Not_Exist"));
 
             // Is NOT case-sensitive.
-            Assert.AreEqual(CommonKeyValuePairs["TestKey"], builder.GetValue("testkey"),
-                $"GetValue[{name}]: Failed to retrieve existing value for case-insensitive key.");
+            Assert.Equal(CommonKeyValuePairs["TestKey"], builder.GetValue("testkey"));
         }
 
         public static void GetValue_Prefix1(KeyValueConfigBuilder builder, string name, NameValueCollection attrs = null)
@@ -47,10 +43,8 @@ namespace Test
             builder.Initialize(name, attrs);
 
             // Does not care about prefix...
-            Assert.AreEqual(CommonKeyValuePairs["TestKey"], builder.GetValue("TestKey"),
-                $"GetValue_Prefix1[{name}]: Failed to retrieve first existing value.");
-            Assert.AreEqual(CommonKeyValuePairs["Prefix_TestKey"], builder.GetValue("Prefix_TestKey"),
-                $"GetValue_Prefix1[{name}]: Failed to retrieve second existing value.");
+            Assert.Equal(CommonKeyValuePairs["TestKey"], builder.GetValue("TestKey"));
+            Assert.Equal(CommonKeyValuePairs["Prefix_TestKey"], builder.GetValue("Prefix_TestKey"));
         }
 
         public static void GetValue_Prefix2(KeyValueConfigBuilder builder, string name, NameValueCollection attrs = null)
@@ -61,10 +55,8 @@ namespace Test
             builder.Initialize(name, attrs);
 
             // or stripPrefix...
-            Assert.AreEqual(CommonKeyValuePairs["TestKey"], builder.GetValue("TestKey"),
-                $"GetValue_Prefix2[{name}]: Failed to retrieve first existing value.");
-            Assert.AreEqual(CommonKeyValuePairs["Prefix_TestKey"], builder.GetValue("Prefix_TestKey"),
-                $"GetValue_Prefix2[{name}]: Failed to retrieve second existing value.");
+            Assert.Equal(CommonKeyValuePairs["TestKey"], builder.GetValue("TestKey"));
+            Assert.Equal(CommonKeyValuePairs["Prefix_TestKey"], builder.GetValue("Prefix_TestKey"));
         }
 
         public static void GetValue_Prefix3(KeyValueConfigBuilder builder, string name, NameValueCollection attrs = null)
@@ -74,10 +66,8 @@ namespace Test
             builder.Initialize(name, attrs);
 
             // even if there is no prefix given.
-            Assert.AreEqual(CommonKeyValuePairs["TestKey"], builder.GetValue("TestKey"),
-                $"GetValue_Prefix3[{name}]: Failed to retrieve dirst existing value.");
-            Assert.AreEqual(CommonKeyValuePairs["Prefix_TestKey"], builder.GetValue("Prefix_TestKey"),
-                $"GetValue_Prefix3[{name}]: Failed to retrieve second existing value.");
+            Assert.Equal(CommonKeyValuePairs["TestKey"], builder.GetValue("TestKey"));
+            Assert.Equal(CommonKeyValuePairs["Prefix_TestKey"], builder.GetValue("Prefix_TestKey"));
         }
 
 
@@ -93,15 +83,12 @@ namespace Test
             var allValues = builder.GetAllValues("");
 
             // Has all the test values
-            Assert.AreEqual(CommonKeyValuePairs["TestKey"], GetValueFromCollection(allValues, "TestKey"),
-                $"GetAllValues[{name}]: Failed to retrieve first existing value.");
-            Assert.AreEqual(CommonKeyValuePairs["Prefix_TestKey"], GetValueFromCollection(allValues, "Prefix_TestKey"),
-                $"GetAllValues[{name}]: Failed to retrieve second existing value.");
+            Assert.Equal(CommonKeyValuePairs["TestKey"], GetValueFromCollection(allValues, "TestKey"));
+            Assert.Equal(CommonKeyValuePairs["Prefix_TestKey"], GetValueFromCollection(allValues, "Prefix_TestKey"));
 
             // Does not contain what is not there.
             // This would be a super wierd one to fail.
-            Assert.IsNull(GetValueFromCollection(allValues, "This_Value_Does_Not_Exist"),
-                $"GetAllValues[{name}]: Returned non-null value for a key that doesn't exist.");
+            Assert.Null(GetValueFromCollection(allValues, "This_Value_Does_Not_Exist"));
         }
 
         public static void GetAllValues_Prefix1(KeyValueConfigBuilder builder, string name, NameValueCollection attrs = null)
@@ -113,12 +100,10 @@ namespace Test
             var allValues = builder.GetAllValues("Prefix_");
 
             // Has all the test values
-            Assert.AreEqual(CommonKeyValuePairs["Prefix_TestKey"], GetValueFromCollection(allValues, "Prefix_TestKey"),
-                $"GetAllValues_Prefix1[{name}]: Failed to retrieve first existing value.");
+            Assert.Equal(CommonKeyValuePairs["Prefix_TestKey"], GetValueFromCollection(allValues, "Prefix_TestKey"));
 
             // Does not contain what is not there.
-            Assert.IsNull(GetValueFromCollection(allValues, "TestKey"),
-                $"GetAllValues_Prefix1[{name}]: Returned non-null value for a key that doesn't exist.");
+            Assert.Null(GetValueFromCollection(allValues, "TestKey"));
         }
 
         public static void GetAllValues_Prefix2(KeyValueConfigBuilder builder, string name, NameValueCollection attrs = null)
@@ -132,12 +117,10 @@ namespace Test
             var allValues = builder.GetAllValues("Prefix_");
 
             // Has all the test values
-            Assert.AreEqual(CommonKeyValuePairs["Prefix_TestKey"], GetValueFromCollection(allValues, "Prefix_TestKey"),
-                $"GetAllValues_Prefix2[{name}]: Failed to retrieve first existing value.");
+            Assert.Equal(CommonKeyValuePairs["Prefix_TestKey"], GetValueFromCollection(allValues, "Prefix_TestKey"));
 
             // Does not contain what is not there.
-            Assert.IsNull(GetValueFromCollection(allValues, "TestKey"),
-                $"GetAllValues_Prefix2[{name}]: Returned non-null value for a key that doesn't exist.");
+            Assert.Null(GetValueFromCollection(allValues, "TestKey"));
         }
 
         public static void GetAllValues_Prefix3(KeyValueConfigBuilder builder, string name, NameValueCollection attrs = null)
@@ -149,10 +132,8 @@ namespace Test
             var allValues = builder.GetAllValues("");
 
             // Has all the test values
-            Assert.AreEqual(CommonKeyValuePairs["TestKey"], GetValueFromCollection(allValues, "TestKey"),
-                $"GetAllValues_Prefix3[{name}]: Failed to retrieve first existing value.");
-            Assert.AreEqual(CommonKeyValuePairs["Prefix_TestKey"], GetValueFromCollection(allValues, "Prefix_TestKey"),
-                $"GetAllValues_Prefix3[{name}]: Failed to retrieve second existing value.");
+            Assert.Equal(CommonKeyValuePairs["TestKey"], GetValueFromCollection(allValues, "TestKey"));
+            Assert.Equal(CommonKeyValuePairs["Prefix_TestKey"], GetValueFromCollection(allValues, "Prefix_TestKey"));
         }
 
 

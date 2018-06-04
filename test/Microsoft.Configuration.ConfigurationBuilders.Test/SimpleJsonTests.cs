@@ -1,11 +1,10 @@
 ﻿using System;
 using Microsoft.Configuration.ConfigurationBuilders;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
 
 
 namespace Test
 {
-    [TestClass]
     public class SimpleJsonTests
     {
         public SimpleJsonTests()
@@ -24,12 +23,12 @@ namespace Test
         // ======================================================================
         //   CommonBuilderTests
         // ======================================================================
-        [TestMethod]
+        [Fact]
         public void SimpleJson_GetValue()
         {
         }
 
-        [TestMethod]
+        [Fact]
         public void SimpleJson_GetAllValues()
         {
         }

@@ -1,11 +1,10 @@
 ﻿using System;
 using Microsoft.Configuration.ConfigurationBuilders;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
 
 
 namespace Test
 {
-    [TestClass]
     public class EnvironmentTests
     {
         public EnvironmentTests()
@@ -18,7 +17,7 @@ namespace Test
         // ======================================================================
         //   CommonBuilderTests
         // ======================================================================
-        [TestMethod]
+        [Fact]
         public void Environment_GetValue()
         {
             CommonBuilderTests.GetValue(new EnvironmentConfigBuilder(), "EnvironmentBuilder");
@@ -27,7 +26,7 @@ namespace Test
             CommonBuilderTests.GetValue_Prefix3(new EnvironmentConfigBuilder(), "EnvironmentBuilderPrefix3");
         }
 
-        [TestMethod]
+        [Fact]
         public void Environment_GetAllValues()
         {
             CommonBuilderTests.GetAllValues(new EnvironmentConfigBuilder(), "EnvironmentBuilder");

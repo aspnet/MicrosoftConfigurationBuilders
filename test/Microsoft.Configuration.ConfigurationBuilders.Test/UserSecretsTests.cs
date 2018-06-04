@@ -1,11 +1,10 @@
 ﻿using System;
 using Microsoft.Configuration.ConfigurationBuilders;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
 
 
 namespace Test
 {
-    [TestClass]
     public class UserSecretsTests
     {
         public UserSecretsTests()
@@ -26,12 +25,12 @@ namespace Test
         // ======================================================================
         //   CommonBuilderTests
         // ======================================================================
-        [TestMethod]
+        [Fact]
         public void UserSecrets_GetValue()
         {
         }
 
-        [TestMethod]
+        [Fact]
         public void UserSecrets_GetAllValues()
         {
         }

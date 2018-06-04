@@ -9,7 +9,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <TestProject Include="test\Microsoft.Configuration.ConfigurationBuilders.Test\Test\Test.csproj" />
+    <TestProject Include="test\Microsoft.Configuration.ConfigurationBuilders.Test\Test.csproj" />
   </ItemGroup>
 
   <ItemGroup>
