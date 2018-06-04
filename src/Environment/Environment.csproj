@@ -10,6 +10,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Microsoft.Configuration.ConfigurationBuilders</RootNamespace>
     <AssemblyName>Microsoft.Configuration.ConfigurationBuilders.Environment</AssemblyName>
+    <DocumentationFile>$(OutputPath)$(AssemblyName).xml</DocumentationFile>
     <TargetFrameworkVersion>v4.7.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />

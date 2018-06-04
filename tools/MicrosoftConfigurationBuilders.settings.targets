@@ -52,7 +52,6 @@
     <IntermediateOutputPath>$(IntermediateOutputRoot)$(MSBuildProjectName)\</IntermediateOutputPath>
     <AssemblyPath Condition="'$(CodeSignEnabled)' == 'true'">$(CodeSignOutputPath)</AssemblyPath>
     <AssemblyPath Condition="'$(AssemblyPath)' == ''">$(OutputPath)</AssemblyPath>
-    <DocumentationFile>$(OutputPath)$(AssemblyName).xml</DocumentationFile>
   </PropertyGroup>
 
   <PropertyGroup Label="Nuget Configuration">
@@ -67,6 +66,12 @@
     <TestRoot>$(RepositoryRoot)\test\Microsoft.Configuration.ConfigurationBuilders.Test</TestRoot>
     <BuildingTestProject Condition="$(MSBuildProjectDirectory.ToLower().Contains($(TestRoot.ToLower())))">true</BuildingTestProject>
   </PropertyGroup>
+
+  <Target Name="PreventReferenceCopy" AfterTargets="ResolveAssemblyReferences">
+    <ItemGroup>
+      <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)" />
+    </ItemGroup>
+  </Target>
 
   <Target Name="SetNuSpecProperties" BeforeTargets="GenerateNuSpecFile">
     <PropertyGroup>

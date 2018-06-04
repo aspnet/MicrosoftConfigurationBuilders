@@ -20,20 +20,34 @@
     <PackageProject Include="src\Packages\Packages.csproj" />
   </ItemGroup>
   
-  <!-- <Target Name="Build" DependsOnTargets="BuildAssemblies;UnitTest;BuildPackages" /> -->
-  <Target Name="Build" DependsOnTargets="BuildAssemblies;BuildPackages" />
-  <Target Name="Clean" DependsOnTargets="CleanPackages;CleanAssemblies" />
+  <Target Name="Build" DependsOnTargets="BuildAssemblies;UnitTest;BuildPackages" />
+  <Target Name="BuildAll" DependsOnTargets="BuildAssemblies;BuildSamples;UnitTest;BuildPackages" />
+  <Target Name="Clean" DependsOnTargets="CleanPackages;CleanSamples;CleanTests;CleanAssemblies" />
   <Target Name="Rebuild" DependsOnTargets="Clean;Build" />
   
   <Target Name="BuildAssemblies" DependsOnTargets="RestorePackages">
-    <MSBuild Targets="Build" Projects="@(AssemblyProject);@(TestProject);@(SampleProject)" />
-  </Target> 
-
-  <Target Name="CleanAssemblies">
-    <MSBuild Targets="Clean" Projects="@(AssemblyProject);@(TestProject);@(SampleProject)" />
+    <MSBuild Targets="Build" Projects="@(AssemblyProject)" />
   </Target>
 
-  <Target Name="RebuildAssemblies" DependsOnTargets="Clean;Build" />
+  <Target Name="BuildTests" DependsOnTargets="RestorePackages">
+    <MSBuild Targets="Build" Projects="@(TestProject)" />
+  </Target>
+
+  <Target Name="BuildSamples" DependsOnTargets="RestorePackages">
+    <MSBuild Targets="Build" Projects="@(SampleProject)" />
+  </Target>
+
+  <Target Name="CleanAssemblies">
+    <MSBuild Targets="Clean" Projects="@(AssemblyProject)" />
+  </Target>
+
+  <Target Name="CleanTests">
+    <MSBuild Targets="Clean" Projects="@(TestProject)" />
+  </Target>
+
+  <Target Name="CleanSamples">
+    <MSBuild Targets="Clean" Projects="@(SampleProject)" />
+  </Target>
 
   <!-- Packages build -->
 
@@ -51,7 +65,7 @@
     <Exec Command=".nuget\NuGet.exe restore" />
   </Target>
 
-  <Target Name="UnitTest">
+  <Target Name="UnitTest" DependsOnTargets="BuildTests">
     <MSBuild Targets="XunitTest" Projects="@(TestProject)" />
   </Target>
 
