@@ -1,6 +1,7 @@
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 
   <PropertyGroup>
+    <CustomAfterMicrosoftCommonTargets>$(MSBuildThisFileDirectory)version.targets;$(MSBuildThisFileDirectory)signing.targets</CustomAfterMicrosoftCommonTargets>
     <RepositoryRoot>$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), 'MicrosoftConfigurationBuilders.sln'))\</RepositoryRoot>
     <RepositoryRootEx Condition="'$(RepositoryRootEx)' == ''">$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory),MicrosoftConfigurationBuilders.sln))\</RepositoryRootEx>
     <SolutionDir>$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), 'MicrosoftConfigurationBuilders.sln'))\</SolutionDir>
@@ -28,11 +29,6 @@
     <VersionRevision>0</VersionRevision>
     <VersionRelease>1</VersionRelease>
     <VersionRelease Condition="'$(BuildQuality)' != 'rtm'">$(VersionRelease)-$(BuildQuality)</VersionRelease>
-    <CustomAfterProjectTargets>$(MSBuildThisFileDirectory)version.targets</CustomAfterProjectTargets>
-  </PropertyGroup>
-
-  <PropertyGroup>
-    <SatelliteContractVersion Condition="'$(SatelliteContractVersion)' == ''">$(AssemblyVersion)</SatelliteContractVersion>
   </PropertyGroup>
 
   <PropertyGroup Label="NuGet package dependencies">
@@ -80,15 +76,6 @@
           NuGetPackageId=$(NuGetPackageId);
       </NuSpecProperties>
     </PropertyGroup>
-  </Target>
-
-  <Target Name="AfterBuild">
-    <ItemGroup>
-      <FilesToSign Include="$(TargetPath)" Condition="'$(SignAssembly)' == 'true'">
-        <Authenticode>Microsoft</Authenticode>
-        <StrongName>MsSharedLib72</StrongName>
-      </FilesToSign>
-    </ItemGroup>
   </Target>
 
   <Target Name="SuperClean" AfterTargets="Clean"  Condition="'$(MSBuildProjectExtension)' != '.nuproj'">

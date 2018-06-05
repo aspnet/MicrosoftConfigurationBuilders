@@ -38,6 +38,10 @@ Project global versioning targets.
     <NuGetPackageVersion Condition="'$(NuGetPackageVersion)' == ''">$(VersionMajor).$(VersionMinor).$(VersionRelease)</NuGetPackageVersion>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <SatelliteContractVersion Condition="'$(SatelliteContractVersion)' == ''">$(AssemblyVersion)</SatelliteContractVersion>
+  </PropertyGroup>
+
   <ItemGroup Condition="'$(VersionFileGenerationEnabled)' == 'true'">
     <Compile Include="$(AssemblyVersionFile)" />
   </ItemGroup>
