@@ -2,6 +2,7 @@
 [Oo]bj/
 src/**/[Bb]in/
 src/**/[Oo]bj/
+src/packages/**/signed/
 test/**/[Bb]in/
 test/**/[Oo]bj/
 .vs/

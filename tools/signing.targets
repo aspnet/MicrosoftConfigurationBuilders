@@ -1,6 +1,6 @@
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 
-  <Target Name="SignBinaries" AfterTargets="Build" Condition="'$(SignAssembly)' == 'true'">
+  <Target Name="GetFilesToSign" BeforeTargets="SignFiles" Condition="'$(SignAssembly)' == 'true'">
     <ItemGroup>
       <FilesToSign Include="$(TargetPath)"  Condition="'$(MSBuildProjectExtension)' != '.nuproj'">
         <Authenticode>Microsoft</Authenticode>
