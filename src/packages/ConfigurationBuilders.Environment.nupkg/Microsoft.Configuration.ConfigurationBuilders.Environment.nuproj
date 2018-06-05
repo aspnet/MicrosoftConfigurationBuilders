@@ -35,4 +35,5 @@
         </NuGetContent>
     </ItemGroup>
     <Import Project="$(RepositoryRoot)Tools\NuGetProj.targets"/>
+    <Import Project="$(RepositoryRoot)Tools\signing.targets"/>
 </Project>
