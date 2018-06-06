@@ -52,7 +52,6 @@
 
   <PropertyGroup Label="Nuget Configuration">
     <NuGetOutputPath>$(RepositoryRoot).binaries\Packages\$(Configuration)</NuGetOutputPath>
-    <NuGetSymbolsOutputPath>$(RepositoryRoot).binaries\SymbolPackages\$Configuration</NuGetSymbolsOutputPath>
     <NuGetPackSymbols Condition="'$(NuGetPackSymbols)' == ''">true</NuGetPackSymbols>
     <ReferencePackagesPath>$(RepositoryRoot)packages\</ReferencePackagesPath>
     <SourceRootFullPath>$(RepositoryRoot)\src\$(MSBuildProjectName)\</SourceRootFullPath>
