@@ -63,7 +63,7 @@ and the first capture must be the token name to look up in the config source.
 ### EnvironmentConfigBuilder
 ```xml
 <add name="Environment"
-    [mode|prefix|stripPrefix]
+    [mode|prefix|stripPrefix|tokenPattern]
     type="Microsoft.Configuration.ConfigurationBuilders.EnvironmentConfigBuilder, Microsoft.Configuration.ConfigurationBuilders.Environment" />
 ```
 This is the simplest of the config builders. It draws its values from Environment, and it does not have any additional configuration options.
@@ -71,7 +71,7 @@ This is the simplest of the config builders. It draws its values from Environmen
 ### UserSecretsConfigBuilder
 ```xml
 <add name="UserSecrets"
-    [mode|prefix|stripPrefix]
+    [mode|prefix|stripPrefix|tokenPattern]
     (userSecretsId="12345678-90AB-CDEF-1234-567890" | userSecretsFile="~\secrets.file")
     [optional="true"]
     type="Microsoft.Configuration.ConfigurationBuilders.UserSecretsConfigBuilder, Microsoft.Configuration.ConfigurationBuilders.UserSecrets" />
@@ -97,7 +97,7 @@ There are three additional configuration attributes for this config builder:
 ### AzureKeyVaultConfigBuilder
 ```xml
 <add name="AzureKeyVault"
-    [mode|prefix|stripPrefix]
+    [mode|prefix|stripPrefix|tokenPattern]
     (vaultName="MyVaultName" |
      uri="https://MyVaultName.vault.azure.net")
     [connectionString="connection string"]
@@ -120,7 +120,7 @@ up connection information from the execution environment if possible, but you ca
 ### SimpleJsonConfigBuilder
 ```xml
 <add name="SimpleJson"
-    [mode|prefix|stripPrefix]
+    [mode|prefix|stripPrefix|tokenPattern]
     jsonFile="~\config.json"
     [optional="true"]
     [jsonMode="(Flat|Sectional)"]

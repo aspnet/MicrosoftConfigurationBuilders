@@ -6,224 +6,223 @@ using System.Linq;
 using System.Reflection;
 using System.Xml;
 using Microsoft.Configuration.ConfigurationBuilders;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
 
 namespace Test
 {
-    [TestClass]
     public class BaseTests
     {
         // ======================================================================
         //   Common Parameters
         // ======================================================================
-        [TestMethod]
+        [Fact]
         public void BaseParameters_Mode()
         {
             // Default Strict
             var builder = new FakeConfigBuilder();
             builder.Initialize("test", new System.Collections.Specialized.NameValueCollection());
-            Assert.AreEqual(builder.Mode, KeyValueMode.Strict);
+            Assert.Equal(KeyValueMode.Strict, builder.Mode);
 
             // Strict
             builder = new FakeConfigBuilder();
             builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Strict" } });
-            Assert.AreEqual(builder.Mode, KeyValueMode.Strict);
+            Assert.Equal(KeyValueMode.Strict, builder.Mode);
 
             // Greedy
             builder = new FakeConfigBuilder();
             builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Greedy" } });
-            Assert.AreEqual(builder.Mode, KeyValueMode.Greedy);
+            Assert.Equal(KeyValueMode.Greedy, builder.Mode);
 
             // Expand
             builder = new FakeConfigBuilder();
             builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Expand" } });
-            Assert.AreEqual(builder.Mode, KeyValueMode.Expand);
+            Assert.Equal(KeyValueMode.Expand, builder.Mode);
 
             // Invalid
             builder = new FakeConfigBuilder();
-            Assert.ThrowsException<ArgumentException>(() => {
+            Assert.Throws<ArgumentException>(() => {
                 builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "InvalidModeDoesNotExist" } });
             });
 
             // Case-insensitive value
             builder = new FakeConfigBuilder();
             builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "grEEdy" } });
-            Assert.AreEqual(builder.Mode, KeyValueMode.Greedy);
+            Assert.Equal(KeyValueMode.Greedy, builder.Mode);
 
             // Case sensitive attribute name
             builder = new FakeConfigBuilder();
             builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "MODE", "Expand" } });
-            Assert.AreEqual(builder.Mode, KeyValueMode.Expand);
+            Assert.Equal(KeyValueMode.Expand, builder.Mode);
         }
 
-        [TestMethod]
+        [Fact]
         public void BaseParameters_Prefix()
         {
             // Default empty string. (Not null)
             var builder = new FakeConfigBuilder();
             builder.Initialize("test", new System.Collections.Specialized.NameValueCollection());
-            Assert.AreEqual(builder.KeyPrefix, "");
+            Assert.Equal("", builder.KeyPrefix);
 
             // Prefix, case preserved
             builder = new FakeConfigBuilder();
             builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "prefix", "_This_is_my_PREFIX:" } });
-            Assert.AreEqual(builder.KeyPrefix, "_This_is_my_PREFIX:");
+            Assert.Equal("_This_is_my_PREFIX:", builder.KeyPrefix);
 
             // Case sensitive attribute name
             builder = new FakeConfigBuilder();
             builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "PREfix", "$This_is_my_other_PREFIX#" } });
-            Assert.AreEqual(builder.KeyPrefix, "$This_is_my_other_PREFIX#");
+            Assert.Equal("$This_is_my_other_PREFIX#", builder.KeyPrefix);
         }
 
-        [TestMethod]
+        [Fact]
         public void BaseParameters_StripPrefix()
         {
             // Default false
             var builder = new FakeConfigBuilder();
             builder.Initialize("test", new System.Collections.Specialized.NameValueCollection());
-            Assert.AreEqual(builder.StripPrefix, false);
+            Assert.False(builder.StripPrefix);
 
             // True
             builder = new FakeConfigBuilder();
             builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "stripPrefix", "True" } });
-            Assert.AreEqual(builder.StripPrefix, true);
+            Assert.True(builder.StripPrefix);
 
             // fAlSe
             builder = new FakeConfigBuilder();
             builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "stripPrefix", "fAlSe" } });
-            Assert.AreEqual(builder.StripPrefix, false);
+            Assert.False(builder.StripPrefix);
 
             // Works with 'prefix'
             builder = new FakeConfigBuilder();
             builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "prefix", "Test_" }, { "stripPrefix", "TRUE" } });
-            Assert.AreEqual(builder.StripPrefix, true);
+            Assert.True(builder.StripPrefix);
 
             // Can be set in Greedy mode
             builder = new FakeConfigBuilder();
             builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Greedy" }, { "stripPrefix", "TRUE" } });
-            Assert.AreEqual(builder.StripPrefix, true);
+            Assert.True(builder.StripPrefix);
 
             // Can be set in Expand mode
             builder = new FakeConfigBuilder();
             builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Expand" }, { "stripPrefix", "TRUE" } });
-            Assert.AreEqual(builder.StripPrefix, true);
+            Assert.True(builder.StripPrefix);
 
             // Case sensitive attribute name
             builder = new FakeConfigBuilder();
             builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "STRIppreFIX", "true" } });
-            Assert.AreEqual(builder.StripPrefix, true);
+            Assert.True(builder.StripPrefix);
         }
 
-        [TestMethod]
+        [Fact]
         public void BaseParameters_TokenPattern()
         {
             // Default string. (Not null)
             var builder = new FakeConfigBuilder();
             builder.Initialize("test", new System.Collections.Specialized.NameValueCollection());
-            Assert.AreEqual(builder.TokenPattern, @"\$\{(\w+)\}");
+            Assert.Equal(@"\$\{(\w+)\}", builder.TokenPattern);
 
             // TokenPattern, case preserved
             builder = new FakeConfigBuilder();
             builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "tokenPattern", @"%([^\s+\W*#$&_-])}%" } });
-            Assert.AreEqual(builder.TokenPattern, @"%([^\s+\W*#$&_-])}%");
+            Assert.Equal(@"%([^\s+\W*#$&_-])}%", builder.TokenPattern);
 
             // Case sensitive attribute name
             builder = new FakeConfigBuilder();
             builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "TOKenpaTTerN", @"\[pattern\]" } });
-            Assert.AreEqual(builder.TokenPattern, @"\[pattern\]");
+            Assert.Equal(@"\[pattern\]", builder.TokenPattern);
 
             // Protected setter
             builder = new FakeConfigBuilder();
             builder.Initialize("test", null);
             builder.SetTokenPattern("TestPattern");
-            Assert.AreEqual(builder.TokenPattern, @"TestPattern");
+            Assert.Equal(@"TestPattern", builder.TokenPattern);
         }
 
         // ======================================================================
         //   Behaviors
         // ======================================================================
-        [TestMethod]
+        [Fact]
         public void BaseBehavior_Strict()
         {
             // Strict - ProcessRawXml is a noop
             var builder = new FakeConfigBuilder();
             builder.Initialize("test", new System.Collections.Specialized.NameValueCollection());
             XmlNode xmlInput = GetNode(rawXmlInput);
-            Assert.AreEqual(xmlInput, builder.ProcessRawXml(xmlInput));
+            Assert.Equal(xmlInput, builder.ProcessRawXml(xmlInput));
 
             // Strict - ProcessRawXml is a noop, even with prefix stuff
             builder = new FakeConfigBuilder();
             builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "prefix", "Prefix_" }, { "stripPrefix", "TRUE" } });
             xmlInput = GetNode(rawXmlInput);
-            Assert.AreEqual(xmlInput, builder.ProcessRawXml(xmlInput));
+            Assert.Equal(xmlInput, builder.ProcessRawXml(xmlInput));
 
             // Strict - ProcessConfigurationSection
             builder = new FakeConfigBuilder();
             builder.Initialize("test", new System.Collections.Specialized.NameValueCollection());
             AppSettingsSection newSettings = (AppSettingsSection)builder.ProcessConfigurationSection(GetAppSettings());
-            Assert.AreEqual("TestKey1Value", newSettings.Settings["TestKey1"]?.Value);
-            Assert.AreEqual("${TestKey1}", newSettings.Settings["test1"]?.Value);
-            Assert.AreEqual("expandTestValue", newSettings.Settings["${TestKey1}"]?.Value);
-            Assert.AreEqual("PrefixTest1", newSettings.Settings["TestKey"]?.Value);
-            Assert.AreEqual("Prefix_TestKeyValue", newSettings.Settings["Prefix_TestKey"]?.Value);
-            Assert.AreEqual("${Prefix_TestKey1}", newSettings.Settings["PreTest2"]?.Value);
-            Assert.IsNull(newSettings.Settings["Prefix_TestKey1"]?.Value);
-            Assert.IsNull(newSettings.Settings["TestKey2"]?.Value);
+            Assert.Equal("TestKey1Value", newSettings.Settings["TestKey1"]?.Value);
+            Assert.Equal("${TestKey1}", newSettings.Settings["test1"]?.Value);
+            Assert.Equal("expandTestValue", newSettings.Settings["${TestKey1}"]?.Value);
+            Assert.Equal("PrefixTest1", newSettings.Settings["TestKey"]?.Value);
+            Assert.Equal("Prefix_TestKeyValue", newSettings.Settings["Prefix_TestKey"]?.Value);
+            Assert.Equal("${Prefix_TestKey1}", newSettings.Settings["PreTest2"]?.Value);
+            Assert.Null(newSettings.Settings["Prefix_TestKey1"]?.Value);
+            Assert.Null(newSettings.Settings["TestKey2"]?.Value);
 
             // Strict - ProcessConfigurationSection with prefix
             builder = new FakeConfigBuilder();
             builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "prefix", "Prefix_" }});
             newSettings = (AppSettingsSection)builder.ProcessConfigurationSection(GetAppSettings());
-            Assert.AreEqual("val1", newSettings.Settings["TestKey1"]?.Value);
-            Assert.AreEqual("${TestKey1}", newSettings.Settings["test1"]?.Value);
-            Assert.AreEqual("expandTestValue", newSettings.Settings["${TestKey1}"]?.Value);
-            Assert.AreEqual("PrefixTest1", newSettings.Settings["TestKey"]?.Value);
-            Assert.AreEqual("Prefix_TestKeyValue", newSettings.Settings["Prefix_TestKey"]?.Value);
-            Assert.AreEqual("${Prefix_TestKey1}", newSettings.Settings["PreTest2"]?.Value);
-            Assert.IsNull(newSettings.Settings["Prefix_TestKey1"]?.Value);
-            Assert.IsNull(newSettings.Settings["TestKey2"]?.Value);
+            Assert.Equal("val1", newSettings.Settings["TestKey1"]?.Value);
+            Assert.Equal("${TestKey1}", newSettings.Settings["test1"]?.Value);
+            Assert.Equal("expandTestValue", newSettings.Settings["${TestKey1}"]?.Value);
+            Assert.Equal("PrefixTest1", newSettings.Settings["TestKey"]?.Value);
+            Assert.Equal("Prefix_TestKeyValue", newSettings.Settings["Prefix_TestKey"]?.Value);
+            Assert.Equal("${Prefix_TestKey1}", newSettings.Settings["PreTest2"]?.Value);
+            Assert.Null(newSettings.Settings["Prefix_TestKey1"]?.Value);
+            Assert.Null(newSettings.Settings["TestKey2"]?.Value);
 
             // Strict - ProcessConfigurationSection with prefix - NOT Case-Sensitive
             builder = new FakeConfigBuilder();
             builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "prefix", "preFIX_" } });
             newSettings = (AppSettingsSection)builder.ProcessConfigurationSection(GetAppSettings());
-            Assert.AreEqual("val1", newSettings.Settings["TestKey1"]?.Value);
-            Assert.AreEqual("${TestKey1}", newSettings.Settings["test1"]?.Value);
-            Assert.AreEqual("expandTestValue", newSettings.Settings["${TestKey1}"]?.Value);
-            Assert.AreEqual("PrefixTest1", newSettings.Settings["TestKey"]?.Value);
-            Assert.AreEqual("Prefix_TestKeyValue", newSettings.Settings["Prefix_TestKey"]?.Value);
-            Assert.AreEqual("${Prefix_TestKey1}", newSettings.Settings["PreTest2"]?.Value);
-            Assert.IsNull(newSettings.Settings["Prefix_TestKey1"]?.Value);
-            Assert.IsNull(newSettings.Settings["TestKey2"]?.Value);
+            Assert.Equal("val1", newSettings.Settings["TestKey1"]?.Value);
+            Assert.Equal("${TestKey1}", newSettings.Settings["test1"]?.Value);
+            Assert.Equal("expandTestValue", newSettings.Settings["${TestKey1}"]?.Value);
+            Assert.Equal("PrefixTest1", newSettings.Settings["TestKey"]?.Value);
+            Assert.Equal("Prefix_TestKeyValue", newSettings.Settings["Prefix_TestKey"]?.Value);
+            Assert.Equal("${Prefix_TestKey1}", newSettings.Settings["PreTest2"]?.Value);
+            Assert.Null(newSettings.Settings["Prefix_TestKey1"]?.Value);
+            Assert.Null(newSettings.Settings["TestKey2"]?.Value);
 
             // Strict - ProcessConfigurationSection with prefix and strip
             builder = new FakeConfigBuilder();
             builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "prefix", "preFIX_" }, { "stripPrefix", "true" } });
             newSettings = (AppSettingsSection)builder.ProcessConfigurationSection(GetAppSettings());
-            Assert.AreEqual("Prefix_TestKey1Value", newSettings.Settings["TestKey1"]?.Value);
-            Assert.AreEqual("${TestKey1}", newSettings.Settings["test1"]?.Value);
-            Assert.AreEqual("expandTestValue", newSettings.Settings["${TestKey1}"]?.Value);
-            Assert.AreEqual("Prefix_TestKeyValue", newSettings.Settings["TestKey"]?.Value);
-            Assert.AreEqual("PrefixTest2", newSettings.Settings["Prefix_TestKey"]?.Value);
-            Assert.AreEqual("${Prefix_TestKey1}", newSettings.Settings["PreTest2"]?.Value);
-            Assert.IsNull(newSettings.Settings["Prefix_TestKey1"]?.Value);
-            Assert.IsNull(newSettings.Settings["TestKey2"]?.Value);
+            Assert.Equal("Prefix_TestKey1Value", newSettings.Settings["TestKey1"]?.Value);
+            Assert.Equal("${TestKey1}", newSettings.Settings["test1"]?.Value);
+            Assert.Equal("expandTestValue", newSettings.Settings["${TestKey1}"]?.Value);
+            Assert.Equal("Prefix_TestKeyValue", newSettings.Settings["TestKey"]?.Value);
+            Assert.Equal("PrefixTest2", newSettings.Settings["Prefix_TestKey"]?.Value);
+            Assert.Equal("${Prefix_TestKey1}", newSettings.Settings["PreTest2"]?.Value);
+            Assert.Null(newSettings.Settings["Prefix_TestKey1"]?.Value);
+            Assert.Null(newSettings.Settings["TestKey2"]?.Value);
 
             // Strict - ProcessConfigurationSection with strip with no prefix
             builder = new FakeConfigBuilder();
             builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "stripPrefix", "true" } });
             newSettings = (AppSettingsSection)builder.ProcessConfigurationSection(GetAppSettings());
-            Assert.AreEqual("TestKey1Value", newSettings.Settings["TestKey1"]?.Value);
-            Assert.AreEqual("${TestKey1}", newSettings.Settings["test1"]?.Value);
-            Assert.AreEqual("expandTestValue", newSettings.Settings["${TestKey1}"]?.Value);
-            Assert.AreEqual("PrefixTest1", newSettings.Settings["TestKey"]?.Value);
-            Assert.AreEqual("Prefix_TestKeyValue", newSettings.Settings["Prefix_TestKey"]?.Value);
-            Assert.AreEqual("${Prefix_TestKey1}", newSettings.Settings["PreTest2"]?.Value);
-            Assert.IsNull(newSettings.Settings["Prefix_TestKey1"]?.Value);
-            Assert.IsNull(newSettings.Settings["TestKey2"]?.Value);
+            Assert.Equal("TestKey1Value", newSettings.Settings["TestKey1"]?.Value);
+            Assert.Equal("${TestKey1}", newSettings.Settings["test1"]?.Value);
+            Assert.Equal("expandTestValue", newSettings.Settings["${TestKey1}"]?.Value);
+            Assert.Equal("PrefixTest1", newSettings.Settings["TestKey"]?.Value);
+            Assert.Equal("Prefix_TestKeyValue", newSettings.Settings["Prefix_TestKey"]?.Value);
+            Assert.Equal("${Prefix_TestKey1}", newSettings.Settings["PreTest2"]?.Value);
+            Assert.Null(newSettings.Settings["Prefix_TestKey1"]?.Value);
+            Assert.Null(newSettings.Settings["TestKey2"]?.Value);
         }
 
-        [TestMethod]
+        [Fact]
         public void BaseBehavior_Expand()
         {
             // Expand - ProcessConfigurationSection is a noop
@@ -231,275 +230,275 @@ namespace Test
             builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Expand" } });
             AppSettingsSection origSettings = GetAppSettings();
             AppSettingsSection newSettings = (AppSettingsSection)builder.ProcessConfigurationSection(GetAppSettings());
-            Assert.AreEqual(origSettings.Settings.Count, newSettings.Settings.Count);
+            Assert.Equal(origSettings.Settings.Count, newSettings.Settings.Count);
             foreach (string key in origSettings.Settings.AllKeys)
-                Assert.AreEqual(origSettings.Settings[key].Value, newSettings.Settings[key]?.Value);
+                Assert.Equal(origSettings.Settings[key].Value, newSettings.Settings[key]?.Value);
 
             // Expand - ProcessConfigurationSection is a noop, even with prefix stuff
             builder = new FakeConfigBuilder();
             builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Expand" }, { "prefix", "Prefix_" }, { "stripPrefix", "true" } });
             newSettings = (AppSettingsSection)builder.ProcessConfigurationSection(GetAppSettings());
-            Assert.AreEqual(origSettings.Settings.Count, newSettings.Settings.Count);
+            Assert.Equal(origSettings.Settings.Count, newSettings.Settings.Count);
             foreach (string key in origSettings.Settings.AllKeys)
-                Assert.AreEqual(origSettings.Settings[key].Value, newSettings.Settings[key]?.Value);
+                Assert.Equal(origSettings.Settings[key].Value, newSettings.Settings[key]?.Value);
 
             // Expand - ProcessRawXml
             builder = new FakeConfigBuilder();
             builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Expand" } });
             XmlNode xmlInput = GetNode(rawXmlInput);
             XmlNode xmlOutput = builder.ProcessRawXml(xmlInput);
-            Assert.AreEqual("appSettings", xmlOutput.Name);
-            Assert.AreEqual("val1", GetValueFromXml(xmlOutput, "TestKey1"));
-            Assert.AreEqual("TestKey1Value", GetValueFromXml(xmlOutput, "test1"));
-            Assert.AreEqual("expandTestValue", GetValueFromXml(xmlOutput, "TestKey1Value"));
-            Assert.AreEqual("PrefixTest1", GetValueFromXml(xmlOutput, "TestKey"));
-            Assert.AreEqual("PrefixTest2", GetValueFromXml(xmlOutput, "Prefix_TestKey"));
-            Assert.AreEqual("Prefix_TestKey1Value", GetValueFromXml(xmlOutput, "PreTest2"));
-            Assert.IsNull(GetValueFromXml(xmlOutput, "Prefix_TestKey1"));
-            Assert.IsNull(GetValueFromXml(xmlOutput, "TestKey2"));
-            Assert.IsNull(GetValueFromXml(xmlOutput, "${TestKey1}"));
+            Assert.Equal("appSettings", xmlOutput.Name);
+            Assert.Equal("val1", GetValueFromXml(xmlOutput, "TestKey1"));
+            Assert.Equal("TestKey1Value", GetValueFromXml(xmlOutput, "test1"));
+            Assert.Equal("expandTestValue", GetValueFromXml(xmlOutput, "TestKey1Value"));
+            Assert.Equal("PrefixTest1", GetValueFromXml(xmlOutput, "TestKey"));
+            Assert.Equal("PrefixTest2", GetValueFromXml(xmlOutput, "Prefix_TestKey"));
+            Assert.Equal("Prefix_TestKey1Value", GetValueFromXml(xmlOutput, "PreTest2"));
+            Assert.Null(GetValueFromXml(xmlOutput, "Prefix_TestKey1"));
+            Assert.Null(GetValueFromXml(xmlOutput, "TestKey2"));
+            Assert.Null(GetValueFromXml(xmlOutput, "${TestKey1}"));
 
             // Expand - ProcessRawXml with prefix
             builder = new FakeConfigBuilder();
             builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Expand" }, { "prefix", "Prefix_" } });
             xmlInput = GetNode(rawXmlInput);
             xmlOutput = builder.ProcessRawXml(xmlInput);
-            Assert.AreEqual("appSettings", xmlOutput.Name);
-            Assert.AreEqual("val1", GetValueFromXml(xmlOutput, "TestKey1"));
-            Assert.AreEqual("${TestKey1}", GetValueFromXml(xmlOutput, "test1"));
-            Assert.AreEqual("expandTestValue", GetValueFromXml(xmlOutput, "${TestKey1}"));
-            Assert.AreEqual("PrefixTest1", GetValueFromXml(xmlOutput, "TestKey"));
-            Assert.AreEqual("PrefixTest2", GetValueFromXml(xmlOutput, "Prefix_TestKey"));
-            Assert.AreEqual("Prefix_TestKey1Value", GetValueFromXml(xmlOutput, "PreTest2"));
-            Assert.IsNull(GetValueFromXml(xmlOutput, "Prefix_TestKey1"));
-            Assert.IsNull(GetValueFromXml(xmlOutput, "TestKey2"));
-            Assert.IsNull(GetValueFromXml(xmlOutput, "TestKey1Value"));
+            Assert.Equal("appSettings", xmlOutput.Name);
+            Assert.Equal("val1", GetValueFromXml(xmlOutput, "TestKey1"));
+            Assert.Equal("${TestKey1}", GetValueFromXml(xmlOutput, "test1"));
+            Assert.Equal("expandTestValue", GetValueFromXml(xmlOutput, "${TestKey1}"));
+            Assert.Equal("PrefixTest1", GetValueFromXml(xmlOutput, "TestKey"));
+            Assert.Equal("PrefixTest2", GetValueFromXml(xmlOutput, "Prefix_TestKey"));
+            Assert.Equal("Prefix_TestKey1Value", GetValueFromXml(xmlOutput, "PreTest2"));
+            Assert.Null(GetValueFromXml(xmlOutput, "Prefix_TestKey1"));
+            Assert.Null(GetValueFromXml(xmlOutput, "TestKey2"));
+            Assert.Null(GetValueFromXml(xmlOutput, "TestKey1Value"));
 
             // Expand - ProcessRawXml with prefix - NOT Case-Sensitive
             builder = new FakeConfigBuilder();
             builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Expand" }, { "prefix", "prEFiX_" } });
             xmlInput = GetNode(rawXmlInput);
             xmlOutput = builder.ProcessRawXml(xmlInput);
-            Assert.AreEqual("appSettings", xmlOutput.Name);
-            Assert.AreEqual("val1", GetValueFromXml(xmlOutput, "TestKey1"));
-            Assert.AreEqual("${TestKey1}", GetValueFromXml(xmlOutput, "test1"));
-            Assert.AreEqual("expandTestValue", GetValueFromXml(xmlOutput, "${TestKey1}"));
-            Assert.AreEqual("PrefixTest1", GetValueFromXml(xmlOutput, "TestKey"));
-            Assert.AreEqual("PrefixTest2", GetValueFromXml(xmlOutput, "Prefix_TestKey"));
-            Assert.AreEqual("Prefix_TestKey1Value", GetValueFromXml(xmlOutput, "PreTest2"));
-            Assert.IsNull(GetValueFromXml(xmlOutput, "Prefix_TestKey1"));
-            Assert.IsNull(GetValueFromXml(xmlOutput, "TestKey2"));
-            Assert.IsNull(GetValueFromXml(xmlOutput, "TestKey1Value"));
+            Assert.Equal("appSettings", xmlOutput.Name);
+            Assert.Equal("val1", GetValueFromXml(xmlOutput, "TestKey1"));
+            Assert.Equal("${TestKey1}", GetValueFromXml(xmlOutput, "test1"));
+            Assert.Equal("expandTestValue", GetValueFromXml(xmlOutput, "${TestKey1}"));
+            Assert.Equal("PrefixTest1", GetValueFromXml(xmlOutput, "TestKey"));
+            Assert.Equal("PrefixTest2", GetValueFromXml(xmlOutput, "Prefix_TestKey"));
+            Assert.Equal("Prefix_TestKey1Value", GetValueFromXml(xmlOutput, "PreTest2"));
+            Assert.Null(GetValueFromXml(xmlOutput, "Prefix_TestKey1"));
+            Assert.Null(GetValueFromXml(xmlOutput, "TestKey2"));
+            Assert.Null(GetValueFromXml(xmlOutput, "TestKey1Value"));
 
             // Expand - ProcessRawXml with prefix and strip
             builder = new FakeConfigBuilder();
             builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Expand" }, { "prefix", "prEFiX_" }, { "stripPrefix", "true" } });
             xmlInput = GetNode(rawXmlInput);
             xmlOutput = builder.ProcessRawXml(xmlInput);
-            Assert.AreEqual("appSettings", xmlOutput.Name);
-            Assert.AreEqual("val1", GetValueFromXml(xmlOutput, "TestKey1"));
-            Assert.AreEqual("Prefix_TestKey1Value", GetValueFromXml(xmlOutput, "test1"));
-            Assert.AreEqual("expandTestValue", GetValueFromXml(xmlOutput, "Prefix_TestKey1Value"));
-            Assert.AreEqual("PrefixTest1", GetValueFromXml(xmlOutput, "TestKey"));
-            Assert.AreEqual("PrefixTest2", GetValueFromXml(xmlOutput, "Prefix_TestKey"));
-            Assert.AreEqual("${Prefix_TestKey1}", GetValueFromXml(xmlOutput, "PreTest2"));
-            Assert.IsNull(GetValueFromXml(xmlOutput, "${TestKey1}"));
-            Assert.IsNull(GetValueFromXml(xmlOutput, "TestKey2"));
-            Assert.IsNull(GetValueFromXml(xmlOutput, "TestKey1Value"));
+            Assert.Equal("appSettings", xmlOutput.Name);
+            Assert.Equal("val1", GetValueFromXml(xmlOutput, "TestKey1"));
+            Assert.Equal("Prefix_TestKey1Value", GetValueFromXml(xmlOutput, "test1"));
+            Assert.Equal("expandTestValue", GetValueFromXml(xmlOutput, "Prefix_TestKey1Value"));
+            Assert.Equal("PrefixTest1", GetValueFromXml(xmlOutput, "TestKey"));
+            Assert.Equal("PrefixTest2", GetValueFromXml(xmlOutput, "Prefix_TestKey"));
+            Assert.Equal("${Prefix_TestKey1}", GetValueFromXml(xmlOutput, "PreTest2"));
+            Assert.Null(GetValueFromXml(xmlOutput, "${TestKey1}"));
+            Assert.Null(GetValueFromXml(xmlOutput, "TestKey2"));
+            Assert.Null(GetValueFromXml(xmlOutput, "TestKey1Value"));
 
             // Expand - ProcessRawXml with strip with no prefix
             builder = new FakeConfigBuilder();
             builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Expand" }, { "stripPrefix", "true" } });
             xmlInput = GetNode(rawXmlInput);
             xmlOutput = builder.ProcessRawXml(xmlInput);
-            Assert.AreEqual("appSettings", xmlOutput.Name);
-            Assert.AreEqual("val1", GetValueFromXml(xmlOutput, "TestKey1"));
-            Assert.AreEqual("TestKey1Value", GetValueFromXml(xmlOutput, "test1"));
-            Assert.AreEqual("expandTestValue", GetValueFromXml(xmlOutput, "TestKey1Value"));
-            Assert.AreEqual("PrefixTest1", GetValueFromXml(xmlOutput, "TestKey"));
-            Assert.AreEqual("PrefixTest2", GetValueFromXml(xmlOutput, "Prefix_TestKey"));
-            Assert.AreEqual("Prefix_TestKey1Value", GetValueFromXml(xmlOutput, "PreTest2"));
-            Assert.IsNull(GetValueFromXml(xmlOutput, "Prefix_TestKey1"));
-            Assert.IsNull(GetValueFromXml(xmlOutput, "TestKey2"));
-            Assert.IsNull(GetValueFromXml(xmlOutput, "${TestKey1}"));
+            Assert.Equal("appSettings", xmlOutput.Name);
+            Assert.Equal("val1", GetValueFromXml(xmlOutput, "TestKey1"));
+            Assert.Equal("TestKey1Value", GetValueFromXml(xmlOutput, "test1"));
+            Assert.Equal("expandTestValue", GetValueFromXml(xmlOutput, "TestKey1Value"));
+            Assert.Equal("PrefixTest1", GetValueFromXml(xmlOutput, "TestKey"));
+            Assert.Equal("PrefixTest2", GetValueFromXml(xmlOutput, "Prefix_TestKey"));
+            Assert.Equal("Prefix_TestKey1Value", GetValueFromXml(xmlOutput, "PreTest2"));
+            Assert.Null(GetValueFromXml(xmlOutput, "Prefix_TestKey1"));
+            Assert.Null(GetValueFromXml(xmlOutput, "TestKey2"));
+            Assert.Null(GetValueFromXml(xmlOutput, "${TestKey1}"));
 
             // Expand - ProcessRawXml with alternate tokenPattern
             builder = new FakeConfigBuilder();
             builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Expand" }, { "tokenPattern", @"%%([\w:]+)%%" } });
             xmlInput = GetNode(rawXmlInput);
             xmlOutput = builder.ProcessRawXml(xmlInput);
-            Assert.AreEqual("appSettings", xmlOutput.Name);
-            Assert.AreEqual("val1", GetValueFromXml(xmlOutput, "TestKey1"));
-            Assert.AreEqual("${TestKey1}", GetValueFromXml(xmlOutput, "test1"));
-            Assert.AreEqual("expandTestValue", GetValueFromXml(xmlOutput, "${TestKey1}"));
-            Assert.AreEqual("PrefixTest1", GetValueFromXml(xmlOutput, "TestKey"));
-            Assert.AreEqual("PrefixTest2", GetValueFromXml(xmlOutput, "Prefix_TestKey"));
-            Assert.AreEqual("${Prefix_TestKey1}", GetValueFromXml(xmlOutput, "PreTest2"));
-            Assert.AreEqual("ThisWasAnAlternateTokenPattern", GetValueFromXml(xmlOutput, "AltTokenTest"));
-            Assert.AreEqual("ThisWasAnAltTokenPatternWithPrefix", GetValueFromXml(xmlOutput, "AltTokenTest2"));
-            Assert.IsNull(GetValueFromXml(xmlOutput, "Prefix_TestKey1"));
-            Assert.IsNull(GetValueFromXml(xmlOutput, "TestKey2"));
-            Assert.IsNull(GetValueFromXml(xmlOutput, "TestKey1Value"));
+            Assert.Equal("appSettings", xmlOutput.Name);
+            Assert.Equal("val1", GetValueFromXml(xmlOutput, "TestKey1"));
+            Assert.Equal("${TestKey1}", GetValueFromXml(xmlOutput, "test1"));
+            Assert.Equal("expandTestValue", GetValueFromXml(xmlOutput, "${TestKey1}"));
+            Assert.Equal("PrefixTest1", GetValueFromXml(xmlOutput, "TestKey"));
+            Assert.Equal("PrefixTest2", GetValueFromXml(xmlOutput, "Prefix_TestKey"));
+            Assert.Equal("${Prefix_TestKey1}", GetValueFromXml(xmlOutput, "PreTest2"));
+            Assert.Equal("ThisWasAnAlternateTokenPattern", GetValueFromXml(xmlOutput, "AltTokenTest"));
+            Assert.Equal("ThisWasAnAltTokenPatternWithPrefix", GetValueFromXml(xmlOutput, "AltTokenTest2"));
+            Assert.Null(GetValueFromXml(xmlOutput, "Prefix_TestKey1"));
+            Assert.Null(GetValueFromXml(xmlOutput, "TestKey2"));
+            Assert.Null(GetValueFromXml(xmlOutput, "TestKey1Value"));
 
             // Expand - ProcessRawXml does not work with alternate tokenPattern with no capture group
             builder = new FakeConfigBuilder();
             builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Expand" }, { "tokenPattern", @"%%[\w:]+%%" } });
             xmlInput = GetNode(rawXmlInput);
             xmlOutput = builder.ProcessRawXml(xmlInput);
-            Assert.AreEqual("appSettings", xmlOutput.Name);
-            Assert.AreEqual("val1", GetValueFromXml(xmlOutput, "TestKey1"));
-            Assert.AreEqual("${TestKey1}", GetValueFromXml(xmlOutput, "test1"));
-            Assert.AreEqual("expandTestValue", GetValueFromXml(xmlOutput, "${TestKey1}"));
-            Assert.AreEqual("PrefixTest1", GetValueFromXml(xmlOutput, "TestKey"));
-            Assert.AreEqual("PrefixTest2", GetValueFromXml(xmlOutput, "Prefix_TestKey"));
-            Assert.AreEqual("${Prefix_TestKey1}", GetValueFromXml(xmlOutput, "PreTest2"));
-            Assert.AreEqual("%%Alt:Token%%", GetValueFromXml(xmlOutput, "AltTokenTest"));
-            Assert.AreEqual("%%Prefix_Alt:Token%%", GetValueFromXml(xmlOutput, "AltTokenTest2"));
-            Assert.IsNull(GetValueFromXml(xmlOutput, "Prefix_TestKey1"));
-            Assert.IsNull(GetValueFromXml(xmlOutput, "TestKey2"));
-            Assert.IsNull(GetValueFromXml(xmlOutput, "TestKey1Value"));
+            Assert.Equal("appSettings", xmlOutput.Name);
+            Assert.Equal("val1", GetValueFromXml(xmlOutput, "TestKey1"));
+            Assert.Equal("${TestKey1}", GetValueFromXml(xmlOutput, "test1"));
+            Assert.Equal("expandTestValue", GetValueFromXml(xmlOutput, "${TestKey1}"));
+            Assert.Equal("PrefixTest1", GetValueFromXml(xmlOutput, "TestKey"));
+            Assert.Equal("PrefixTest2", GetValueFromXml(xmlOutput, "Prefix_TestKey"));
+            Assert.Equal("${Prefix_TestKey1}", GetValueFromXml(xmlOutput, "PreTest2"));
+            Assert.Equal("%%Alt:Token%%", GetValueFromXml(xmlOutput, "AltTokenTest"));
+            Assert.Equal("%%Prefix_Alt:Token%%", GetValueFromXml(xmlOutput, "AltTokenTest2"));
+            Assert.Null(GetValueFromXml(xmlOutput, "Prefix_TestKey1"));
+            Assert.Null(GetValueFromXml(xmlOutput, "TestKey2"));
+            Assert.Null(GetValueFromXml(xmlOutput, "TestKey1Value"));
 
             // Expand - ProcessRawXml does not blow up with alternate tokenPattern with empty capture group
             builder = new FakeConfigBuilder();
             builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Expand" }, { "tokenPattern", @"%(.?)%" } });
             xmlInput = GetNode(rawXmlInput);
             xmlOutput = builder.ProcessRawXml(xmlInput);
-            Assert.AreEqual("appSettings", xmlOutput.Name);
-            Assert.AreEqual("val1", GetValueFromXml(xmlOutput, "TestKey1"));
-            Assert.AreEqual("${TestKey1}", GetValueFromXml(xmlOutput, "test1"));
-            Assert.AreEqual("expandTestValue", GetValueFromXml(xmlOutput, "${TestKey1}"));
-            Assert.AreEqual("PrefixTest1", GetValueFromXml(xmlOutput, "TestKey"));
-            Assert.AreEqual("PrefixTest2", GetValueFromXml(xmlOutput, "Prefix_TestKey"));
-            Assert.AreEqual("${Prefix_TestKey1}", GetValueFromXml(xmlOutput, "PreTest2"));
-            Assert.AreEqual("%%Alt:Token%%", GetValueFromXml(xmlOutput, "AltTokenTest"));
-            Assert.AreEqual("%%Prefix_Alt:Token%%", GetValueFromXml(xmlOutput, "AltTokenTest2"));
-            Assert.IsNull(GetValueFromXml(xmlOutput, "Prefix_TestKey1"));
-            Assert.IsNull(GetValueFromXml(xmlOutput, "TestKey2"));
-            Assert.IsNull(GetValueFromXml(xmlOutput, "TestKey1Value"));
+            Assert.Equal("appSettings", xmlOutput.Name);
+            Assert.Equal("val1", GetValueFromXml(xmlOutput, "TestKey1"));
+            Assert.Equal("${TestKey1}", GetValueFromXml(xmlOutput, "test1"));
+            Assert.Equal("expandTestValue", GetValueFromXml(xmlOutput, "${TestKey1}"));
+            Assert.Equal("PrefixTest1", GetValueFromXml(xmlOutput, "TestKey"));
+            Assert.Equal("PrefixTest2", GetValueFromXml(xmlOutput, "Prefix_TestKey"));
+            Assert.Equal("${Prefix_TestKey1}", GetValueFromXml(xmlOutput, "PreTest2"));
+            Assert.Equal("%%Alt:Token%%", GetValueFromXml(xmlOutput, "AltTokenTest"));
+            Assert.Equal("%%Prefix_Alt:Token%%", GetValueFromXml(xmlOutput, "AltTokenTest2"));
+            Assert.Null(GetValueFromXml(xmlOutput, "Prefix_TestKey1"));
+            Assert.Null(GetValueFromXml(xmlOutput, "TestKey2"));
+            Assert.Null(GetValueFromXml(xmlOutput, "TestKey1Value"));
 
             // Expand - ProcessRawXml with alternate tokenPattern and prefix
             builder = new FakeConfigBuilder();
             builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Expand" }, { "tokenPattern", @"%%([\w:]+)%%" }, { "prefix", "Prefix_" } });
             xmlInput = GetNode(rawXmlInput);
             xmlOutput = builder.ProcessRawXml(xmlInput);
-            Assert.AreEqual("appSettings", xmlOutput.Name);
-            Assert.AreEqual("val1", GetValueFromXml(xmlOutput, "TestKey1"));
-            Assert.AreEqual("${TestKey1}", GetValueFromXml(xmlOutput, "test1"));
-            Assert.AreEqual("expandTestValue", GetValueFromXml(xmlOutput, "${TestKey1}"));
-            Assert.AreEqual("PrefixTest1", GetValueFromXml(xmlOutput, "TestKey"));
-            Assert.AreEqual("PrefixTest2", GetValueFromXml(xmlOutput, "Prefix_TestKey"));
-            Assert.AreEqual("${Prefix_TestKey1}", GetValueFromXml(xmlOutput, "PreTest2"));
-            Assert.AreEqual("%%Alt:Token%%", GetValueFromXml(xmlOutput, "AltTokenTest"));
-            Assert.AreEqual("ThisWasAnAltTokenPatternWithPrefix", GetValueFromXml(xmlOutput, "AltTokenTest2"));
-            Assert.IsNull(GetValueFromXml(xmlOutput, "Prefix_TestKey1"));
-            Assert.IsNull(GetValueFromXml(xmlOutput, "TestKey2"));
-            Assert.IsNull(GetValueFromXml(xmlOutput, "TestKey1Value"));
+            Assert.Equal("appSettings", xmlOutput.Name);
+            Assert.Equal("val1", GetValueFromXml(xmlOutput, "TestKey1"));
+            Assert.Equal("${TestKey1}", GetValueFromXml(xmlOutput, "test1"));
+            Assert.Equal("expandTestValue", GetValueFromXml(xmlOutput, "${TestKey1}"));
+            Assert.Equal("PrefixTest1", GetValueFromXml(xmlOutput, "TestKey"));
+            Assert.Equal("PrefixTest2", GetValueFromXml(xmlOutput, "Prefix_TestKey"));
+            Assert.Equal("${Prefix_TestKey1}", GetValueFromXml(xmlOutput, "PreTest2"));
+            Assert.Equal("%%Alt:Token%%", GetValueFromXml(xmlOutput, "AltTokenTest"));
+            Assert.Equal("ThisWasAnAltTokenPatternWithPrefix", GetValueFromXml(xmlOutput, "AltTokenTest2"));
+            Assert.Null(GetValueFromXml(xmlOutput, "Prefix_TestKey1"));
+            Assert.Null(GetValueFromXml(xmlOutput, "TestKey2"));
+            Assert.Null(GetValueFromXml(xmlOutput, "TestKey1Value"));
 
             // Expand - ProcessRawXml with alternate tokenPattern and strip prefix
             builder = new FakeConfigBuilder();
             builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Expand" }, { "tokenPattern", @"%%([\w:]+)%%" }, { "prefix", "Prefix_" }, { "stripPrefix", "true" } });
             xmlInput = GetNode(rawXmlInput);
             xmlOutput = builder.ProcessRawXml(xmlInput);
-            Assert.AreEqual("appSettings", xmlOutput.Name);
-            Assert.AreEqual("val1", GetValueFromXml(xmlOutput, "TestKey1"));
-            Assert.AreEqual("${TestKey1}", GetValueFromXml(xmlOutput, "test1"));
-            Assert.AreEqual("expandTestValue", GetValueFromXml(xmlOutput, "${TestKey1}"));
-            Assert.AreEqual("PrefixTest1", GetValueFromXml(xmlOutput, "TestKey"));
-            Assert.AreEqual("PrefixTest2", GetValueFromXml(xmlOutput, "Prefix_TestKey"));
-            Assert.AreEqual("${Prefix_TestKey1}", GetValueFromXml(xmlOutput, "PreTest2"));
-            Assert.AreEqual("ThisWasAnAltTokenPatternWithPrefix", GetValueFromXml(xmlOutput, "AltTokenTest"));
-            Assert.AreEqual("%%Prefix_Alt:Token%%", GetValueFromXml(xmlOutput, "AltTokenTest2"));
-            Assert.IsNull(GetValueFromXml(xmlOutput, "Prefix_TestKey1"));
-            Assert.IsNull(GetValueFromXml(xmlOutput, "TestKey2"));
-            Assert.IsNull(GetValueFromXml(xmlOutput, "TestKey1Value"));
+            Assert.Equal("appSettings", xmlOutput.Name);
+            Assert.Equal("val1", GetValueFromXml(xmlOutput, "TestKey1"));
+            Assert.Equal("${TestKey1}", GetValueFromXml(xmlOutput, "test1"));
+            Assert.Equal("expandTestValue", GetValueFromXml(xmlOutput, "${TestKey1}"));
+            Assert.Equal("PrefixTest1", GetValueFromXml(xmlOutput, "TestKey"));
+            Assert.Equal("PrefixTest2", GetValueFromXml(xmlOutput, "Prefix_TestKey"));
+            Assert.Equal("${Prefix_TestKey1}", GetValueFromXml(xmlOutput, "PreTest2"));
+            Assert.Equal("ThisWasAnAltTokenPatternWithPrefix", GetValueFromXml(xmlOutput, "AltTokenTest"));
+            Assert.Equal("%%Prefix_Alt:Token%%", GetValueFromXml(xmlOutput, "AltTokenTest2"));
+            Assert.Null(GetValueFromXml(xmlOutput, "Prefix_TestKey1"));
+            Assert.Null(GetValueFromXml(xmlOutput, "TestKey2"));
+            Assert.Null(GetValueFromXml(xmlOutput, "TestKey1Value"));
         }
 
-        [TestMethod]
+        [Fact]
         public void BaseBehavior_Greedy()
         {
             // Greedy - ProcessRawXml is a noop
             var builder = new FakeConfigBuilder();
             builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Greedy" } });
             XmlNode xmlInput = GetNode(rawXmlInput);
-            Assert.AreEqual(xmlInput, builder.ProcessRawXml(xmlInput));
+            Assert.Equal(xmlInput, builder.ProcessRawXml(xmlInput));
 
             // Greedy - ProcessRawXml is a noop, even with prefix stuff
             builder = new FakeConfigBuilder();
             builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Greedy" }, { "prefix", "PreFIX_" }, { "stripPrefix", "true" } });
             xmlInput = GetNode(rawXmlInput);
-            Assert.AreEqual(xmlInput, builder.ProcessRawXml(xmlInput));
+            Assert.Equal(xmlInput, builder.ProcessRawXml(xmlInput));
 
             // Greedy - ProcessConfigurationSection
             builder = new FakeConfigBuilder();
             builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Greedy" } });
             AppSettingsSection newSettings = (AppSettingsSection)builder.ProcessConfigurationSection(GetAppSettings());
-            Assert.AreEqual("TestKey1Value", newSettings.Settings["TestKey1"]?.Value);
-            Assert.AreEqual("${TestKey1}", newSettings.Settings["test1"]?.Value);
-            Assert.AreEqual("expandTestValue", newSettings.Settings["${TestKey1}"]?.Value);
-            Assert.AreEqual("PrefixTest1", newSettings.Settings["TestKey"]?.Value);
-            Assert.AreEqual("Prefix_TestKeyValue", newSettings.Settings["Prefix_TestKey"]?.Value);
-            Assert.AreEqual("${Prefix_TestKey1}", newSettings.Settings["PreTest2"]?.Value);
-            Assert.AreEqual("TestKey2Value", newSettings.Settings["TestKey2"]?.Value);
-            Assert.AreEqual("Prefix_TestKey1Value", newSettings.Settings["Prefix_TestKey1"]?.Value);
+            Assert.Equal("TestKey1Value", newSettings.Settings["TestKey1"]?.Value);
+            Assert.Equal("${TestKey1}", newSettings.Settings["test1"]?.Value);
+            Assert.Equal("expandTestValue", newSettings.Settings["${TestKey1}"]?.Value);
+            Assert.Equal("PrefixTest1", newSettings.Settings["TestKey"]?.Value);
+            Assert.Equal("Prefix_TestKeyValue", newSettings.Settings["Prefix_TestKey"]?.Value);
+            Assert.Equal("${Prefix_TestKey1}", newSettings.Settings["PreTest2"]?.Value);
+            Assert.Equal("TestKey2Value", newSettings.Settings["TestKey2"]?.Value);
+            Assert.Equal("Prefix_TestKey1Value", newSettings.Settings["Prefix_TestKey1"]?.Value);
 
             // Greedy - ProcessConfigurationSection with prefix
             builder = new FakeConfigBuilder();
             builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Greedy" }, { "prefix", "Prefix_" } });
             newSettings = (AppSettingsSection)builder.ProcessConfigurationSection(GetAppSettings());
-            Assert.AreEqual("val1", newSettings.Settings["TestKey1"]?.Value);
-            Assert.AreEqual("${TestKey1}", newSettings.Settings["test1"]?.Value);
-            Assert.AreEqual("expandTestValue", newSettings.Settings["${TestKey1}"]?.Value);
-            Assert.AreEqual("PrefixTest1", newSettings.Settings["TestKey"]?.Value);
-            Assert.AreEqual("Prefix_TestKeyValue", newSettings.Settings["Prefix_TestKey"]?.Value);
-            Assert.AreEqual("${Prefix_TestKey1}", newSettings.Settings["PreTest2"]?.Value);
-            Assert.AreEqual("Prefix_TestKey1Value", newSettings.Settings["Prefix_TestKey1"]?.Value);
-            Assert.IsNull(newSettings.Settings["TestKey2"]?.Value);
+            Assert.Equal("val1", newSettings.Settings["TestKey1"]?.Value);
+            Assert.Equal("${TestKey1}", newSettings.Settings["test1"]?.Value);
+            Assert.Equal("expandTestValue", newSettings.Settings["${TestKey1}"]?.Value);
+            Assert.Equal("PrefixTest1", newSettings.Settings["TestKey"]?.Value);
+            Assert.Equal("Prefix_TestKeyValue", newSettings.Settings["Prefix_TestKey"]?.Value);
+            Assert.Equal("${Prefix_TestKey1}", newSettings.Settings["PreTest2"]?.Value);
+            Assert.Equal("Prefix_TestKey1Value", newSettings.Settings["Prefix_TestKey1"]?.Value);
+            Assert.Null(newSettings.Settings["TestKey2"]?.Value);
 
             // Greedy - ProcessConfigurationSection with prefix - NOT Case-Sensitive
             builder = new FakeConfigBuilder();
             builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Greedy" }, { "prefix", "preFIX_" } });
             newSettings = (AppSettingsSection)builder.ProcessConfigurationSection(GetAppSettings());
-            Assert.AreEqual("val1", newSettings.Settings["TestKey1"]?.Value);
-            Assert.AreEqual("${TestKey1}", newSettings.Settings["test1"]?.Value);
-            Assert.AreEqual("expandTestValue", newSettings.Settings["${TestKey1}"]?.Value);
-            Assert.AreEqual("PrefixTest1", newSettings.Settings["TestKey"]?.Value);
-            Assert.AreEqual("Prefix_TestKeyValue", newSettings.Settings["Prefix_TestKey"]?.Value);
-            Assert.AreEqual("${Prefix_TestKey1}", newSettings.Settings["PreTest2"]?.Value);
-            Assert.AreEqual("Prefix_TestKey1Value", newSettings.Settings["Prefix_TestKey1"]?.Value);
-            Assert.IsNull(newSettings.Settings["TestKey2"]?.Value);
+            Assert.Equal("val1", newSettings.Settings["TestKey1"]?.Value);
+            Assert.Equal("${TestKey1}", newSettings.Settings["test1"]?.Value);
+            Assert.Equal("expandTestValue", newSettings.Settings["${TestKey1}"]?.Value);
+            Assert.Equal("PrefixTest1", newSettings.Settings["TestKey"]?.Value);
+            Assert.Equal("Prefix_TestKeyValue", newSettings.Settings["Prefix_TestKey"]?.Value);
+            Assert.Equal("${Prefix_TestKey1}", newSettings.Settings["PreTest2"]?.Value);
+            Assert.Equal("Prefix_TestKey1Value", newSettings.Settings["Prefix_TestKey1"]?.Value);
+            Assert.Null(newSettings.Settings["TestKey2"]?.Value);
 
             // Greedy - ProcessConfigurationSection with prefix and strip
             builder = new FakeConfigBuilder();
             builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Greedy" }, { "prefix", "preFIX_" }, { "stripPrefix", "true" } });
             newSettings = (AppSettingsSection)builder.ProcessConfigurationSection(GetAppSettings());
-            Assert.AreEqual("Prefix_TestKey1Value", newSettings.Settings["TestKey1"]?.Value);
-            Assert.AreEqual("${TestKey1}", newSettings.Settings["test1"]?.Value);
-            Assert.AreEqual("expandTestValue", newSettings.Settings["${TestKey1}"]?.Value);
-            Assert.AreEqual("Prefix_TestKeyValue", newSettings.Settings["TestKey"]?.Value);
-            Assert.AreEqual("PrefixTest2", newSettings.Settings["Prefix_TestKey"]?.Value);
-            Assert.AreEqual("${Prefix_TestKey1}", newSettings.Settings["PreTest2"]?.Value);
-            Assert.IsNull(newSettings.Settings["Prefix_TestKey1"]?.Value);
-            Assert.IsNull(newSettings.Settings["TestKey2"]?.Value);
+            Assert.Equal("Prefix_TestKey1Value", newSettings.Settings["TestKey1"]?.Value);
+            Assert.Equal("${TestKey1}", newSettings.Settings["test1"]?.Value);
+            Assert.Equal("expandTestValue", newSettings.Settings["${TestKey1}"]?.Value);
+            Assert.Equal("Prefix_TestKeyValue", newSettings.Settings["TestKey"]?.Value);
+            Assert.Equal("PrefixTest2", newSettings.Settings["Prefix_TestKey"]?.Value);
+            Assert.Equal("${Prefix_TestKey1}", newSettings.Settings["PreTest2"]?.Value);
+            Assert.Null(newSettings.Settings["Prefix_TestKey1"]?.Value);
+            Assert.Null(newSettings.Settings["TestKey2"]?.Value);
 
             // Greedy - ProcessConfigurationSection with strip with no prefix
             builder = new FakeConfigBuilder();
             builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Greedy" }, { "stripPrefix", "true" } });
             newSettings = (AppSettingsSection)builder.ProcessConfigurationSection(GetAppSettings());
-            Assert.AreEqual("TestKey1Value", newSettings.Settings["TestKey1"]?.Value);
-            Assert.AreEqual("${TestKey1}", newSettings.Settings["test1"]?.Value);
-            Assert.AreEqual("expandTestValue", newSettings.Settings["${TestKey1}"]?.Value);
-            Assert.AreEqual("PrefixTest1", newSettings.Settings["TestKey"]?.Value);
-            Assert.AreEqual("Prefix_TestKeyValue", newSettings.Settings["Prefix_TestKey"]?.Value);
-            Assert.AreEqual("${Prefix_TestKey1}", newSettings.Settings["PreTest2"]?.Value);
-            Assert.AreEqual("TestKey2Value", newSettings.Settings["TestKey2"]?.Value);
-            Assert.AreEqual("Prefix_TestKey1Value", newSettings.Settings["Prefix_TestKey1"]?.Value);
+            Assert.Equal("TestKey1Value", newSettings.Settings["TestKey1"]?.Value);
+            Assert.Equal("${TestKey1}", newSettings.Settings["test1"]?.Value);
+            Assert.Equal("expandTestValue", newSettings.Settings["${TestKey1}"]?.Value);
+            Assert.Equal("PrefixTest1", newSettings.Settings["TestKey"]?.Value);
+            Assert.Equal("Prefix_TestKeyValue", newSettings.Settings["Prefix_TestKey"]?.Value);
+            Assert.Equal("${Prefix_TestKey1}", newSettings.Settings["PreTest2"]?.Value);
+            Assert.Equal("TestKey2Value", newSettings.Settings["TestKey2"]?.Value);
+            Assert.Equal("Prefix_TestKey1Value", newSettings.Settings["Prefix_TestKey1"]?.Value);
         }
 
 
         // ======================================================================
         //   Errors
         // ======================================================================
-        [TestMethod]
+        [Fact]
         public void BaseErrors_ProcessRawXml()
         {
             var builder = new FakeConfigBuilder() { FailGetValues = true };
@@ -510,28 +509,28 @@ namespace Test
                 builder.ProcessRawXml(GetNode(rawXmlInput));
 
                 // If we don't get an exception, that's bad
-                Assert.Fail();
+                Assert.True(false);
             }
             catch (Exception e)
             {
                 // ProcessRawXml exception in Expand mode contains builder name
-                Assert.IsTrue(e.Message.Contains("Esteban"));
-                Assert.IsTrue(e.ToString().Contains("Unique Exception Message in GetValue"));
+                Assert.Contains("Esteban", e.Message);
+                Assert.Contains("Unique Exception Message in GetValue", e.ToString());
             }
 
             // In Strict or Greedy modes, ProcessRawXml is a noop
             builder = new FakeConfigBuilder() { FailGetValues = true };
             builder.Initialize("Joe", new NameValueCollection());
             builder.ProcessRawXml(GetNode(rawXmlInput));
-            Assert.IsTrue(true);    // I hate implicit success. ;)
+            Assert.True(true);    // I hate implicit success. ;)
 
             builder = new FakeConfigBuilder() { FailGetValues = true };
             builder.Initialize("Jose", new NameValueCollection() { { "mode", "Greedy" } });
             builder.ProcessRawXml(GetNode(rawXmlInput));
-            Assert.IsTrue(true);    // I hate implicit success. ;)
+            Assert.True(true);    // I hate implicit success. ;)
         }
 
-        [TestMethod]
+        [Fact]
         public void BaseErrors_ProcessConfigurationSection()
         {
             var builder = new FakeConfigBuilder() { FailGetValues = true };
@@ -541,13 +540,13 @@ namespace Test
                 builder.ProcessConfigurationSection(GetAppSettings());
 
                 // If we don't get an exception, that's bad
-                Assert.Fail();
+                Assert.True(false);
             }
             catch (Exception e)
             {
                 // ProcessConfigurationSection exception in Strict mode contains builder name
-                Assert.IsTrue(e.Message.Contains("Stefano"));
-                Assert.IsTrue(e.ToString().Contains("Unique Exception Message in GetValue"));
+                Assert.Contains("Stefano", e.Message);
+                Assert.Contains("Unique Exception Message in GetValue", e.ToString());
             }
 
             builder = new FakeConfigBuilder() { FailGetValues = true };
@@ -557,20 +556,20 @@ namespace Test
                 builder.ProcessConfigurationSection(GetAppSettings());
 
                 // If we don't get an exception, that's bad
-                Assert.Fail();
+                Assert.True(false);
             }
             catch (Exception e)
             {
                 // ProcessConfigurationSection exception in Greedy mode contains builder name
-                Assert.IsTrue(e.Message.Contains("Stepanya"));
-                Assert.IsTrue(e.ToString().Contains("Unique Exception Message in GetAllValues"));
+                Assert.Contains("Stepanya", e.Message);
+                Assert.Contains("Unique Exception Message in GetAllValues", e.ToString());
             }
 
             // In Expand mode, ProcessConfigurationSection is a noop
             builder = new FakeConfigBuilder() { FailGetValues = true };
             builder.Initialize("Josef", new NameValueCollection() { { "mode", "Expand" } });
             builder.ProcessConfigurationSection(GetAppSettings());
-            Assert.IsTrue(true);    // I hate implicit success. ;)
+            Assert.True(true);    // I hate implicit success. ;)
         }
 
 

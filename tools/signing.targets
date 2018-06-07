@@ -1,0 +1,21 @@
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <Target Name="GetFilesToSign" BeforeTargets="SignFiles" Condition="'$(SignAssembly)' == 'true'">
+    <ItemGroup Condition="'$(MSBuildProjectExtension)' != '.nuproj'">
+      <FilesToSign Include="$(TargetPath)">
+        <Authenticode>Microsoft</Authenticode>
+        <StrongName>MsSharedLib72</StrongName>
+      </FilesToSign>
+    </ItemGroup>
+
+    <PropertyGroup Condition="'$(MSBuildProjectExtension)' == '.nuproj'">
+      <OutDir>$(PackageOutputDir)</OutDir>
+    </PropertyGroup>
+    <ItemGroup Condition="'$(MSBuildProjectExtension)' == '.nuproj'">
+      <FilesToSign Include="$(NuGetPackTargetFile)">
+        <Authenticode>NuGet</Authenticode>
+      </FilesToSign>
+    </ItemGroup>
+  </Target>
+
+</Project>

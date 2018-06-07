@@ -15,13 +15,18 @@ using Microsoft.IdentityModel.Clients.ActiveDirectory;
 
 namespace Microsoft.Configuration.ConfigurationBuilders
 {
+    /// <summary>
+    /// A ConfigurationProvider that retrieves values from Azure Key Vault.
+    /// </summary>
     public class AzureKeyVaultConfigBuilder : KeyValueConfigBuilder
     {
+        #pragma warning disable CS1591 // No xml comments for tag literals.
         public const string vaultNameTag = "vaultName";
         public const string connectionStringTag = "connectionString";
         public const string uriTag = "uri";
         public const string versionTag = "version";
         public const string preloadTag = "preloadSecretNames";
+        #pragma warning restore CS1591 // No xml comments for tag literals.
 
         private string _vaultName;
         private string _connectionString;
@@ -32,6 +37,11 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         private KeyVaultClient _kvClient;
         private List<string> _allKeys;
 
+        /// <summary>
+        /// Initializes the configuration builder.
+        /// </summary>
+        /// <param name="name">The friendly name of the provider.</param>
+        /// <param name="config">A collection of the name/value pairs representing builder-specific attributes specified in the configuration for this provider.</param>
         public override void Initialize(string name, NameValueCollection config)
         {
             base.Initialize(name, config);
@@ -66,6 +76,11 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             }
         }
 
+        /// <summary>
+        /// Looks up a single 'value' for the given 'key.'
+        /// </summary>
+        /// <param name="key">The 'key' for the secret to look up in the configured Key Vault. (Prefix handling is not needed here.)</param>
+        /// <returns>The value corresponding to the given 'key' or null if no value is found.</returns>
         public override string GetValue(string key)
         {
             // Azure Key Vault keys are case-insensitive, so this should be fine.
@@ -75,6 +90,11 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             return Task.Run(async () => { return await GetValueAsync(key); }).Result;
         }
 
+        /// <summary>
+        /// Retrieves all known key/value pairs from the Key Vault where the key begins with with <paramref name="prefix"/>.
+        /// </summary>
+        /// <param name="prefix">A prefix string to filter the list of potential keys retrieved from the source.</param>
+        /// <returns>A collection of key/value pairs.</returns>
         public override ICollection<KeyValuePair<string, string>> GetAllValues(string prefix)
         {
             ConcurrentDictionary<string, string> d = new ConcurrentDictionary<string, string>(StringComparer.OrdinalIgnoreCase);

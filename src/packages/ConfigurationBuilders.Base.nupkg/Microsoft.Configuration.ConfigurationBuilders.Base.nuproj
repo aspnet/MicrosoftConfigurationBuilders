@@ -12,12 +12,10 @@
             <Source>$(AssemblyPath)</Source>
             <Destination>lib\Net471</Destination>
         </NuGetContent>
-        <!--
         <NuGetContent Include="$(AssemblyName).xml">
             <Source>$(OutputPath)</Source>
             <Destination>lib\Net471</Destination>
         </NuGetContent>
-        -->
         <NuGetContent Include="$(AssemblyName).pdb" Condition="'$(NuGetPackSymbols)' == 'true'">
             <Source>$(OutputPath)</Source>
             <Destination>lib\Net471</Destination>
@@ -37,14 +35,5 @@
         </NuGetContent>
     </ItemGroup>
     <Import Project="$(RepositoryRoot)Tools\NuGetProj.targets"/>
-    <Target Name="AfterBuild">
-      <PropertyGroup>
-        <OutDir>$(PackageOutputDir)</OutDir>
-      </PropertyGroup>
-      <ItemGroup>
-        <FilesToSign Include="$(NuGetPackTargetFile)" Condition="'$(SignAssembly)' == 'true'">
-          <Authenticode>NuGet</Authenticode>
-        </FilesToSign>
-      </ItemGroup>
-    </Target>
+    <Import Project="$(RepositoryRoot)Tools\signing.targets"/>
 </Project>
