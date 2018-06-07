@@ -3,7 +3,6 @@
   <PropertyGroup>
     <CustomAfterMicrosoftCommonTargets>$(MSBuildThisFileDirectory)version.targets;$(MSBuildThisFileDirectory)signing.targets</CustomAfterMicrosoftCommonTargets>
     <RepositoryRoot>$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), 'MicrosoftConfigurationBuilders.sln'))\</RepositoryRoot>
-    <RepositoryRootEx Condition="'$(RepositoryRootEx)' == ''">$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory),MicrosoftConfigurationBuilders.sln))\</RepositoryRootEx>
     <SolutionDir>$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), 'MicrosoftConfigurationBuilders.sln'))\</SolutionDir>
   </PropertyGroup>
 
