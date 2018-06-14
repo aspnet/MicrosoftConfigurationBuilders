@@ -2,9 +2,9 @@
 <Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory),MicrosoftConfigurationBuilders.sln))\tools\MicrosoftConfigurationBuilders.settings.targets" />
     <PropertyGroup>
-        <AssemblyName>Microsoft.Configuration.ConfigurationBuilders.Environment</AssemblyName>
+        <AssemblyName>$(MSBuildProjectName)</AssemblyName>
         <NuGetPackageId>$(MSBuildProjectName)</NuGetPackageId>
-        <NuSpecFile>Microsoft.Configuration.ConfigurationBuilders.Environment.nuspec</NuSpecFile>
+        <NuSpecFile>$(MSBuildProjectName).nuspec</NuSpecFile>
         <IsPackage>true</IsPackage>
     </PropertyGroup>
     <ItemGroup>
@@ -35,5 +35,4 @@
         </NuGetContent>
     </ItemGroup>
     <Import Project="$(RepositoryRoot)Tools\NuGetProj.targets"/>
-    <Import Project="$(RepositoryRoot)Tools\signing.targets"/>
 </Project>

@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <CustomAfterMicrosoftCommonTargets>$(MSBuildThisFileDirectory)version.targets;$(MSBuildThisFileDirectory)signing.targets</CustomAfterMicrosoftCommonTargets>
+    <CustomAfterNuGetProjTargets>$(MSBuildThisFileDirectory)signing.targets</CustomAfterNuGetProjTargets>
     <RepositoryRoot>$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), 'MicrosoftConfigurationBuilders.sln'))\</RepositoryRoot>
     <SolutionDir>$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), 'MicrosoftConfigurationBuilders.sln'))\</SolutionDir>
   </PropertyGroup>
@@ -18,7 +19,7 @@
             Major:	'Major' for Assembly, File, Info, and Package.
             Minor:	'Minor' for Assembly, File, Info, and Package.
             Build:	Third (auto-generated) for File and Info. (Assembly is always 0)
-            Revision:	'Revision' for Assembly and File.
+            Revision:	'Revision' for Assembly and File. Strategy - Try to leave this 0 and only rev Major/Minor for big changes and Release for non-dependency-breaking changes.
             Release:	Third for Info and Package.
          Update package and file without touching assembly, except for major releases.
     -->
@@ -32,6 +33,7 @@
 
   <PropertyGroup Label="NuGet package dependencies">
     <NuGetPackageVersion>$(VersionMajor).$(VersionMinor).$(VersionRelease)</NuGetPackageVersion>
+    <NuGetPackageBaseDependencyVersion>$(VersionMajor).$(VersionMinor)</NuGetPackageBaseDependencyVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(MSBuildProjectExtension)' == '.nuproj'">
@@ -54,7 +56,13 @@
     <NuGetPackSymbols Condition="'$(NuGetPackSymbols)' == ''">true</NuGetPackSymbols>
     <ReferencePackagesPath>$(RepositoryRoot)packages\</ReferencePackagesPath>
     <SourceRootFullPath>$(RepositoryRoot)\src\$(MSBuildProjectName)\</SourceRootFullPath>
+    <NuGetOriginalScriptDirectory>$(MSBuildProjectDirectory)\tools\Net471</NuGetOriginalScriptDirectory>
+    <NuGetProcessedScriptDirectory>$(MSBuildProjectDirectory)\tools\Net471\pp</NuGetProcessedScriptDirectory>
   </PropertyGroup>
+
+  <ItemGroup Condition="'$(MSBuildProjectExtension)' == '.nuproj'">
+    <NuGetOriginalScriptFiles Include="$(NuGetOriginalScriptDirectory)\*.ps1" />
+  </ItemGroup>
 
   <PropertyGroup>
     <TestRoot>$(RepositoryRoot)\test\Microsoft.Configuration.ConfigurationBuilders.Test</TestRoot>
@@ -76,6 +84,22 @@
     </PropertyGroup>
   </Target>
 
+  <Target Name="PreprocessNugetScripts" AfterTargets="GenerateNuSpecFile">
+    <ItemGroup>
+      <PropertiesToReplace Include="id" Condition="'$(NuSpecId)' != ''">
+        <Value>$(NuSpecId)</Value>
+      </PropertiesToReplace>
+      <PropertiesToReplace Include="version" Condition="'$(NuGetPackageVersion)' != ''">
+        <Value>$(NuGetPackageVersion)</Value>
+      </PropertiesToReplace>
+      <PropertiesToReplace Include="depversion" Condition="'$(NuGetPackageBaseDependencyVersion)' != ''">
+        <Value>$(NuGetPackageBaseDependencyVersion)</Value>
+      </PropertiesToReplace>
+    </ItemGroup>
+
+    <PreprocessFiles Files="@(NuGetOriginalScriptFiles)" OutputDir="$(NuGetProcessedScriptDirectory)" PropertyCollection="@(PropertiesToReplace)" />
+  </Target>
+
   <Target Name="SuperClean" AfterTargets="Clean"  Condition="'$(MSBuildProjectExtension)' != '.nuproj'">
     <RemoveDir Directories="$(OutputPath)" />
     <RemoveDir Directories="$(IntermediateOutputRoot)" />
@@ -84,6 +108,53 @@
   <Target Name="SuperCleanPackage" AfterTargets="Clean" Condition="'$(MSBuildProjectExtension)' == '.nuproj'">
     <RemoveDir Directories="$(NuGetOutputPath)" />
     <RemoveDir Directories="$(NuGetSymbolsOutputPath)" />
+    <RemoveDir Directories="$(NuGetProcessedScriptDirectory)" />
   </Target>
+
+
+
+
+<!--
+ ==================================================================================================
+  Supporting function to inject project properties into NuGet content before packing.
+ ==================================================================================================
+-->
+  <UsingTask TaskName="PreprocessFiles" TaskFactory="CodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.v4.0.dll">
+    <ParameterGroup>
+      <Files Required="true" ParameterType="Microsoft.Build.Framework.ITaskItem[]" />
+      <OutputDir Required="true" ParameterType="System.String" />
+      <PropertyCollection Required="true" ParameterType="Microsoft.Build.Framework.ITaskItem[]" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System.Text.RegularExpressions" />
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.Collections.Concurrent"  />
+      <Code Type="Fragment" Language="cs">
+        <![CDATA[
+            string line;
+            string tokenPattern = @"\$" + @"(\w+)\$"; // Split up to avoid msbuild property substitution
+            ConcurrentDictionary<string, string> properties = new ConcurrentDictionary<string, string>(StringComparer.OrdinalIgnoreCase); // Nuget .pp transforms are case insensitive
+            foreach (var p in PropertyCollection) { properties.TryAdd(p.GetMetadata("Identity"), p.GetMetadata("Value")); }
+            foreach (var inFile in Files) {
+                string filename = inFile.ItemSpec;
+                if (!File.Exists(filename)) { Log.LogError("File to preprocess does not exist: {0}", filename); return false; }
+                if (!Directory.Exists(OutputDir)) { Directory.CreateDirectory(OutputDir); }
+                using (StreamReader sr = new StreamReader(filename))
+                using (StreamWriter sw = new StreamWriter(Path.Combine(OutputDir, Path.GetFileName(filename)), false))
+                {
+                    while ((line = sr.ReadLine()) != null) {
+                        line = Regex.Replace(line, tokenPattern, (m) => {
+                            string key = m.Groups[1].Value;
+                            if (properties.ContainsKey(key)) { return properties[key]; }
+                            return m.Groups[0].Value;
+                        });
+                        sw.WriteLine(line);
+                    }
+                }
+            }
+    ]]>
+      </Code>
+    </Task>
+  </UsingTask>
 
 </Project>
