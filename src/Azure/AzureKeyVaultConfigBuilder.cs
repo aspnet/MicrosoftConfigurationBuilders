@@ -23,7 +23,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         #pragma warning disable CS1591 // No xml comments for tag literals.
         public const string vaultNameTag = "vaultName";
         public const string connectionStringTag = "connectionString";
-        public const string uriTag = "uri";
+        public const string uriTag = "vaultUri";
         public const string versionTag = "version";
         public const string preloadTag = "preloadSecretNames";
         #pragma warning restore CS1591 // No xml comments for tag literals.
