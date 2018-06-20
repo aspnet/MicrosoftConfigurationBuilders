@@ -17,7 +17,7 @@
     <tags>Microsoft Configuration Builders - Environment</tags>
 
     <dependencies>
-      <dependency id="Microsoft.Configuration.ConfigurationBuilders.Base" version="[$NuGetPackageBaseDependencyVersion$]" />
+      <dependency id="Microsoft.Configuration.ConfigurationBuilders.Base" version="$NuGetPackageBaseDependencyVersion$" />
     </dependencies>
 
   </metadata>

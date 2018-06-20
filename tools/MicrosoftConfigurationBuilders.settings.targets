@@ -25,9 +25,9 @@
     -->
     <BuildQuality Condition="'$(BuildQuality)' == ''">rtm</BuildQuality>
     <VersionMajor>1</VersionMajor>
-    <VersionMinor>0</VersionMinor>
+    <VersionMinor>2</VersionMinor>
     <VersionRevision>0</VersionRevision>
-    <VersionRelease>1</VersionRelease>
+    <VersionRelease>3</VersionRelease>
     <VersionRelease Condition="'$(BuildQuality)' != 'rtm'">$(VersionRelease)-$(BuildQuality)</VersionRelease>
   </PropertyGroup>
 
@@ -56,18 +56,22 @@
     <NuGetPackSymbols Condition="'$(NuGetPackSymbols)' == ''">true</NuGetPackSymbols>
     <ReferencePackagesPath>$(RepositoryRoot)packages\</ReferencePackagesPath>
     <SourceRootFullPath>$(RepositoryRoot)\src\$(MSBuildProjectName)\</SourceRootFullPath>
-    <NuGetOriginalScriptDirectory>$(MSBuildProjectDirectory)\tools\Net471</NuGetOriginalScriptDirectory>
-    <NuGetProcessedScriptDirectory>$(MSBuildProjectDirectory)\tools\Net471\pp</NuGetProcessedScriptDirectory>
+    <NuGetScriptDirectory>$(MSBuildProjectDirectory)\tools\Net471</NuGetScriptDirectory>
+    <NuGetSharedScriptDirectory>$(MSBuildProjectDirectory)\shared\tools\Net471</NuGetSharedScriptDirectory>
+    <NuGetProcessedScriptSubDirectory>pp</NuGetProcessedScriptSubDirectory>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(MSBuildProjectExtension)' == '.nuproj'">
-    <NuGetOriginalScriptFiles Include="$(NuGetOriginalScriptDirectory)\*.ps1" />
+    <NuGetScriptFiles Include="$(NuGetScriptDirectory)\*.ps1" />
+    <NuGetSharedScriptFiles Include="$(NuGetSharedScriptDirectory)\*.ps1" />
   </ItemGroup>
 
   <PropertyGroup>
     <TestRoot>$(RepositoryRoot)\test\Microsoft.Configuration.ConfigurationBuilders.Test</TestRoot>
     <BuildingTestProject Condition="$(MSBuildProjectDirectory.ToLower().Contains($(TestRoot.ToLower())))">true</BuildingTestProject>
   </PropertyGroup>
+
+  <Import Project="$(MSBuildThisFileDirectory)version.targets" Condition="'$(MSBuildProjectExtension)' == '.nuproj'" />
 
   <Target Name="PreventReferenceCopy" AfterTargets="ResolveAssemblyReferences">
     <ItemGroup>
@@ -78,26 +82,34 @@
   <Target Name="SetNuSpecProperties" BeforeTargets="GenerateNuSpecFile">
     <PropertyGroup>
       <NuSpecProperties>
+          NuGetPackageBaseDependencyVersion=$(NuGetPackageBaseDependencyVersion);
           NuGetPackageVersion=$(NuGetPackageVersion);
           NuGetPackageId=$(NuGetPackageId);
       </NuSpecProperties>
     </PropertyGroup>
   </Target>
 
-  <Target Name="PreprocessNugetScripts" AfterTargets="GenerateNuSpecFile">
+  <Target Name="PreprocessNugetScripts" BeforeTargets="GetNuGetContentFromProject"> <!-- AfterTargets="GenerateNuSpecFile"> -->
     <ItemGroup>
-      <PropertiesToReplace Include="id" Condition="'$(NuSpecId)' != ''">
-        <Value>$(NuSpecId)</Value>
+      <PropertiesToReplace Include="typeName">
+        <Value>$(BuilderType)</Value>
       </PropertiesToReplace>
-      <PropertiesToReplace Include="version" Condition="'$(NuGetPackageVersion)' != ''">
+      <PropertiesToReplace Include="assemblyName">
+        <Value>$(AssemblyName)</Value>
+      </PropertiesToReplace>
+      <PropertiesToReplace Include="assemblyVersion">
+        <Value>$(AssemblyVersion)</Value>
+      </PropertiesToReplace>
+      <PropertiesToReplace Include="packageVersion">
         <Value>$(NuGetPackageVersion)</Value>
       </PropertiesToReplace>
-      <PropertiesToReplace Include="depversion" Condition="'$(NuGetPackageBaseDependencyVersion)' != ''">
+      <PropertiesToReplace Include="dependencyVersion">
         <Value>$(NuGetPackageBaseDependencyVersion)</Value>
       </PropertiesToReplace>
     </ItemGroup>
 
-    <PreprocessFiles Files="@(NuGetOriginalScriptFiles)" OutputDir="$(NuGetProcessedScriptDirectory)" PropertyCollection="@(PropertiesToReplace)" />
+    <PreprocessFiles Files="@(NuGetScriptFiles)" OutputDir="$(NuGetScriptDirectory)\$(NuGetProcessedScriptSubDirectory)" PropertyCollection="@(PropertiesToReplace)" />
+    <PreprocessFiles Files="@(NuGetSharedScriptFiles)" OutputDir="$(NuGetSharedScriptDirectory)\$(NuGetProcessedScriptSubDirectory)" PropertyCollection="@(PropertiesToReplace)" />
   </Target>
 
   <Target Name="SuperClean" AfterTargets="Clean"  Condition="'$(MSBuildProjectExtension)' != '.nuproj'">
@@ -108,7 +120,8 @@
   <Target Name="SuperCleanPackage" AfterTargets="Clean" Condition="'$(MSBuildProjectExtension)' == '.nuproj'">
     <RemoveDir Directories="$(NuGetOutputPath)" />
     <RemoveDir Directories="$(NuGetSymbolsOutputPath)" />
-    <RemoveDir Directories="$(NuGetProcessedScriptDirectory)" />
+    <RemoveDir Directories="$(NuGetScriptDirectory)\$(NuGetProcessedScriptSubDirectory)" />
+    <RemoveDir Directories="$(NuGetSharedScriptDirectory)\$(NuGetProcessedScriptSubDirectory)" />
   </Target>
 
 
