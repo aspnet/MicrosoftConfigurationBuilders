@@ -17,9 +17,4 @@ $jsonConfigBuilder = [BuilderDescription]@{
 		[ParameterDescription]@{ Name="optional"; IsRequired=$false });
 }
 
-##### Update/Rehydrate config declarations #####
-$config = ReadConfigFile
-$rehydratedCount = RehydrateOldDeclarations $config $jsonConfigBuilder
-$updatedCount = UpdateDeclarations $config $jsonConfigBuilder
-if ($updatedCount -le 0) { AddDefaultDeclaration $config $jsonConfigBuilder }
-SaveConfigFile $config
+CommonInstall $jsonConfigBuilder

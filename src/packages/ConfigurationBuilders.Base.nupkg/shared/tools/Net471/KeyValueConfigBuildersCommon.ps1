@@ -35,6 +35,22 @@ $keyValueCommonParameters = @(
 		[ParameterDescription]@{ Name="tokenPattern"; IsRequired=$false });
 
 
+function CommonInstall($builderDescription) {
+	##### Update/Rehydrate config declarations #####
+	$config = ReadConfigFile
+	$rehydratedCount = RehydrateOldDeclarations $config $builderDescription
+	$updatedCount = UpdateDeclarations $config $builderDescription
+	if ($updatedCount -le 0) { AddDefaultDeclaration $config $builderDescription }
+	SaveConfigFile $config
+}
+
+function CommonUninstall($builderType) {
+	##### Dehydrate config declarations #####
+	$config = ReadConfigFile
+	DehydrateDeclarations $config $builderType
+	SaveConfigFile $config
+}
+
 function GetConfigFileName() {
 	# Try web.config first. Then fall back to app.config.
 	$configFile = $project.ProjectItems | where { $_.Name -ieq "web.config" }

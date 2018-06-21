@@ -19,9 +19,4 @@ $keyVaultConfigBuilder = [BuilderDescription]@{
 		[ParameterDescription]@{ Name="preloadSecretNames"; IsRequired=$false });
 }
 
-##### Update/Rehydrate config declarations #####
-$config = ReadConfigFile
-$rehydratedCount = RehydrateOldDeclarations $config $keyVaultConfigBuilder
-$updatedCount = UpdateDeclarations $config $keyVaultConfigBuilder
-if ($updatedCount -le 0) { AddDefaultDeclaration $config $keyVaultConfigBuilder }
-SaveConfigFile $config
+CommonInstall $keyVaultConfigBuilder

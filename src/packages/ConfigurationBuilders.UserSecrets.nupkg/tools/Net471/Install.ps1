@@ -18,9 +18,4 @@ $secretsConfigBuilder = [BuilderDescription]@{
 		[ParameterDescription]@{ Name="optional"; IsRequired=$false });
 }
 
-##### Update/Rehydrate config declarations #####
-$config = ReadConfigFile
-$rehydratedCount = RehydrateOldDeclarations $config $secretsConfigBuilder
-$updatedCount = UpdateDeclarations $config $secretsConfigBuilder
-if ($updatedCount -le 0) { AddDefaultDeclaration $config $secretsConfigBuilder }
-SaveConfigFile $config
+CommonInstall $secretsConfigBuilder

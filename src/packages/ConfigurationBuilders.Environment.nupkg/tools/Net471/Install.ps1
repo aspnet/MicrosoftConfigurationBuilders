@@ -14,9 +14,4 @@ $environmentConfigBuilder = [BuilderDescription]@{
 	AllowedParameters=$keyValueCommonParameters;
 }
 
-##### Update/Rehydrate config declarations #####
-$config = ReadConfigFile
-$rehydratedCount = RehydrateOldDeclarations $config $environmentConfigBuilder
-$updatedCount = UpdateDeclarations $config $environmentConfigBuilder
-if ($updatedCount -le 0) { AddDefaultDeclaration $config $environmentConfigBuilder }
-SaveConfigFile $config
+CommonInstall $environmentConfigBuilder

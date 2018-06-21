@@ -5,7 +5,4 @@ param($installPath, $toolsPath, $package, $project)
 
 . "$PSScriptRoot\KeyValueConfigBuildersCommon.ps1"
 
-##### Dehydrate config declarations #####
-$config = ReadConfigFile
-DehydrateDeclarations $config, "$typeName$, $assemblyName$""
-SaveConfigFile $config
+CommonUninstall "$typeName$, $assemblyName$"
