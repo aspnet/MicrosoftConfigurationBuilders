@@ -1,11 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <configuration xmlns:xdt="http://schemas.microsoft.com/XML-Document-Transform">
 
-  <configBuilders>
-    <builders>
-      <add name="SimpleJson" xdt:Locator="Match(name)" xdt:Transform="Remove" />
-    </builders>
-  </configBuilders>
 
   <configSections>
     <section name="configBuilders" xdt:Locator="Condition(@name='configBuilders' and count(/configuration/configBuilders/builders/*)=0)" xdt:Transform="Remove" />

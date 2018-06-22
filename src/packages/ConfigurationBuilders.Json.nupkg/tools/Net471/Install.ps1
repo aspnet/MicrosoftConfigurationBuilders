@@ -5,17 +5,16 @@ param($installPath, $toolsPath, $package, $project)
 
 . "$PSScriptRoot\KeyValueConfigBuildersCommon.ps1"
 
-##### Describe the UserSecrets config builder #####
-$userSecretsId=New-Guid
-$secretsConfigBuilder = [BuilderDescription]@{
+##### Describe the SimpleJson config builder #####
+$jsonConfigBuilder = [BuilderDescription]@{
 	TypeName="$typeName$";
 	Assembly="$assemblyName$";
 	Version="$assemblyVersion$";
-	DefaultName="Secrets";
+	DefaultName="SimpleJson";
 	AllowedParameters=@( $keyValueCommonParameters +
-		[ParameterDescription]@{ Name="userSecretsId"; IsRequired=$false; DefaultValue=$userSecretsId },
-		[ParameterDescription]@{ Name="userSecretsFile"; IsRequired=$false },
+		[ParameterDescription]@{ Name="jsonFile"; IsRequired=$true; DefaultValue="~/App_Data/settings.json" },
+		[ParameterDescription]@{ Name="jsonMode"; IsRequired=$false },
 		[ParameterDescription]@{ Name="optional"; IsRequired=$false });
 }
 
-CommonInstall $secretsConfigBuilder
+CommonInstall $jsonConfigBuilder

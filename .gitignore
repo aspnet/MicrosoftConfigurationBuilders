@@ -3,6 +3,7 @@
 src/**/[Bb]in/
 src/**/[Oo]bj/
 src/packages/**/signed/
+src/packages/**/pp/
 test/**/[Bb]in/
 test/**/[Oo]bj/
 .vs/

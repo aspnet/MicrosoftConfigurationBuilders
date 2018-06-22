@@ -17,7 +17,7 @@
     <tags>Microsoft Configuration Builders Json</tags>
 
     <dependencies>
-      <dependency id="Microsoft.Configuration.ConfigurationBuilders.Base" version="[$NuGetPackageVersion$]" />
+      <dependency id="Microsoft.Configuration.ConfigurationBuilders.Base" version="$NuGetPackageBaseDependencyVersion$" />
       <dependency id="Newtonsoft.Json" version="11.0" />
     </dependencies>
   </metadata>

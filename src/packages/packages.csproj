@@ -17,46 +17,45 @@
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <UseVSHostingProcess>false</UseVSHostingProcess>
-    <OutputPath>bin\Debug\</OutputPath>
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <OutputPath>bin\Release\</OutputPath>
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
-  <ItemGroup>
+  <ItemGroup Label="Nuget Project Build Order">
     <NuGetProject Include="ConfigurationBuilders.Base.nupkg\Microsoft.Configuration.ConfigurationBuilders.Base.nuproj" />
+    <NuGetProject Include="ConfigurationBuilders.Environment.nupkg\Microsoft.Configuration.ConfigurationBuilders.Environment.nuproj" />
+    <NuGetProject Include="ConfigurationBuilders.UserSecrets.nupkg\Microsoft.Configuration.ConfigurationBuilders.UserSecrets.nuproj" />
     <NuGetProject Include="ConfigurationBuilders.Azure.nupkg\Microsoft.Configuration.ConfigurationBuilders.Azure.nuproj" />
     <NuGetProject Include="ConfigurationBuilders.Json.nupkg\Microsoft.Configuration.ConfigurationBuilders.Json.nuproj" />
   </ItemGroup>
-  <ItemGroup>
-    <None Include="app.config" />
-    <None Include="ConfigurationBuilders.Azure.nupkg\content\Net471\config.install.xdt" />
-    <None Include="ConfigurationBuilders.Azure.nupkg\content\Net471\config.uninstall.xdt" />
-    <None Include="ConfigurationBuilders.Azure.nupkg\Microsoft.Configuration.ConfigurationBuilders.Azure.nuspec" />
-    <None Include="ConfigurationBuilders.UserSecrets.nupkg\build\Net471\Microsoft.Configuration.ConfigurationBuilders.UserSecrets.props" />
-    <None Include="ConfigurationBuilders.UserSecrets.nupkg\build\Net471\Microsoft.Configuration.ConfigurationBuilders.UserSecrets.targets" />
-    <None Include="ConfigurationBuilders.UserSecrets.nupkg\content\Net471\config.install.xdt">
-      <SubType>Designer</SubType>
-    </None>
-    <None Include="ConfigurationBuilders.UserSecrets.nupkg\content\Net471\config.uninstall.xdt" />
-    <None Include="ConfigurationBuilders.UserSecrets.nupkg\tools\Net471\Uninstall.ps1" />
-    <None Include="ConfigurationBuilders.UserSecrets.nupkg\tools\Net471\Install.ps1" />
-    <NuGetProject Include="ConfigurationBuilders.UserSecrets.nupkg\Microsoft.Configuration.ConfigurationBuilders.UserSecrets.nuproj" />
-    <None Include="ConfigurationBuilders.UserSecrets.nupkg\Microsoft.Configuration.ConfigurationBuilders.UserSecrets.nuspec" />
-    <None Include="ConfigurationBuilders.Environment.nupkg\content\Net471\config.install.xdt" />
-    <None Include="ConfigurationBuilders.Environment.nupkg\content\Net471\config.uninstall.xdt" />
-    <NuGetProject Include="ConfigurationBuilders.Environment.nupkg\Microsoft.Configuration.ConfigurationBuilders.Environment.nuproj" />
-    <None Include="ConfigurationBuilders.Environment.nupkg\Microsoft.Configuration.ConfigurationBuilders.Environment.nuspec" />
+  <ItemGroup Label="Base">
+    <None Include="ConfigurationBuilders.Base.nupkg\Microsoft.Configuration.ConfigurationBuilders.Base.nuspec" />
     <None Include="ConfigurationBuilders.Base.nupkg\content\Net471\config.install.xdt" />
     <None Include="ConfigurationBuilders.Base.nupkg\content\Net471\config.uninstall.xdt" />
-    <None Include="ConfigurationBuilders.Base.nupkg\Microsoft.Configuration.ConfigurationBuilders.Base.nuspec" />
-    <None Include="ConfigurationBuilders.Json.nupkg\content\Net471\config.install.xdt" />
-    <None Include="ConfigurationBuilders.Json.nupkg\content\Net471\config.uninstall.xdt" />
-    <None Include="ConfigurationBuilders.Json.nupkg\Microsoft.Configuration.ConfigurationBuilders.Json.nuspec" />
+    <None Include="ConfigurationBuilders.Base.nupkg\shared\content\Net471\config.install.xdt" />
+    <None Include="ConfigurationBuilders.Base.nupkg\shared\content\Net471\config.uninstall.xdt" />
+    <None Include="ConfigurationBuilders.Base.nupkg\shared\tools\Net471\KeyValueConfigBuildersCommon.ps1" />
   </ItemGroup>
-  <ItemGroup>
-    <Content Include="ConfigurationBuilders.UserSecrets.nupkg\content\sample.xml" />
+  <ItemGroup Label="Environment">
+    <None Include="ConfigurationBuilders.Environment.nupkg\Microsoft.Configuration.ConfigurationBuilders.Environment.nuspec" />
+    <None Include="ConfigurationBuilders.Environment.nupkg\tools\Net471\Install.ps1" />
+    <None Include="ConfigurationBuilders.Environment.nupkg\tools\Net471\Uninstall.ps1" />
+  </ItemGroup>
+  <ItemGroup Label="UserSecrets">
+    <None Include="ConfigurationBuilders.UserSecrets.nupkg\Microsoft.Configuration.ConfigurationBuilders.UserSecrets.nuspec" />
+    <None Include="ConfigurationBuilders.UserSecrets.nupkg\tools\Net471\Install.ps1" />
+    <None Include="ConfigurationBuilders.UserSecrets.nupkg\tools\Net471\Uninstall.ps1" />
+  </ItemGroup>
+  <ItemGroup Label="Azure">
+    <None Include="ConfigurationBuilders.Azure.nupkg\Microsoft.Configuration.ConfigurationBuilders.Azure.nuspec" />
+    <None Include="ConfigurationBuilders.Azure.nupkg\tools\Net471\Install.ps1" />
+    <None Include="ConfigurationBuilders.Azure.nupkg\tools\Net471\Uninstall.ps1" />
+  </ItemGroup>
+  <ItemGroup Label="Json">
+    <None Include="ConfigurationBuilders.Json.nupkg\Microsoft.Configuration.ConfigurationBuilders.Json.nuspec" />
+    <None Include="ConfigurationBuilders.Json.nupkg\tools\Net471\Install.ps1" />
+    <None Include="ConfigurationBuilders.Json.nupkg\tools\Net471\Uninstall.ps1" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="Build">
