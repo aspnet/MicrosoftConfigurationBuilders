@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
+  <metadata>
+    <id>$NuGetPackageId$</id>
+    <version>$NuGetPackageVersion$</version>
+    <authors>Microsoft</authors>
+    <owners>Microsoft</owners>
+    <copyright>&#169; Microsoft Corporation. All rights reserved.</copyright>
+    <title>Microsoft Configuration Builders - KeyPerFile</title>
+    <description>A simple key/value Configuration Builder for the .Net Desktop Framework that draws single values from plain text files using the filename as the key.</description>
+    <summary>A simple key/value Configuration Builder for the .Net Desktop Framework that draws single values from plain text files using the filename as the key.</summary>
+    <language>en-US</language>
+    <projectUrl>https://github.com/aspnet/MicrosoftConfigurationBuilders</projectUrl>
+    <iconUrl>http://go.microsoft.com/fwlink/?LinkID=288859</iconUrl>
+    <licenseUrl>http://www.microsoft.com/web/webpi/eula/net_library_eula_ENU.htm</licenseUrl>
+    <requireLicenseAcceptance>true</requireLicenseAcceptance>
+    <tags>Microsoft Configuration Builders - KeyPerFile</tags>
+
+    <dependencies>
+      <dependency id="Microsoft.Configuration.ConfigurationBuilders.Base" version="$NuGetPackageBaseDependencyVersion$" />
+    </dependencies>
+
+  </metadata>
+</package>

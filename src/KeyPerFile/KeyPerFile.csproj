@@ -5,11 +5,11 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{C6530E81-D8D8-47A8-912E-D2939F801835}</ProjectGuid>
+    <ProjectGuid>{60C31149-44ED-4789-B5C3-AAA5D3B2FCF1}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Microsoft.Configuration.ConfigurationBuilders</RootNamespace>
-    <AssemblyName>Microsoft.Configuration.ConfigurationBuilders.Environment</AssemblyName>
+    <AssemblyName>Microsoft.Configuration.ConfigurationBuilders.KeyPerFile</AssemblyName>
     <DocumentationFile>$(OutputPath)$(AssemblyName).xml</DocumentationFile>
     <TargetFrameworkVersion>v4.7.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
@@ -40,7 +40,7 @@
     <Reference Include="System.Configuration" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="EnvironmentConfigBuilder.cs" />
+    <Compile Include="KeyPerFileConfigBuilder.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

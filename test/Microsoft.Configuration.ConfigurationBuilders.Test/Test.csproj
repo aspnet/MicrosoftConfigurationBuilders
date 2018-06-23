@@ -62,6 +62,7 @@
   <ItemGroup>
     <Compile Include="CommonBuilderTests.cs" />
     <Compile Include="UserSecretsTests.cs" />
+    <Compile Include="KeyPerFileTests.cs" />
     <Compile Include="SimpleJsonTests.cs" />
     <Compile Include="UtilsTests.cs" />
     <Compile Include="BaseTests.cs" />
@@ -84,6 +85,10 @@
     <ProjectReference Include="..\..\src\UserSecrets\UserSecrets.csproj">
       <Project>{c60d6cbb-d513-4692-81a6-0be5d45e4702}</Project>
       <Name>UserSecrets</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\src\KeyPerFile\KeyPerFile.csproj">
+      <Project>{60c31149-44ed-4789-b5c3-aaa5d3b2fcf1}</Project>
+      <Name>KeyPerFile</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

@@ -26,6 +26,7 @@
     <NuGetProject Include="ConfigurationBuilders.Base.nupkg\Microsoft.Configuration.ConfigurationBuilders.Base.nuproj" />
     <NuGetProject Include="ConfigurationBuilders.Environment.nupkg\Microsoft.Configuration.ConfigurationBuilders.Environment.nuproj" />
     <NuGetProject Include="ConfigurationBuilders.UserSecrets.nupkg\Microsoft.Configuration.ConfigurationBuilders.UserSecrets.nuproj" />
+    <NuGetProject Include="ConfigurationBuilders.KeyPerFile.nupkg\Microsoft.Configuration.ConfigurationBuilders.KeyPerFile.nuproj" />
     <NuGetProject Include="ConfigurationBuilders.Azure.nupkg\Microsoft.Configuration.ConfigurationBuilders.Azure.nuproj" />
     <NuGetProject Include="ConfigurationBuilders.Json.nupkg\Microsoft.Configuration.ConfigurationBuilders.Json.nuproj" />
   </ItemGroup>
@@ -46,6 +47,11 @@
     <None Include="ConfigurationBuilders.UserSecrets.nupkg\Microsoft.Configuration.ConfigurationBuilders.UserSecrets.nuspec" />
     <None Include="ConfigurationBuilders.UserSecrets.nupkg\tools\Net471\Install.ps1" />
     <None Include="ConfigurationBuilders.UserSecrets.nupkg\tools\Net471\Uninstall.ps1" />
+  </ItemGroup>
+  <ItemGroup Label="KeyPerFile">
+    <None Include="ConfigurationBuilders.KeyPerFile.nupkg\Microsoft.Configuration.ConfigurationBuilders.KeyPerFile.nuspec" />
+    <None Include="ConfigurationBuilders.KeyPerFile.nupkg\tools\Net471\Install.ps1" />
+    <None Include="ConfigurationBuilders.KeyPerFile.nupkg\tools\Net471\Uninstall.ps1" />
   </ItemGroup>
   <ItemGroup Label="Azure">
     <None Include="ConfigurationBuilders.Azure.nupkg\Microsoft.Configuration.ConfigurationBuilders.Azure.nuspec" />
