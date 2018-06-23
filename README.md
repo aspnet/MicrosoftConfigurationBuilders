@@ -87,9 +87,10 @@ builder, the json format for Core secrets is technically an implementation detai
 There are three additional configuration attributes for this config builder:
   * `userSecretsId` - This is the preferred method for identifying an xml secrets file. It works similar to .Net Core, which uses a 'UserSecretsId' project
   property to store this identifier. (The string does not have to be a Guid. Just unique. The VS "Manage User Secrets" experience produces a Guid.) With this
-  attribute, the `UserSecretsConfigBuilder` will look in a well-known local location for a secrets file belonging to this identifier. In MSBuild environments,
-  the value of this attribute will be replaced with the project property $(UserSecretsId) in the output directory iff the initial value is '${UserSecretsId}'.
-  One of this attribute or the 'userSecretsFile' attribute is required.
+  attribute, the `UserSecretsConfigBuilder` will look in a well-known local location (%APPDATA%\Microsoft\UserSecrets\&lt;userSecretsId&gt;\secrets.xml in
+  Windows environments) for a secrets file belonging to this identifier.
+  In MSBuild environments, the value of this attribute will be replaced with the project property $(UserSecretsId) in the output directory iff the initial
+  value is '${UserSecretsId}'. One of this attribute or the 'userSecretsFile' attribute is required.
   * `userSecretsFile` - An optional attribute specifying the file containing the secrets. The '~' character can be used at the start to reference the app root.
   One of this attribute or the 'userSecretsId' attribute is required. If both are specified, 'userSecretsFile' takes precedence.
   * `optional` - A simple boolean to avoid throwing exceptions if the secrets file cannot be found. The default is `true`.
@@ -116,6 +117,26 @@ up connection information from the execution environment if possible, but you ca
   * `preloadSecretNames` - By default, this builder will query __all__ the key names in the key vault when it is initialized. If this is a concern, set
   this attribute to 'false', and secrets will be retrieved one at a time. This could also be useful if the vault allows "Get" access but not
   "List" access. (NOTE: Disabling preload is incompatible with Greedy mode.)
+
+### KeyPerFileConfigBuilder
+```xml
+<add name="KeyPerFile"
+    [mode|prefix|stripPrefix|tokenPattern]
+	(directoryPath="PathToSourceDirectory")
+    [ignorePrefix="ignore."]
+    [keyDelimiter=":"]
+    [optional="false"]
+    type="Microsoft.Configuration.ConfigurationBuilders.KeyPerFileConfigBuilder, Microsoft.Configuration.ConfigurationBuilders.KeyPerFile" />
+```
+This is a simple config builder that uses a directory's files as a source of values. A file's name is the key, and the contents are the value. This
+config builder can be useful when running in an orchestrated container environment, as systems like Docker Swarm and Kubernetes provide 'secrets' to
+their orchestrated windows containers in this key-per-file manner.
+  * `directoryPath` - This is a required attribute. It specifies a path to the source directory to look in for values. Docker for Windows secrets
+  are stored in the 'C:\ProgramData\Docker\secrets' directory by default.
+  * `ignorePrefix` - Files that start with this prefix will be excluded. Defaults to "ignore.".
+  * `keyDelimiter` - If specified, the config builder will traverse multiple levels of the directory, building key names up with this delimeter. If
+  this value is left `null` however, the config builder only looks at the top-level of the directory. `null` is the default.
+  * `optional` - Specifies whether the config builder should cause errors if the source directory doesn't exist. The default is `false`.
 
 ### SimpleJsonConfigBuilder
 ```xml

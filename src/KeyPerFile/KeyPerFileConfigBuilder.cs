@@ -11,7 +11,7 @@ using System.Linq;
 namespace Microsoft.Configuration.ConfigurationBuilders
 {
     /// <summary>
-    /// A ConfigurationProvider that uses a directory's files as  a source of values. A file's name is the key, and the contents are the value.
+    /// A ConfigurationProvider that uses a directory's files as a source of values. A file's name is the key, and the contents are the value.
     /// </summary>
     public class KeyPerFileConfigBuilder : KeyValueConfigBuilder
     {
@@ -23,7 +23,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         #pragma warning restore CS1591 // No xml comments for tag literals.
 
         /// <summary>
-        /// Gets or sets a path to the secrets file to be used.
+        /// Gets or sets a path to the source directory to look in for values.
         /// </summary>
         public string DirectoryPath { get; protected set; }
         /// <summary>
