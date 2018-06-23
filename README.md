@@ -89,8 +89,6 @@ There are three additional configuration attributes for this config builder:
   property to store this identifier. (The string does not have to be a Guid. Just unique. The VS "Manage User Secrets" experience produces a Guid.) With this
   attribute, the `UserSecretsConfigBuilder` will look in a well-known local location (%APPDATA%\Microsoft\UserSecrets\&lt;userSecretsId&gt;\secrets.xml in
   Windows environments) for a secrets file belonging to this identifier.
-  In MSBuild environments, the value of this attribute will be replaced with the project property $(UserSecretsId) in the output directory iff the initial
-  value is '${UserSecretsId}'. One of this attribute or the 'userSecretsFile' attribute is required.
   * `userSecretsFile` - An optional attribute specifying the file containing the secrets. The '~' character can be used at the start to reference the app root.
   One of this attribute or the 'userSecretsId' attribute is required. If both are specified, 'userSecretsFile' takes precedence.
   * `optional` - A simple boolean to avoid throwing exceptions if the secrets file cannot be found. The default is `true`.
