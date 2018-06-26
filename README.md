@@ -93,6 +93,19 @@ There are three additional configuration attributes for this config builder:
   One of this attribute or the 'userSecretsId' attribute is required. If both are specified, 'userSecretsFile' takes precedence.
   * `optional` - A simple boolean to avoid throwing exceptions if the secrets file cannot be found. The default is `true`.
 
+Visual Studio will create an empty secrets file for you and allow you to edit the raw content to add/remove secrets when you use the new 'Manage
+User Secrets...' feature. This is similar to the .Net Core experience, and currently exposes the format of the file - which as mentioned above - should
+be considered an implementation detail. A non-empty secrets file would look like this:
+
+```xml
+<?xml version="1.0" encoding="utf-8" ?>
+<root>
+  <secrets ver="1.0">
+    <secret name="secretFoo" value="valueBar" />
+  </secrets>
+</root>
+```
+
 ### AzureKeyVaultConfigBuilder
 ```xml
 <add name="AzureKeyVault"
