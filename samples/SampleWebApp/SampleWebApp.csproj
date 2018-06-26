@@ -81,16 +81,14 @@
   <ItemGroup>
     <Content Include="App_Data\secrets.xml" />
     <Content Include="default.aspx" />
-    <Content Include="Web.config" />
+    <Content Include="Web.config">
+      <SubType>Designer</SubType>
+    </Content>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Azure\Azure.csproj">
-      <Project>{345c5437-4990-45dc-be34-6e37aa05d8d2}</Project>
-      <Name>Azure</Name>
-    </ProjectReference>
     <ProjectReference Include="..\..\src\Base\Base.csproj">
       <Project>{f382fbf8-146d-4968-a199-90d37f9ef9a7}</Project>
       <Name>Base</Name>
