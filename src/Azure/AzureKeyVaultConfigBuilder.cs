@@ -130,7 +130,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                     return secret?.Value;
                 } catch (KeyVaultErrorException kve) {
                     // Simply return null if the secret wasn't found
-                    if (kve.Body.Error.Code == "SecretNotFound")
+                    if (kve.Body.Error.Code == "SecretNotFound" || kve.Body.Error.Code == "BadParameter")
                         return null;
 
                     // If there was a permission issue or some other error, let the exception bubble
