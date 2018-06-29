@@ -48,6 +48,9 @@
       <HintPath>..\..\packages\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.1.0.8\lib\net45\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.CSharp" />
+    <Reference Include="Newtonsoft.Json, Version=11.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\Newtonsoft.Json.11.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
     <Reference Include="System.Web.DynamicData" />
     <Reference Include="System.Web.Entity" />
     <Reference Include="System.Web.ApplicationServices" />
@@ -78,16 +81,14 @@
   <ItemGroup>
     <Content Include="App_Data\secrets.xml" />
     <Content Include="default.aspx" />
-    <Content Include="Web.config" />
+    <Content Include="Web.config">
+      <SubType>Designer</SubType>
+    </Content>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Azure\Azure.csproj">
-      <Project>{345c5437-4990-45dc-be34-6e37aa05d8d2}</Project>
-      <Name>Azure</Name>
-    </ProjectReference>
     <ProjectReference Include="..\..\src\Base\Base.csproj">
       <Project>{f382fbf8-146d-4968-a199-90d37f9ef9a7}</Project>
       <Name>Base</Name>
@@ -99,6 +100,10 @@
     <ProjectReference Include="..\..\src\Json\Json.csproj">
       <Project>{84e0ce5d-4af2-414f-a940-22b3f93fc727}</Project>
       <Name>Json</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\src\KeyPerFile\KeyPerFile.csproj">
+      <Project>{60c31149-44ed-4789-b5c3-aaa5d3b2fcf1}</Project>
+      <Name>KeyPerFile</Name>
     </ProjectReference>
     <ProjectReference Include="..\..\src\UserSecrets\UserSecrets.csproj">
       <Project>{c60d6cbb-d513-4692-81a6-0be5d45e4702}</Project>
@@ -116,7 +121,7 @@
     <VisualStudio>
       <FlavorProperties GUID="{349c5851-65df-11da-9384-00065b846f21}">
         <WebProjectProperties>
-          <UseIIS>True</UseIIS>
+          <UseIIS>False</UseIIS>
           <AutoAssignPort>True</AutoAssignPort>
           <DevelopmentServerPort>58254</DevelopmentServerPort>
           <DevelopmentServerVPath>/</DevelopmentServerVPath>

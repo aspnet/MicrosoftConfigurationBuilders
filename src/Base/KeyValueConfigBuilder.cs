@@ -251,6 +251,8 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
         private string GetValueInternal(string key)
         {
+            if (String.IsNullOrEmpty(key)) { return null; }
+
             try
             {
                 return GetValue(key);
