@@ -33,6 +33,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         private string _uri;
         private string _version;
         private bool _preload;
+        private bool _preloadFailed;
 
         private KeyVaultClient _kvClient;
         private List<string> _allKeys;
@@ -116,7 +117,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
         private async Task<string> GetValueAsync(string key)
         {
-            if (!_preload || _allKeys.Contains(key, StringComparer.OrdinalIgnoreCase))
+            if (!_preload || _preloadFailed || _allKeys.Contains(key, StringComparer.OrdinalIgnoreCase))
             {
                 try
                 {
@@ -145,20 +146,37 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         private List<string> GetAllKeys()
         {
             List<string> keys = new List<string>(); // KeyVault keys are case-insensitive. There won't be case-duplicates. List<> should be fine.
-
-            // Get first page of secret keys
-            var allSecrets = Task.Run(async () => { return await _kvClient.GetSecretsAsync(_uri); }).Result;
-            foreach (var secretItem in allSecrets)
-                keys.Add(secretItem.Identifier.Name);
-
-            // If there more more pages, get those too
-            string nextPage = allSecrets.NextPageLink;
-            while (!String.IsNullOrWhiteSpace(nextPage))
+            try
             {
-                var moreSecrets = Task.Run(async () => { return await _kvClient.GetSecretsNextAsync(nextPage); }).Result;
-                foreach (var secretItem in moreSecrets)
+                // Get first page of secret keys
+                var allSecrets = Task.Run(async () => { return await _kvClient.GetSecretsAsync(_uri); }).Result;
+                foreach (var secretItem in allSecrets)
                     keys.Add(secretItem.Identifier.Name);
-                nextPage = moreSecrets.NextPageLink;
+
+                // If there more more pages, get those too
+                string nextPage = allSecrets.NextPageLink;
+                while (!String.IsNullOrWhiteSpace(nextPage))
+                {
+                    var moreSecrets = Task.Run(async () => { return await _kvClient.GetSecretsNextAsync(nextPage); }).Result;
+                    foreach (var secretItem in moreSecrets)
+                        keys.Add(secretItem.Identifier.Name);
+                    nextPage = moreSecrets.NextPageLink;
+                }
+            }
+            catch (AggregateException ae)
+            {
+                ae.Handle(ex =>
+                {
+                    var exAsKve = ex as KeyVaultErrorException;
+                    // If List Permission on Secrets in not available return empty list of keys
+                    if (exAsKve != null && exAsKve.Body.Error.Code == "Forbidden")
+                    {
+                        _preloadFailed = true;
+                        return true;
+                    }
+                    else
+                        return false;
+                });
             }
 
             return keys;
