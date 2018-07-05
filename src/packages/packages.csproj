@@ -63,6 +63,9 @@
     <None Include="ConfigurationBuilders.Json.nupkg\tools\Net471\Install.ps1" />
     <None Include="ConfigurationBuilders.Json.nupkg\tools\Net471\Uninstall.ps1" />
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="ConfigurationBuilders.Base.nupkg\content\README.txt" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="Build">
     <MSBuild Projects="@(NuGetProject)" Targets="Build" />
