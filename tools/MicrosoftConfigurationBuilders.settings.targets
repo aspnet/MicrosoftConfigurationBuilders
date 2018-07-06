@@ -27,7 +27,7 @@
     <VersionMajor>1</VersionMajor>
     <VersionMinor>0</VersionMinor>
     <VersionRevision>0</VersionRevision>
-    <VersionRelease>1</VersionRelease>
+    <VersionRelease>2</VersionRelease>
     <VersionRelease Condition="'$(BuildQuality)' != 'rtm'">$(VersionRelease)-$(BuildQuality)</VersionRelease>
   </PropertyGroup>
 
