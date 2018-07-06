@@ -88,10 +88,19 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// <returns>The value corresponding to the given 'key' or null if no value is found.</returns>
         public override string GetValue(string key)
         {
-            if (_allValues != null && _allValues.TryGetValue(key, out string val))
-                return val;
+            string filename = key;
+            if (!String.IsNullOrEmpty(KeyDelimiter))
+                filename = filename.Replace(KeyDelimiter, Path.DirectorySeparatorChar.ToString());
 
-            return null;
+            if (!String.IsNullOrWhiteSpace(IgnorePrefix))
+            {
+                foreach (var pathPart in filename.Split(new char[] { Path.DirectorySeparatorChar })) {
+                    if (pathPart.StartsWith(IgnorePrefix, StringComparison.OrdinalIgnoreCase))
+                        return null;
+                }
+            }
+
+            return ReadValueFromFile(Path.Combine(DirectoryPath, filename));
         }
 
         private IDictionary<string, string> ReadAllValues(string root, string prefix, IDictionary<string, string> values)
@@ -107,7 +116,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             {
                 foreach (var sub in di.EnumerateDirectories())
                 {
-                    if (!String.IsNullOrWhiteSpace(IgnorePrefix) && sub.Name.StartsWith(IgnorePrefix))
+                    if (!String.IsNullOrWhiteSpace(IgnorePrefix) && sub.Name.StartsWith(IgnorePrefix, StringComparison.OrdinalIgnoreCase))
                         continue;
 
                     ReadAllValues(sub.FullName, sub.Name + KeyDelimiter, values);
@@ -116,7 +125,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
             foreach (var file in di.EnumerateFiles())
             {
-                if (!String.IsNullOrWhiteSpace(IgnorePrefix) && file.Name.StartsWith(IgnorePrefix))
+                if (!String.IsNullOrWhiteSpace(IgnorePrefix) && file.Name.StartsWith(IgnorePrefix, StringComparison.OrdinalIgnoreCase))
                     continue;
 
                 string key = prefix + file.Name;
