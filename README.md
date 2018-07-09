@@ -67,6 +67,11 @@ and the first capture must be the token name to look up in the config source.
     type="Microsoft.Configuration.ConfigurationBuilders.EnvironmentConfigBuilder, Microsoft.Configuration.ConfigurationBuilders.Environment" />
 ```
 This is the simplest of the config builders. It draws its values from Environment, and it does not have any additional configuration options.
+  * __NOTE:__ In a Windows container environment, variables set at run time are only injected into the EntryPoint process environment. 
+  Applications that run as a service or a non-EntryPoint process will not pick up these variables unless they are otherwise injected through
+  some mechanism in the container. For [IIS](https://github.com/Microsoft/iis-docker/pull/41)/[ASP.Net](https://github.com/Microsoft/aspnet-docker)-based
+  containers, the current version of [ServiceMonitor.exe](https://github.com/Microsoft/iis-docker/pull/41) handles this in the *DefaultAppPool*
+  only. Other Windows-based container variants may need to develop their own injection mechanism for non-EntryPoint processes.
 
 ### UserSecretsConfigBuilder
 ```xml
