@@ -5,6 +5,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.Configuration;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -22,6 +23,8 @@ namespace Microsoft.Configuration.ConfigurationBuilders
     {
         #pragma warning disable CS1591 // No xml comments for tag literals.
         public const string vaultNameTag = "vaultName";
+        public const string vaultNameIsAppSettingTag = "vaultNameIsAppSetting";
+
         public const string connectionStringTag = "connectionString";
         public const string uriTag = "uri";
         public const string versionTag = "version";
@@ -29,13 +32,14 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         #pragma warning restore CS1591 // No xml comments for tag literals.
 
         private string _vaultName;
+        private bool _vaultNameIsAppSetting;
         private string _connectionString;
         private string _uri;
         private string _version;
         private bool _preload;
         private bool _preloadFailed;
 
-        private KeyVaultClient _kvClient;
+        private Lazy<KeyVaultClient> _lazyKeyVaultClient;
         private List<string> _allKeys;
 
         /// <summary>
@@ -56,6 +60,11 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             _vaultName = config?[vaultNameTag];
             _version = config?[versionTag];
 
+            if (!string.IsNullOrWhiteSpace(config?[vaultNameIsAppSettingTag]))
+            {
+                _vaultNameIsAppSetting = bool.Parse(config[vaultNameIsAppSettingTag]);
+            }
+
             if (String.IsNullOrWhiteSpace(_uri))
             {
                 if (String.IsNullOrWhiteSpace(_vaultName))
@@ -67,14 +76,6 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
             _connectionString = config?[connectionStringTag];
             _connectionString = String.IsNullOrWhiteSpace(_connectionString) ? null : _connectionString;
-
-            // Connect to KeyValut
-            AzureServiceTokenProvider tokenProvider = new AzureServiceTokenProvider(_connectionString);
-            _kvClient = new KeyVaultClient(new KeyVaultClient.AuthenticationCallback(tokenProvider.KeyVaultTokenCallback));
-
-            if (_preload) {
-                _allKeys = GetAllKeys();
-            }
         }
 
         /// <summary>
@@ -84,6 +85,8 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// <returns>The value corresponding to the given 'key' or null if no value is found.</returns>
         public override string GetValue(string key)
         {
+            AssertLazyKeyVaultSet();
+
             // Azure Key Vault keys are case-insensitive, so this should be fine.
             // Also, this is a synchronous method. And in single-threaded contexts like ASP.Net
             // it can be bad/dangerous to block on async calls. So lets work some TPL voodoo
@@ -98,6 +101,8 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// <returns>A collection of key/value pairs.</returns>
         public override ICollection<KeyValuePair<string, string>> GetAllValues(string prefix)
         {
+            AssertLazyKeyVaultSet();
+
             ConcurrentDictionary<string, string> d = new ConcurrentDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             List<Task> tasks = new List<Task>();
 
@@ -123,11 +128,11 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                 {
                     if (!String.IsNullOrWhiteSpace(_version))
                     {
-                        var versionedSecret = await _kvClient.GetSecretAsync(_uri, key, _version);
+                        var versionedSecret = await _lazyKeyVaultClient.Value.GetSecretAsync(_uri, key, _version);
                         return versionedSecret?.Value;
                     }
 
-                    var secret = await _kvClient.GetSecretAsync(_uri, key);
+                    var secret = await _lazyKeyVaultClient.Value.GetSecretAsync(_uri, key);
                     return secret?.Value;
                 } catch (KeyVaultErrorException kve) {
                     // Simply return null if the secret wasn't found
@@ -145,11 +150,13 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
         private List<string> GetAllKeys()
         {
+            AssertLazyKeyVaultSet();
+
             List<string> keys = new List<string>(); // KeyVault keys are case-insensitive. There won't be case-duplicates. List<> should be fine.
             try
             {
                 // Get first page of secret keys
-                var allSecrets = Task.Run(async () => { return await _kvClient.GetSecretsAsync(_uri); }).Result;
+                var allSecrets = Task.Run(async () => { return await _lazyKeyVaultClient.Value.GetSecretsAsync(_uri); }).Result;
                 foreach (var secretItem in allSecrets)
                     keys.Add(secretItem.Identifier.Name);
 
@@ -157,7 +164,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                 string nextPage = allSecrets.NextPageLink;
                 while (!String.IsNullOrWhiteSpace(nextPage))
                 {
-                    var moreSecrets = Task.Run(async () => { return await _kvClient.GetSecretsNextAsync(nextPage); }).Result;
+                    var moreSecrets = Task.Run(async () => { return await _lazyKeyVaultClient.Value.GetSecretsNextAsync(nextPage); }).Result;
                     foreach (var secretItem in moreSecrets)
                         keys.Add(secretItem.Identifier.Name);
                     nextPage = moreSecrets.NextPageLink;
@@ -181,5 +188,42 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
             return keys;
         }
+
+        public override ConfigurationSection ProcessConfigurationSection(ConfigurationSection configSection)
+        {
+            if (_vaultNameIsAppSetting && configSection is AppSettingsSection appSettings)
+            {
+                var vaultName = appSettings.Settings[_vaultName];
+
+                if (vaultName == null)
+                {
+                    throw new ConfigurationErrorsException($"Error in Configuration Builder '{Name}' configuration. No AppSetting with name '{_vaultNameIsAppSetting}' found");
+                }
+
+                _uri = $"https://{vaultName.Value}.vault.azure.net";
+            }
+
+            _lazyKeyVaultClient = new Lazy<KeyVaultClient>(() =>
+            {
+                var tokenProvider = new AzureServiceTokenProvider(_connectionString);
+                return new KeyVaultClient(new KeyVaultClient.AuthenticationCallback(tokenProvider.KeyVaultTokenCallback));
+            });
+
+            if (_preload)
+            {
+                _allKeys = GetAllKeys();
+            }
+
+            return base.ProcessConfigurationSection(configSection);
+        }
+
+        private void AssertLazyKeyVaultSet()
+        {
+            if (_lazyKeyVaultClient == null)
+            {
+                throw new ConfigurationErrorsException("Precondition failed: ProcessConfigurationSection was not called before retrieving values");
+            }
+        }
+
     }
 }
