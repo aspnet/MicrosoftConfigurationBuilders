@@ -23,17 +23,18 @@
             Release:	Third for Info and Package.
          Update package and file without touching assembly, except for major releases.
     -->
-    <BuildQuality Condition="'$(BuildQuality)' == ''">rtm</BuildQuality>
-    <VersionMajor>1</VersionMajor>
+    <BuildQuality Condition="'$(BuildQuality)' == ''">preview</BuildQuality>
+    <VersionMajor>2</VersionMajor>
     <VersionMinor>0</VersionMinor>
     <VersionRevision>0</VersionRevision>
-    <VersionRelease>2</VersionRelease>
+    <VersionRelease>0</VersionRelease>
     <VersionRelease Condition="'$(BuildQuality)' != 'rtm'">$(VersionRelease)-$(BuildQuality)</VersionRelease>
+    <VersionStartYear Condition="'$(VersionStartYear)' == ''">2019</VersionStartYear>
   </PropertyGroup>
 
   <PropertyGroup Label="NuGet package dependencies">
     <NuGetPackageVersion>$(VersionMajor).$(VersionMinor).$(VersionRelease)</NuGetPackageVersion>
-    <NuGetPackageBaseDependencyVersion>$(VersionMajor).$(VersionMinor)</NuGetPackageBaseDependencyVersion>
+    <NuGetPackageBaseDependencyVersion>$(VersionMajor).$(VersionMinor).$(VersionRelease)</NuGetPackageBaseDependencyVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(MSBuildProjectExtension)' == '.nuproj'">
