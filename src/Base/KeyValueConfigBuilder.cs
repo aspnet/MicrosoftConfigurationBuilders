@@ -98,6 +98,11 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             if (Mode == KeyValueMode.Expand)
                 return configSection;
 
+            // See if we know how to process this section
+            ISectionHandler handler = SectionHandlersSection.GetSectionHandler(configSection);
+            if (handler == null)
+                return configSection;
+
             // In Greedy mode, we need to know all the key/value pairs from this config source. So we
             // can't 'cache' them as we go along. Slurp them all up now. But only once. ;)
             if ((Mode == KeyValueMode.Greedy) && (!_greedyInited))
@@ -115,11 +120,30 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                 }
             }
 
-            if (configSection is AppSettingsSection) {
-                return ProcessAppSettings((AppSettingsSection)configSection);
+            // Strict Mode. Only replace existing key/values.
+            if (Mode == KeyValueMode.Strict)
+            {
+                foreach (var configItem in handler)
+                {
+                    string newKey = configItem.Key;
+                    string newValue = GetValueStrict(configItem.Key);
+
+                    if (newValue != null)
+                        handler.InsertOrUpdate(newKey, newValue, configItem);
+                }
             }
-            else if (configSection is ConnectionStringsSection) {
-                return ProcessConnectionStrings((ConnectionStringsSection)configSection);
+
+            // Greedy Mode. Insert all key/values.
+            else if (Mode == KeyValueMode.Greedy)
+            {
+                foreach (KeyValuePair<string, string> kvp in _cachedValues)
+                {
+                    if (kvp.Value != null)
+                    {
+                        string newKey = TrimPrefix(kvp.Key);
+                        handler.InsertOrUpdate(newKey, kvp.Value, null);
+                    }
+                }
             }
 
             return configSection;
@@ -138,11 +162,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                     string key = m.Groups[1].Value;
 
                     // Same prefix-handling rules apply in expand mode as in strict mode.
-                    return ProcessKeyStrict(key, (k, v) => {
-                        if (v != null)
-                            return v;
-                        return m.Groups[0].Value;
-                    });
+                    return GetValueStrict(key) ?? m.Groups[0].Value;
                 });
             
             XmlDocument doc = new XmlDocument();
@@ -151,81 +171,14 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             return doc.DocumentElement;
         }
 
-        private AppSettingsSection ProcessAppSettings(AppSettingsSection appSettings)
-        {
-            if (appSettings != null) {
-                // Strict Mode. Only replace existing key/values.
-                if (Mode == KeyValueMode.Strict) {
-                    foreach (string key in appSettings.Settings.AllKeys) {
-                        ProcessKeyStrict(key, (k, v) => {
-                            if (v != null)
-                            {
-                                appSettings.Settings.Remove(k);
-                                appSettings.Settings.Add(k, v);
-                            }
-                        });
-                    }
-                }
-
-                // Greedy Mode. Insert all key/values.
-                else if (Mode == KeyValueMode.Greedy) {
-                    foreach (KeyValuePair<string, string> kvp in _cachedValues) {
-                        if (kvp.Value != null) {
-                            string strippedKey = TrimPrefix(kvp.Key);
-                            appSettings.Settings.Remove(strippedKey);
-                            appSettings.Settings.Add(strippedKey, kvp.Value);
-                        }
-                    }
-                }
-            }
-
-            return appSettings;
-        }
-
-        private ConnectionStringsSection ProcessConnectionStrings(ConnectionStringsSection connStrings)
-        {
-            if (connStrings != null) {
-                // Strict Mode. Only replace existing key/values.
-                if (Mode == KeyValueMode.Strict) {
-                    foreach (ConnectionStringSettings cs in connStrings.ConnectionStrings) {
-                        ProcessKeyStrict(cs.Name, (k, v) => {
-                            cs.Name = k;
-                            cs.ConnectionString = v ?? cs.ConnectionString;
-                        });
-                    }
-                }
-
-                // Greedy Mode. Insert all key/values.
-                else if (Mode == KeyValueMode.Greedy) {
-                    foreach (KeyValuePair<string, string> kvp in _cachedValues) {
-                        if (kvp.Value != null) {
-                            string strippedKey = TrimPrefix(kvp.Key);
-                            ConnectionStringSettings cs = connStrings.ConnectionStrings[kvp.Key] ?? new ConnectionStringSettings();
-                            connStrings.ConnectionStrings.Remove(strippedKey);
-                            cs.Name = strippedKey;
-                            cs.ConnectionString = kvp.Value;
-                            connStrings.ConnectionStrings.Add(cs);
-                        }
-                    }
-                }
-            }
-
-            return connStrings;
-        }
-
-        private void ProcessKeyStrict(string key, Action<string, string> replaceAction)
-        {
-            ProcessKeyStrict(key, (k, v) => { replaceAction(k, v); return null; });
-        }
-        private string ProcessKeyStrict(string key, Func<string, string, string> replaceAction)
+        private string GetValueStrict(string key)
         {
             if (_stripPrefix)
             {
                 // Stripping Prefix in strict mode means from the source key. The static config file will have a prefix-less key to match.
                 // ie <add key="MySetting" /> should only match the key/value (KeyPrefix + "MySetting") from the source.
                 string sourceKey = KeyPrefix + key;
-                string value = (_cachedValues.ContainsKey(sourceKey)) ? _cachedValues[sourceKey] : _cachedValues[sourceKey] = GetValueInternal(sourceKey);
-                return replaceAction(key, value);
+                return (_cachedValues.ContainsKey(sourceKey)) ? _cachedValues[sourceKey] : _cachedValues[sourceKey] = GetValueInternal(sourceKey);
             }
             else
             {
@@ -233,12 +186,11 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                 // with the prefix.
                 if (key.StartsWith(KeyPrefix, StringComparison.OrdinalIgnoreCase))
                 {
-                    string value = (_cachedValues.ContainsKey(key)) ? _cachedValues[key] : _cachedValues[key] = GetValueInternal(key);
-                    return replaceAction(key, value);
+                    return (_cachedValues.ContainsKey(key)) ? _cachedValues[key] : _cachedValues[key] = GetValueInternal(key);
                 }
             }
 
-            return replaceAction(key, null);
+            return null;
         }
 
         private string TrimPrefix(string fullString)
