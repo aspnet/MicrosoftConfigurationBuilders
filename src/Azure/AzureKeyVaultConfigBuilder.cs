@@ -6,12 +6,12 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 using Microsoft.Azure.KeyVault;
 using Microsoft.Azure.KeyVault.Models;
 using Microsoft.Azure.Services.AppAuthentication;
-using Microsoft.IdentityModel.Clients.ActiveDirectory;
 
 namespace Microsoft.Configuration.ConfigurationBuilders
 {
@@ -119,6 +119,12 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             Task.WhenAll(tasks).Wait();
 
             return d;
+        }
+
+        public override bool ValidateKey(string key)
+        {
+            // Key Vault only allows alphanumerics and '-'. This builder also allows for one '/'.
+            return Regex.IsMatch(key, "^[a-zA-Z0-9-]+(/?[a-zA-Z0-9-]+)?$");
         }
 
         public override string UpdateKey(string rawKey)

@@ -3,6 +3,7 @@
 
 using System;
 using System.Configuration;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Text.RegularExpressions;
@@ -54,6 +55,12 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// <returns>A collection of key/value pairs.</returns>
         public abstract ICollection<KeyValuePair<string, string>> GetAllValues(string prefix);
 
+        /// <summary>
+        /// Makes a determination about whether the input key is valid for this builder and backing store.
+        /// </summary>
+        /// <param name="key">The string to be validated. May be partial.</param>
+        /// <returns>True if the string is valid. False if the string is not a valid key.</returns>
+        public virtual bool ValidateKey(string key) { return true; }
         /// <summary>
         /// Transforms the raw key read from the config file to a new string when updating items in Strict and Greedy modes.
         /// </summary>
@@ -212,7 +219,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
         private string GetValueInternal(string key)
         {
-            if (String.IsNullOrEmpty(key)) { return null; }
+            if (String.IsNullOrEmpty(key) || !ValidateKey(key)) { return null; }
 
             try
             {
@@ -226,6 +233,11 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
         private ICollection<KeyValuePair<string, string>> GetAllValuesInternal(string prefix)
         {
+            if (!ValidateKey(prefix))
+            {
+                return new ConcurrentDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            }
+
             try
             {
                 return GetAllValues(prefix);

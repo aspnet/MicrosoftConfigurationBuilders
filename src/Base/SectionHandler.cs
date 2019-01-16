@@ -3,7 +3,6 @@
 
 using System.Configuration;
 using System.Collections.Generic;
-using System.Collections;
 
 namespace Microsoft.Configuration.ConfigurationBuilders
 {

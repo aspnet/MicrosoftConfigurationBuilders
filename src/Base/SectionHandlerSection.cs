@@ -2,12 +2,7 @@
 // Licensed under the MIT license. See the License.txt file in the project root for full license information.
 
 using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Xml;
 using System.Configuration;
-using System.Reflection;
-using System.Linq;
 
 namespace Microsoft.Configuration.ConfigurationBuilders
 {
