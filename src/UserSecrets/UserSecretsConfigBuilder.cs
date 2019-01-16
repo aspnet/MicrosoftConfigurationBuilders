@@ -19,7 +19,6 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         #pragma warning disable CS1591 // No xml comments for tag literals.
         public const string userSecretsFileTag = "userSecretsFile";
         public const string userSecretsIdTag = "userSecretsId";
-        public const string optionalTag = "optional";
         #pragma warning restore CS1591 // No xml comments for tag literals.
 
         private ConcurrentDictionary<string, string> _secrets;
@@ -33,10 +32,6 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// Gets or sets a path to the secrets file to be used.
         /// </summary>
         public string UserSecretsFile { get; protected set; }
-        /// <summary>
-        /// Specifies whether the config builder should cause errors if the secrets file source cannot be found.
-        /// </summary>
-        public bool Optional { get; protected set; }
 
         /// <summary>
         /// Initializes the configuration builder.
@@ -46,9 +41,6 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         public override void Initialize(string name, NameValueCollection config)
         {
             base.Initialize(name, config);
-
-            bool optional;
-            Optional = (Boolean.TryParse(config?[optionalTag], out optional)) ? optional : true;
 
             // Explicit file reference takes precedence over an identifier.
             string secretsFile = config?[userSecretsFileTag];

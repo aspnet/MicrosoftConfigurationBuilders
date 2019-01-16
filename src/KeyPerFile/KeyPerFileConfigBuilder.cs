@@ -19,7 +19,6 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         public const string directoryPathTag = "directoryPath";
         public const string keyDelimiterTag = "keyDelimiter";
         public const string ignorePrefixTag = "ignorePrefix";
-        public const string optionalTag = "optional";
         #pragma warning restore CS1591 // No xml comments for tag literals.
 
         /// <summary>
@@ -36,11 +35,6 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// Defaults to "ignore.".
         /// </summary>
         public string IgnorePrefix { get; protected set; }
-        /// <summary>
-        /// Specifies whether the config builder should cause errors if the source directory doesn't exist.
-        /// Defaults to false.
-        /// </summary>
-        public bool Optional { get; protected set; }
 
         private ConcurrentDictionary<string, string> _allValues = new ConcurrentDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
@@ -51,10 +45,10 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// <param name="config">A collection of the name/value pairs representing builder-specific attributes specified in the configuration for this provider.</param>
         public override void Initialize(string name, NameValueCollection config)
         {
-            base.Initialize(name, config);
+            // Default 'Optional' to false. base.Initialize() will override if specified in config.
+            Optional = false;
 
-            bool optional;
-            Optional = (Boolean.TryParse(config?[optionalTag], out optional)) ? optional : false;
+            base.Initialize(name, config);
 
             string directoryPath = config?[directoryPathTag];
             DirectoryPath = Utils.MapPath(directoryPath);

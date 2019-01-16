@@ -23,7 +23,6 @@ namespace Microsoft.Configuration.ConfigurationBuilders
     {
         #pragma warning disable CS1591 // No xml comments for tag literals.
         public const string jsonFileTag = "jsonFile";
-        public const string optionalTag = "optional";
         public const string jsonModeTag = "jsonMode";
         public const string keyDelimiter = ":";
         #pragma warning restore CS1591 // No xml comments for tag literals.
@@ -35,10 +34,6 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// Gets or sets a path to the json file to be read.
         /// </summary>
         public string JsonFile { get; protected set; }
-        /// <summary>
-        /// Specifies whether the config builder should cause errors if the json source file cannot be found.
-        /// </summary>
-        public bool Optional { get; protected set; }
         /// <summary>
         /// Gets or sets the json parsing paradigm to be used by the SimpleJsonConfigBuilder.
         /// </summary>
@@ -54,10 +49,6 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             base.Initialize(name, config);
 
             _allSettings = new Dictionary<string, Dictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
-
-            // Optional
-            bool optional;
-            Optional = (Boolean.TryParse(config?[optionalTag], out optional)) ? optional : true;
 
             // JsonFile
             string jsonFile = config?[jsonFileTag];

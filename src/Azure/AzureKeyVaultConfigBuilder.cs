@@ -45,6 +45,9 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// <param name="config">A collection of the name/value pairs representing builder-specific attributes specified in the configuration for this provider.</param>
         public override void Initialize(string name, NameValueCollection config)
         {
+            // Default 'Optional' to false. base.Initialize() will override if specified in config.
+            Optional = false;
+
             base.Initialize(name, config);
 
             if (!Boolean.TryParse(config?[preloadTag], out _preload))
@@ -68,9 +71,18 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             _connectionString = config?[connectionStringTag];
             _connectionString = String.IsNullOrWhiteSpace(_connectionString) ? null : _connectionString;
 
-            // Connect to KeyValut
-            AzureServiceTokenProvider tokenProvider = new AzureServiceTokenProvider(_connectionString);
-            _kvClient = new KeyVaultClient(new KeyVaultClient.AuthenticationCallback(tokenProvider.KeyVaultTokenCallback));
+            // Connect to KeyVault
+            try
+            {
+                AzureServiceTokenProvider tokenProvider = new AzureServiceTokenProvider(_connectionString);
+                _kvClient = new KeyVaultClient(new KeyVaultClient.AuthenticationCallback(tokenProvider.KeyVaultTokenCallback));
+            }
+            catch (Exception)
+            {
+                if (!Optional)
+                    throw;
+                _kvClient = null;
+            }
 
             if (_preload) {
                 _allKeys = GetAllKeys();
@@ -135,6 +147,9 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
         private async Task<SecretBundle> GetValueAsync(string key)
         {
+            if (_kvClient == null)
+                return null;
+
             VersionedKey vKey = new VersionedKey(key);
 
             if (!_preload || _preloadFailed || _allKeys.Contains(vKey.Key, StringComparer.OrdinalIgnoreCase))
@@ -157,7 +172,8 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
                     // If there was a permission issue or some other error, let the exception bubble
                     // FYI: kve.Body.Error.Code == "Forbidden" :: No Rights, or secret is disabled.
-                    throw;
+                    if (!Optional)
+                        throw;
                 }
             }
 
@@ -167,6 +183,10 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         private List<string> GetAllKeys()
         {
             List<string> keys = new List<string>(); // KeyVault keys are case-insensitive. There won't be case-duplicates. List<> should be fine.
+
+            if (_kvClient == null)
+                return keys;
+
             try
             {
                 // Get first page of secret keys
@@ -196,7 +216,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                         return true;
                     }
                     else
-                        return false;
+                        return Optional;    // False == throw.
                 });
             }
 

@@ -23,6 +23,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         public const string prefixTag = "prefix";
         public const string stripPrefixTag = "stripPrefix";
         public const string tokenPatternTag = "tokenPattern";
+        public const string optionalTag = "optional";
         #pragma warning restore CS1591 // No xml comments for tag literals.
 
         private bool _greedyInited;
@@ -41,6 +42,10 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// Gets or sets a prefix string that must be matched by keys to be considered for value substitution.
         /// </summary>
         public string KeyPrefix { get; private set; }
+        /// <summary>
+        /// Specifies whether the config builder should cause errors if the backing source cannot be found.
+        /// </summary>
+        public bool Optional { get; protected set; } = true;
 
         /// <summary>
         /// Looks up a single 'value' for the given 'key.'
@@ -82,6 +87,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             {
                 KeyPrefix = config[prefixTag] ?? "";
                 TokenPattern = config[tokenPatternTag] ?? TokenPattern;
+                Optional = (Boolean.TryParse(config?[optionalTag], out bool optional)) ? optional : Optional;   // Keep default if not specified.
 
                 if (config[stripPrefixTag] != null) {
                     // We want an exception here if 'stripPrefix' is specified but unrecognized.
