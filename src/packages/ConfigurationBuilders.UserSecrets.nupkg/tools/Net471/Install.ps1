@@ -6,7 +6,7 @@ param($installPath, $toolsPath, $package, $project)
 . "$PSScriptRoot\KeyValueConfigBuildersCommon.ps1"
 
 ##### Describe the UserSecrets config builder #####
-$userSecretsId=New-Guid
+$userSecretsId=[Guid]::NewGuid()
 $secretsConfigBuilder = [BuilderDescription]@{
 	TypeName="$typeName$";
 	Assembly="$assemblyName$";
