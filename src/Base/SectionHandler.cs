@@ -10,24 +10,23 @@ namespace Microsoft.Configuration.ConfigurationBuilders
     // Covariance is not allowed with generic classes. Lets use this trick instead.
     internal interface ISectionHandler
     {
-        void InsertOrUpdate(string newKey, string newValue, object oldItem);
+        void InsertOrUpdate(string newKey, string newValue, string oldKey = null, object oldItem = null);
         IEnumerator<KeyValuePair<string, object>> GetEnumerator();
     }
 
     public abstract class SectionHandler<T> : ISectionHandler where T : ConfigurationSection
     {
         public T ConfigSection { get; private set; }
-        public abstract void InsertOrUpdate(string newKey, string newValue, object oldItem);
+        public abstract void InsertOrUpdate(string newKey, string newValue, string oldKey = null, object oldItem = null);
         public abstract IEnumerator<KeyValuePair<string, object>> GetEnumerator();
     }
 
     public class AppSettingsSectionHandler : SectionHandler<AppSettingsSection>
     {
-        public override void InsertOrUpdate(string newKey, string newValue, object oldItem)
+        public override void InsertOrUpdate(string newKey, string newValue, string oldKey = null, object oldItem = null)
         {
             if (newValue != null)
             {
-                string oldKey = oldItem as string;
                 if (oldKey != null)
                     ConfigSection.Settings.Remove(oldKey);
 
@@ -45,15 +44,18 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
     public class ConnectionStringsSectionHandler : SectionHandler<ConnectionStringsSection>
     {
-        public override void InsertOrUpdate(string newKey, string newValue, object oldItem)
+        public override void InsertOrUpdate(string newKey, string newValue, string oldKey = null, object oldItem = null)
         {
             if (newValue != null)
             {
-                ConnectionStringSettings oldSettings = oldItem as ConnectionStringSettings;
-                if (oldSettings != null)
-                    ConfigSection.ConnectionStrings.Remove(oldSettings);
-
                 ConnectionStringSettings newSettings = ConfigSection.ConnectionStrings[newKey] ?? new ConnectionStringSettings();
+
+                // Remove the old stuff
+                ConfigSection.ConnectionStrings.Remove(newSettings);
+                if (oldKey != null)
+                    ConfigSection.ConnectionStrings.Remove(oldKey);
+
+                // Update settings and insert
                 newSettings.Name = newKey;
                 newSettings.ConnectionString = newValue;
                 ConfigSection.ConnectionStrings.Add(newSettings);

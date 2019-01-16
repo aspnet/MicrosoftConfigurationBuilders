@@ -55,6 +55,13 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         public abstract ICollection<KeyValuePair<string, string>> GetAllValues(string prefix);
 
         /// <summary>
+        /// Transforms the raw key read from the config file to a new string when updating items in Strict and Greedy modes.
+        /// </summary>
+        /// <param name="rawKey">The key as read from the incomming config section.</param>
+        /// <returns>The key string that will be left in the processed config section.</returns>
+        public virtual string UpdateKey(string rawKey) { return rawKey; }
+
+        /// <summary>
         /// Initializes the configuration builder.
         /// </summary>
         /// <param name="name">The friendly name of the provider.</param>
@@ -125,11 +132,11 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             {
                 foreach (var configItem in handler)
                 {
-                    string newKey = configItem.Key;
-                    string newValue = GetValueStrict(configItem.Key);
+                    string newValue = GetStrictValue(configItem.Key);
+                    string newKey = UpdateKey(configItem.Key);
 
                     if (newValue != null)
-                        handler.InsertOrUpdate(newKey, newValue, configItem);
+                        handler.InsertOrUpdate(newKey, newValue, configItem.Key, configItem.Value);
                 }
             }
 
@@ -140,8 +147,9 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                 {
                     if (kvp.Value != null)
                     {
-                        string newKey = TrimPrefix(kvp.Key);
-                        handler.InsertOrUpdate(newKey, kvp.Value, null);
+                        string oldKey = TrimPrefix(kvp.Key);
+                        string newKey = UpdateKey(oldKey);
+                        handler.InsertOrUpdate(newKey, kvp.Value, oldKey);
                     }
                 }
             }
@@ -162,7 +170,8 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                     string key = m.Groups[1].Value;
 
                     // Same prefix-handling rules apply in expand mode as in strict mode.
-                    return GetValueStrict(key) ?? m.Groups[0].Value;
+                    // Since the key is being completely replaced by the value, we don't need to call UpdateKey().
+                    return GetStrictValue(key) ?? m.Groups[0].Value;
                 });
             
             XmlDocument doc = new XmlDocument();
@@ -171,7 +180,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             return doc.DocumentElement;
         }
 
-        private string GetValueStrict(string key)
+        private string GetStrictValue(string key)
         {
             if (_stripPrefix)
             {

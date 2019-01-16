@@ -20,13 +20,13 @@ namespace Microsoft.Configuration.ConfigurationBuilders
     /// </summary>
     public class AzureKeyVaultConfigBuilder : KeyValueConfigBuilder
     {
-        #pragma warning disable CS1591 // No xml comments for tag literals.
+#pragma warning disable CS1591 // No xml comments for tag literals.
         public const string vaultNameTag = "vaultName";
         public const string connectionStringTag = "connectionString";
         public const string uriTag = "uri";
         public const string versionTag = "version";
         public const string preloadTag = "preloadSecretNames";
-        #pragma warning restore CS1591 // No xml comments for tag literals.
+#pragma warning restore CS1591 // No xml comments for tag literals.
 
         private string _vaultName;
         private string _connectionString;
@@ -88,7 +88,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             // Also, this is a synchronous method. And in single-threaded contexts like ASP.Net
             // it can be bad/dangerous to block on async calls. So lets work some TPL voodoo
             // to avoid potential deadlocks.
-            return Task.Run(async () => { return await GetValueAsync(key); }).Result;
+            return Task.Run(async () => { return await GetValueAsync(key); }).Result?.Value;
         }
 
         /// <summary>
@@ -104,10 +104,16 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             foreach (string key in _allKeys)
             {
                 if (key.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-                    tasks.Add(Task.Run(() => GetValueAsync(key).ContinueWith(secret =>
+                    tasks.Add(Task.Run(() => GetValueAsync(key).ContinueWith(t =>
                     {
                         // Azure Key Vault keys are case-insensitive, so there shouldn't be any races here.
-                        d[key] = secret.Result;
+                        // Include version information. It will get filtered out later before updating config.
+                        SecretBundle secret = t.Result;
+                        if (secret != null)
+                        {
+                            string versionedKey = key + "/" + (secret.SecretIdentifier.Version ?? "0");
+                            d[versionedKey] = secret.Value;
+                        }
                     })));
             }
             Task.WhenAll(tasks).Wait();
@@ -115,20 +121,29 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             return d;
         }
 
-        private async Task<string> GetValueAsync(string key)
+        public override string UpdateKey(string rawKey)
         {
-            if (!_preload || _preloadFailed || _allKeys.Contains(key, StringComparer.OrdinalIgnoreCase))
+            // Remove the version segment if it's there.
+            return new VersionedKey(rawKey).Key;
+        }
+
+        private async Task<SecretBundle> GetValueAsync(string key)
+        {
+            VersionedKey vKey = new VersionedKey(key);
+
+            if (!_preload || _preloadFailed || _allKeys.Contains(vKey.Key, StringComparer.OrdinalIgnoreCase))
             {
                 try
                 {
-                    if (!String.IsNullOrWhiteSpace(_version))
+                    string version = !String.IsNullOrWhiteSpace(_version) ? _version : vKey.Version;
+                    if (version != null)
                     {
-                        var versionedSecret = await _kvClient.GetSecretAsync(_uri, key, _version);
-                        return versionedSecret?.Value;
+                        SecretBundle versionedSecret = await _kvClient.GetSecretAsync(_uri, vKey.Key, version);
+                        return versionedSecret;
                     }
 
-                    var secret = await _kvClient.GetSecretAsync(_uri, key);
-                    return secret?.Value;
+                    SecretBundle secret = await _kvClient.GetSecretAsync(_uri, vKey.Key);
+                    return secret;
                 } catch (KeyVaultErrorException kve) {
                     // Simply return null if the secret wasn't found
                     if (kve.Body.Error.Code == "SecretNotFound" || kve.Body.Error.Code == "BadParameter")
@@ -180,6 +195,20 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             }
 
             return keys;
+        }
+
+        class VersionedKey
+        {
+            public string Key;
+            public string Version;
+
+            public VersionedKey(string fullKey)
+            {
+                string[] parts = fullKey.Split(new char[] { '/' }, 2);
+                Key = parts[0];
+                if (parts.Length > 1)
+                    Version = parts[1];
+            }
         }
     }
 }
