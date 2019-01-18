@@ -2,7 +2,6 @@
 // Licensed under the MIT license. See the License.txt file in the project root for full license information.
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Configuration;
@@ -11,7 +10,6 @@ using System.Linq;
 
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using System.Globalization;
 using System.Xml;
 
 namespace Microsoft.Configuration.ConfigurationBuilders
