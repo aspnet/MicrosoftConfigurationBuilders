@@ -19,7 +19,17 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// <returns>The value corresponding to the given 'key' or null if no value is found.</returns>
         public override string GetValue(string key)
         {
-            return Environment.GetEnvironmentVariable(key);
+            try
+            {
+                return Environment.GetEnvironmentVariable(key);
+            }
+            catch (Exception)
+            {
+                if (!Optional)
+                    throw;
+            }
+
+            return null;
         }
 
         /// <summary>
@@ -31,11 +41,19 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         {
             Dictionary<string, string> values = new Dictionary<string, string>();
 
-            foreach (DictionaryEntry de in Environment.GetEnvironmentVariables())
+            try
             {
-                // This won't ever throw for duplicate entries since underlying environment is case-insensitive.
-                if (de.Key.ToString()?.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) == true)
-                    values.Add(de.Key.ToString(), de.Value.ToString());
+                foreach (DictionaryEntry de in Environment.GetEnvironmentVariables())
+                {
+                    // This won't ever throw for duplicate entries since underlying environment is case-insensitive.
+                    if (de.Key.ToString()?.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) == true)
+                        values.Add(de.Key.ToString(), de.Value.ToString());
+                }
+            }
+            catch (Exception)
+            {
+                if (!Optional)
+                    throw;
             }
 
             return values;

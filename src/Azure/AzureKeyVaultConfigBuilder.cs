@@ -6,12 +6,12 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 using Microsoft.Azure.KeyVault;
 using Microsoft.Azure.KeyVault.Models;
 using Microsoft.Azure.Services.AppAuthentication;
-using Microsoft.IdentityModel.Clients.ActiveDirectory;
 
 namespace Microsoft.Configuration.ConfigurationBuilders
 {
@@ -39,22 +39,25 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         private List<string> _allKeys;
 
         /// <summary>
-        /// Initializes the configuration builder.
+        /// Initializes the configuration builder lazily.
         /// </summary>
         /// <param name="name">The friendly name of the provider.</param>
         /// <param name="config">A collection of the name/value pairs representing builder-specific attributes specified in the configuration for this provider.</param>
-        public override void Initialize(string name, NameValueCollection config)
+        protected override void LazyInitialize(string name, NameValueCollection config)
         {
-            base.Initialize(name, config);
+            // Default 'Optional' to false. base.Initialize() will override if specified in config.
+            Optional = false;
 
-            if (!Boolean.TryParse(config?[preloadTag], out _preload))
+            base.LazyInitialize(name, config);
+
+            if (!Boolean.TryParse(UpdateConfigSettingWithAppSettings(preloadTag), out _preload))
                 _preload = true;
             if (!_preload && Mode == KeyValueMode.Greedy)
                 throw new ArgumentException($"'{preloadTag}'='false' is not compatible with {KeyValueMode.Greedy} mode.");
 
-            _uri = config?[uriTag];
-            _vaultName = config?[vaultNameTag];
-            _version = config?[versionTag];
+            _uri = UpdateConfigSettingWithAppSettings(uriTag);
+            _vaultName = UpdateConfigSettingWithAppSettings(vaultNameTag);
+            _version = UpdateConfigSettingWithAppSettings(versionTag);
 
             if (String.IsNullOrWhiteSpace(_uri))
             {
@@ -65,12 +68,21 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             }
             _uri = _uri.TrimEnd(new char[] { '/' });
 
-            _connectionString = config?[connectionStringTag];
+            _connectionString = UpdateConfigSettingWithAppSettings(connectionStringTag);
             _connectionString = String.IsNullOrWhiteSpace(_connectionString) ? null : _connectionString;
 
-            // Connect to KeyValut
-            AzureServiceTokenProvider tokenProvider = new AzureServiceTokenProvider(_connectionString);
-            _kvClient = new KeyVaultClient(new KeyVaultClient.AuthenticationCallback(tokenProvider.KeyVaultTokenCallback));
+            // Connect to KeyVault
+            try
+            {
+                AzureServiceTokenProvider tokenProvider = new AzureServiceTokenProvider(_connectionString);
+                _kvClient = new KeyVaultClient(new KeyVaultClient.AuthenticationCallback(tokenProvider.KeyVaultTokenCallback));
+            }
+            catch (Exception)
+            {
+                if (!Optional)
+                    throw;
+                _kvClient = null;
+            }
 
             if (_preload) {
                 _allKeys = GetAllKeys();
@@ -88,7 +100,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             // Also, this is a synchronous method. And in single-threaded contexts like ASP.Net
             // it can be bad/dangerous to block on async calls. So lets work some TPL voodoo
             // to avoid potential deadlocks.
-            return Task.Run(async () => { return await GetValueAsync(key); }).Result;
+            return Task.Run(async () => { return await GetValueAsync(key); }).Result?.Value;
         }
 
         /// <summary>
@@ -104,10 +116,16 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             foreach (string key in _allKeys)
             {
                 if (key.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-                    tasks.Add(Task.Run(() => GetValueAsync(key).ContinueWith(secret =>
+                    tasks.Add(Task.Run(() => GetValueAsync(key).ContinueWith(t =>
                     {
                         // Azure Key Vault keys are case-insensitive, so there shouldn't be any races here.
-                        d[key] = secret.Result;
+                        // Include version information. It will get filtered out later before updating config.
+                        SecretBundle secret = t.Result;
+                        if (secret != null)
+                        {
+                            string versionedKey = key + "/" + (secret.SecretIdentifier.Version ?? "0");
+                            d[versionedKey] = secret.Value;
+                        }
                     })));
             }
             Task.WhenAll(tasks).Wait();
@@ -115,20 +133,38 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             return d;
         }
 
-        private async Task<string> GetValueAsync(string key)
+        public override bool ValidateKey(string key)
         {
-            if (!_preload || _preloadFailed || _allKeys.Contains(key, StringComparer.OrdinalIgnoreCase))
+            // Key Vault only allows alphanumerics and '-'. This builder also allows for one '/'.
+            return Regex.IsMatch(key, "^[a-zA-Z0-9-]+(/?[a-zA-Z0-9-]+)?$");
+        }
+
+        public override string UpdateKey(string rawKey)
+        {
+            // Remove the version segment if it's there.
+            return new VersionedKey(rawKey).Key;
+        }
+
+        private async Task<SecretBundle> GetValueAsync(string key)
+        {
+            if (_kvClient == null)
+                return null;
+
+            VersionedKey vKey = new VersionedKey(key);
+
+            if (!_preload || _preloadFailed || _allKeys.Contains(vKey.Key, StringComparer.OrdinalIgnoreCase))
             {
                 try
                 {
-                    if (!String.IsNullOrWhiteSpace(_version))
+                    string version = !String.IsNullOrWhiteSpace(_version) ? _version : vKey.Version;
+                    if (version != null)
                     {
-                        var versionedSecret = await _kvClient.GetSecretAsync(_uri, key, _version);
-                        return versionedSecret?.Value;
+                        SecretBundle versionedSecret = await _kvClient.GetSecretAsync(_uri, vKey.Key, version);
+                        return versionedSecret;
                     }
 
-                    var secret = await _kvClient.GetSecretAsync(_uri, key);
-                    return secret?.Value;
+                    SecretBundle secret = await _kvClient.GetSecretAsync(_uri, vKey.Key);
+                    return secret;
                 } catch (KeyVaultErrorException kve) {
                     // Simply return null if the secret wasn't found
                     if (kve.Body.Error.Code == "SecretNotFound" || kve.Body.Error.Code == "BadParameter")
@@ -136,7 +172,8 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
                     // If there was a permission issue or some other error, let the exception bubble
                     // FYI: kve.Body.Error.Code == "Forbidden" :: No Rights, or secret is disabled.
-                    throw;
+                    if (!Optional)
+                        throw;
                 }
             }
 
@@ -146,6 +183,10 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         private List<string> GetAllKeys()
         {
             List<string> keys = new List<string>(); // KeyVault keys are case-insensitive. There won't be case-duplicates. List<> should be fine.
+
+            if (_kvClient == null)
+                return keys;
+
             try
             {
                 // Get first page of secret keys
@@ -175,11 +216,25 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                         return true;
                     }
                     else
-                        return false;
+                        return Optional;    // False == throw.
                 });
             }
 
             return keys;
+        }
+
+        class VersionedKey
+        {
+            public string Key;
+            public string Version;
+
+            public VersionedKey(string fullKey)
+            {
+                string[] parts = fullKey.Split(new char[] { '/' }, 2);
+                Key = parts[0];
+                if (parts.Length > 1)
+                    Version = parts[1];
+            }
         }
     }
 }

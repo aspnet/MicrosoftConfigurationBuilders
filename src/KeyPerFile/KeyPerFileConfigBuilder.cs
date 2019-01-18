@@ -19,7 +19,6 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         public const string directoryPathTag = "directoryPath";
         public const string keyDelimiterTag = "keyDelimiter";
         public const string ignorePrefixTag = "ignorePrefix";
-        public const string optionalTag = "optional";
         #pragma warning restore CS1591 // No xml comments for tag literals.
 
         /// <summary>
@@ -36,38 +35,35 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// Defaults to "ignore.".
         /// </summary>
         public string IgnorePrefix { get; protected set; }
-        /// <summary>
-        /// Specifies whether the config builder should cause errors if the source directory doesn't exist.
-        /// Defaults to false.
-        /// </summary>
-        public bool Optional { get; protected set; }
 
         private ConcurrentDictionary<string, string> _allValues = new ConcurrentDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
-        /// Initializes the configuration builder.
+        /// Initializes the configuration builder lazily.
         /// </summary>
         /// <param name="name">The friendly name of the provider.</param>
         /// <param name="config">A collection of the name/value pairs representing builder-specific attributes specified in the configuration for this provider.</param>
-        public override void Initialize(string name, NameValueCollection config)
+        protected override void LazyInitialize(string name, NameValueCollection config)
         {
-            base.Initialize(name, config);
+            // Default 'Optional' to false. base.Initialize() will override if specified in config.
+            Optional = false;
 
-            bool optional;
-            Optional = (Boolean.TryParse(config?[optionalTag], out optional)) ? optional : false;
+            base.LazyInitialize(name, config);
 
-            string directoryPath = config?[directoryPathTag];
+            string directoryPath = UpdateConfigSettingWithAppSettings(directoryPathTag);
             DirectoryPath = Utils.MapPath(directoryPath);
             if (!Optional && (String.IsNullOrEmpty(DirectoryPath) || !Directory.Exists(DirectoryPath)))
             {
                 throw new ArgumentException($"'directoryPath' does not exist.");
             }
 
-            IgnorePrefix = config?[ignorePrefixTag] ?? "ignore.";
+            IgnorePrefix = UpdateConfigSettingWithAppSettings(ignorePrefixTag) ?? "ignore.";
 
             // The Core KeyPerFile config provider does not do multi-level.
             // If KeyDelimiter is null, do single-level. Otherwise, multi-level.
-            KeyDelimiter = config?[keyDelimiterTag];
+            // Empty string will do multi-level with simple non-delimited concatenation in greedy mode.
+            // Empty string will be effectively single-level in other modes.
+            KeyDelimiter = config[keyDelimiterTag];
         }
 
         /// <summary>

@@ -22,16 +22,16 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         public const string prefixTag = "prefix";
         public const string stripPrefixTag = "stripPrefix";
         public const string tokenPatternTag = "tokenPattern";
+        public const string optionalTag = "optional";
         #pragma warning restore CS1591 // No xml comments for tag literals.
 
-        private bool _greedyInited;
+        private NameValueCollection _config = null;
         private IDictionary<string, string> _cachedValues;
-        private bool _stripPrefix = false;  // Prefix-stripping is all handled in this class; this is private so it doesn't confuse sub-classes.
+        private bool _lazyInitialized = false;
+        private bool _greedyInitialized = false;
+        private bool _inAppSettings = false;
+        private AppSettingsSection _appSettings = null;
 
-        /// <summary>
-        /// Gets or sets a regular expression used for matching tokens in raw xml during Greedy substitution.
-        /// </summary>
-        public string TokenPattern { get; protected set; } = @"\$\{(\w+)\}";
         /// <summary>
         /// Gets or sets the substitution pattern to be used by the KeyValueConfigBuilder.
         /// </summary>
@@ -39,7 +39,20 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// <summary>
         /// Gets or sets a prefix string that must be matched by keys to be considered for value substitution.
         /// </summary>
-        public string KeyPrefix { get; private set; }
+        public string KeyPrefix { get { EnsureInitialized(); return _keyPrefix; } }
+        private string _keyPrefix = "";
+        private bool StripPrefix { get { EnsureInitialized(); return _stripPrefix; } }
+        private bool _stripPrefix = false;  // Prefix-stripping is all handled in this base class; this is private so it doesn't confuse sub-classes.
+        /// <summary>
+        /// Specifies whether the config builder should cause errors if the backing source cannot be found.
+        /// </summary>
+        public bool Optional { get { EnsureInitialized(); return _optional; } protected set { _optional = value; } }
+        private bool _optional = true;
+        /// <summary>
+        /// Gets or sets a regular expression used for matching tokens in raw xml during Greedy substitution.
+        /// </summary>
+        public string TokenPattern { get { EnsureInitialized(); return _tokenPattern; } protected set { _tokenPattern = value; } }
+        private string _tokenPattern = @"\$\{(\w+)\}";
 
         /// <summary>
         /// Looks up a single 'value' for the given 'key.'
@@ -55,6 +68,19 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         public abstract ICollection<KeyValuePair<string, string>> GetAllValues(string prefix);
 
         /// <summary>
+        /// Makes a determination about whether the input key is valid for this builder and backing store.
+        /// </summary>
+        /// <param name="key">The string to be validated. May be partial.</param>
+        /// <returns>True if the string is valid. False if the string is not a valid key.</returns>
+        public virtual bool ValidateKey(string key) { return true; }
+        /// <summary>
+        /// Transforms the raw key read from the config file to a new string when updating items in Strict and Greedy modes.
+        /// </summary>
+        /// <param name="rawKey">The key as read from the incomming config section.</param>
+        /// <returns>The key string that will be left in the processed config section.</returns>
+        public virtual string UpdateKey(string rawKey) { return rawKey; }
+
+        /// <summary>
         /// Initializes the configuration builder.
         /// </summary>
         /// <param name="name">The friendly name of the provider.</param>
@@ -62,30 +88,84 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         public override void Initialize(string name, NameValueCollection config)
         {
             base.Initialize(name, config);
+            _config = config ?? new NameValueCollection();
 
-            // Override default config
-            if (config != null)
+            // Mode can't be lazy initialized, because it is used to determine how late we can go before initializing.
+            // Reading it would force initialization too early in many cases.
+            if (_config[modeTag] != null)
             {
-                KeyPrefix = config[prefixTag] ?? "";
-                TokenPattern = config[tokenPatternTag] ?? TokenPattern;
-
-                if (config[stripPrefixTag] != null) {
-                    // We want an exception here if 'stripPrefix' is specified but unrecognized.
-                    _stripPrefix = Boolean.Parse(config[stripPrefixTag]);
-                }
-
-                if (config[modeTag] != null) {
-                    // We want an exception here if 'mode' is specified but unrecognized.
-                    Mode = (KeyValueMode)Enum.Parse(typeof(KeyValueMode), config[modeTag], true);
-                }
+                // We want an exception here if 'mode' is specified but unrecognized.
+                Mode = (KeyValueMode)Enum.Parse(typeof(KeyValueMode), config[modeTag], true);
             }
+        }
+
+        /// <summary>
+        /// Initializes the configuration builder lazily.
+        /// </summary>
+        /// <param name="name">The friendly name of the provider.</param>
+        /// <param name="config">A collection of the name/value pairs representing builder-specific attributes specified in the configuration for this provider.</param>
+        protected virtual void LazyInitialize(string name, NameValueCollection config)
+        {
+            // Use pre-assigned defaults if not specified. Non-freeform options should throw on unrecognized values.
+            _tokenPattern = config[tokenPatternTag] ?? _tokenPattern;
+            _keyPrefix = UpdateConfigSettingWithAppSettings(prefixTag) ?? _keyPrefix;
+            _stripPrefix = (UpdateConfigSettingWithAppSettings(stripPrefixTag) != null) ? Boolean.Parse(config[stripPrefixTag]) : _stripPrefix;
+            _optional = (UpdateConfigSettingWithAppSettings(optionalTag) != null) ? Boolean.Parse(config[optionalTag]) : _optional;
 
             _cachedValues = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            _lazyInitialized = true;
         }
+
+        protected string UpdateConfigSettingWithAppSettings(string configName)
+        {
+            string configValue = _config[configName];
+
+            if (String.IsNullOrWhiteSpace(configValue))
+                return configValue;
+
+            // If we are processing appSettings in ProcessConfigurationSection(), then we can use that. Other config builders in
+            // the chain before us have already finished, so this is a relatively consistent and logical state to draw from.
+            if (_appSettings != null)
+            {
+                configValue = Regex.Replace(configValue, _tokenPattern, (m) =>
+                {
+                    string settingName = m.Groups[1].Value;
+                    return (_appSettings.Settings[settingName]?.Value ?? m.Groups[0].Value);
+                });
+            }
+
+            // But if we are processing appSettings in ProcessRawXml(), then it's iffy to parse the raw xml for values that might
+            // be inconsistent since other config builders in the chain before us have only 'half-executed' on this section.
+            // So just pass in this case.
+            // (Note: If we are processing appSettings, this condition will be true even after finishing ProcessRawXml(). That's why this check is second.)
+            else if (_inAppSettings)
+            {
+                return configValue;
+            }
+
+            // All other config sections can just go through ConfigurationManager to get app settings though. :)
+            else
+            {
+                configValue = Regex.Replace(configValue, _tokenPattern, (m) =>
+                {
+                    string settingName = m.Groups[1].Value;
+                    return (ConfigurationManager.AppSettings[settingName] ?? m.Groups[0].Value);
+                });
+            }
+
+            _config[configName] = configValue;
+            return configValue;
+        }
+
+        //=========================================================================================================================
+        #region "Private" stuff
+        // Sub-classes need not worry about this stuff, even though some of it is "public" because it comes from the framework.
 
         #pragma warning disable CS1591 // No xml comments for overrides that implementing classes shouldn't worry about.
         public override XmlNode ProcessRawXml(XmlNode rawXml)
         {
+            _inAppSettings = (rawXml.Name == "appSettings");    // System.Configuration hard codes this, so we might as well too.
+
             if (Mode == KeyValueMode.Expand)
                 return ExpandTokens(rawXml);
 
@@ -94,37 +174,89 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
         public override ConfigurationSection ProcessConfigurationSection(ConfigurationSection configSection)
         {
-            // Expand mode works on the raw string input
+            // Expand mode only works on the raw string input
             if (Mode == KeyValueMode.Expand)
                 return configSection;
 
-            // In Greedy mode, we need to know all the key/value pairs from this config source. So we
-            // can't 'cache' them as we go along. Slurp them all up now. But only once. ;)
-            if ((Mode == KeyValueMode.Greedy) && (!_greedyInited))
+            // See if we know how to process this section
+            ISectionHandler handler = SectionHandlersSection.GetSectionHandler(configSection);
+            if (handler == null)
+                return configSection;
+
+            _appSettings = configSection as AppSettingsSection;
+
+            // Strict Mode. Only replace existing key/values.
+            if (Mode == KeyValueMode.Strict)
             {
-                lock (_cachedValues)
+                foreach (var configItem in handler)
                 {
-                    if (!_greedyInited)
-                    {
-                        foreach (KeyValuePair<string, string> kvp in GetAllValuesInternal(KeyPrefix))
-                        {
-                            _cachedValues.Add(kvp);
-                        }
-                        _greedyInited = true;
-                    }
+                    string newValue = GetValueInternal(configItem.Key);
+                    string newKey = UpdateKey(configItem.Key);
+
+                    if (newValue != null)
+                        handler.InsertOrUpdate(newKey, newValue, configItem.Key, configItem.Value);
                 }
             }
 
-            if (configSection is AppSettingsSection) {
-                return ProcessAppSettings((AppSettingsSection)configSection);
-            }
-            else if (configSection is ConnectionStringsSection) {
-                return ProcessConnectionStrings((ConnectionStringsSection)configSection);
+            // Greedy Mode. Insert all key/values.
+            else if (Mode == KeyValueMode.Greedy)
+            {
+                EnsureGreedyInitialized();
+                foreach (KeyValuePair<string, string> kvp in _cachedValues)
+                {
+                    if (kvp.Value != null)
+                    {
+                        string oldKey = TrimPrefix(kvp.Key);
+                        string newKey = UpdateKey(oldKey);
+                        handler.InsertOrUpdate(newKey, kvp.Value, oldKey);
+                    }
+                }
             }
 
             return configSection;
         }
         #pragma warning restore CS1591 // No xml comments for overrides that implementing classes shouldn't worry about.
+
+        private void EnsureInitialized()
+        {
+            if (!_lazyInitialized)
+            {
+                lock (this)
+                {
+                    if (!_lazyInitialized)
+                    {
+                        LazyInitialize(Name, _config);
+                    }
+                }
+            }
+        }
+
+        private void EnsureGreedyInitialized()
+        {
+            try
+            {
+                // In Greedy mode, we need to know all the key/value pairs from this config source. So we
+                // can't 'cache' them as we go along. Slurp them all up now. But only once. ;)
+                if (!_greedyInitialized && (String.IsNullOrEmpty(KeyPrefix) || ValidateKey(KeyPrefix)))
+                {
+                    lock (_cachedValues)
+                    {
+                        if (!_greedyInitialized)
+                        {
+                            foreach (KeyValuePair<string, string> kvp in GetAllValues(KeyPrefix))
+                            {
+                                _cachedValues.Add(kvp);
+                            }
+                            _greedyInitialized = true;
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                throw new Exception($"Error in Configuration Builder '{Name}'::GetAllValues({KeyPrefix})", e);
+            }
+        }
 
         private XmlNode ExpandTokens(XmlNode rawXml)
         {
@@ -138,11 +270,8 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                     string key = m.Groups[1].Value;
 
                     // Same prefix-handling rules apply in expand mode as in strict mode.
-                    return ProcessKeyStrict(key, (k, v) => {
-                        if (v != null)
-                            return v;
-                        return m.Groups[0].Value;
-                    });
+                    // Since the key is being completely replaced by the value, we don't need to call UpdateKey().
+                    return GetValueInternal(key) ?? m.Groups[0].Value;
                 });
             
             XmlDocument doc = new XmlDocument();
@@ -151,111 +280,25 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             return doc.DocumentElement;
         }
 
-        private AppSettingsSection ProcessAppSettings(AppSettingsSection appSettings)
-        {
-            if (appSettings != null) {
-                // Strict Mode. Only replace existing key/values.
-                if (Mode == KeyValueMode.Strict) {
-                    foreach (string key in appSettings.Settings.AllKeys) {
-                        ProcessKeyStrict(key, (k, v) => {
-                            if (v != null)
-                            {
-                                appSettings.Settings.Remove(k);
-                                appSettings.Settings.Add(k, v);
-                            }
-                        });
-                    }
-                }
-
-                // Greedy Mode. Insert all key/values.
-                else if (Mode == KeyValueMode.Greedy) {
-                    foreach (KeyValuePair<string, string> kvp in _cachedValues) {
-                        if (kvp.Value != null) {
-                            string strippedKey = TrimPrefix(kvp.Key);
-                            appSettings.Settings.Remove(strippedKey);
-                            appSettings.Settings.Add(strippedKey, kvp.Value);
-                        }
-                    }
-                }
-            }
-
-            return appSettings;
-        }
-
-        private ConnectionStringsSection ProcessConnectionStrings(ConnectionStringsSection connStrings)
-        {
-            if (connStrings != null) {
-                // Strict Mode. Only replace existing key/values.
-                if (Mode == KeyValueMode.Strict) {
-                    foreach (ConnectionStringSettings cs in connStrings.ConnectionStrings) {
-                        ProcessKeyStrict(cs.Name, (k, v) => {
-                            cs.Name = k;
-                            cs.ConnectionString = v ?? cs.ConnectionString;
-                        });
-                    }
-                }
-
-                // Greedy Mode. Insert all key/values.
-                else if (Mode == KeyValueMode.Greedy) {
-                    foreach (KeyValuePair<string, string> kvp in _cachedValues) {
-                        if (kvp.Value != null) {
-                            string strippedKey = TrimPrefix(kvp.Key);
-                            ConnectionStringSettings cs = connStrings.ConnectionStrings[kvp.Key] ?? new ConnectionStringSettings();
-                            connStrings.ConnectionStrings.Remove(strippedKey);
-                            cs.Name = strippedKey;
-                            cs.ConnectionString = kvp.Value;
-                            connStrings.ConnectionStrings.Add(cs);
-                        }
-                    }
-                }
-            }
-
-            return connStrings;
-        }
-
-        private void ProcessKeyStrict(string key, Action<string, string> replaceAction)
-        {
-            ProcessKeyStrict(key, (k, v) => { replaceAction(k, v); return null; });
-        }
-        private string ProcessKeyStrict(string key, Func<string, string, string> replaceAction)
-        {
-            if (_stripPrefix)
-            {
-                // Stripping Prefix in strict mode means from the source key. The static config file will have a prefix-less key to match.
-                // ie <add key="MySetting" /> should only match the key/value (KeyPrefix + "MySetting") from the source.
-                string sourceKey = KeyPrefix + key;
-                string value = (_cachedValues.ContainsKey(sourceKey)) ? _cachedValues[sourceKey] : _cachedValues[sourceKey] = GetValueInternal(sourceKey);
-                return replaceAction(key, value);
-            }
-            else
-            {
-                // Not stripping Prefix in strict mode means the source and static config keys will match exactly, and they will both begin
-                // with the prefix.
-                if (key.StartsWith(KeyPrefix, StringComparison.OrdinalIgnoreCase))
-                {
-                    string value = (_cachedValues.ContainsKey(key)) ? _cachedValues[key] : _cachedValues[key] = GetValueInternal(key);
-                    return replaceAction(key, value);
-                }
-            }
-
-            return replaceAction(key, null);
-        }
-
-        private string TrimPrefix(string fullString)
-        {
-            if (!_stripPrefix || !fullString.StartsWith(KeyPrefix, StringComparison.OrdinalIgnoreCase))
-                return fullString;
-
-            return fullString.Substring(KeyPrefix.Length);
-        }
-
         private string GetValueInternal(string key)
         {
-            if (String.IsNullOrEmpty(key)) { return null; }
+            if (String.IsNullOrEmpty(key))
+                return null;
 
             try
             {
-                return GetValue(key);
+                // Make sure the key we are looking up begins with the correct prefix... if we are not stripping prefixes.
+                if (!StripPrefix && !key.StartsWith(KeyPrefix, StringComparison.OrdinalIgnoreCase))
+                    return null;
+
+                // Stripping Prefix in strict mode means from the source key. The static config file will have a prefix-less key to match.
+                // ie <add key="MySetting" /> should only match the key/value (KeyPrefix + "MySetting") from the source.
+                string sourceKey = (StripPrefix) ? KeyPrefix + key : key;
+
+                if (!ValidateKey(sourceKey))
+                    return null;
+
+                return (_cachedValues.ContainsKey(sourceKey)) ? _cachedValues[sourceKey] : _cachedValues[sourceKey] = GetValue(sourceKey);
             }
             catch (Exception e)
             {
@@ -263,16 +306,15 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             }
         }
 
-        private ICollection<KeyValuePair<string, string>> GetAllValuesInternal(string prefix)
+        private string TrimPrefix(string fullString)
         {
-            try
-            {
-                return GetAllValues(prefix);
-            }
-            catch (Exception e)
-            {
-                throw new Exception($"Error in Configuration Builder '{Name}'::GetAllValues({prefix})", e);
-            }
+            if (!StripPrefix || !fullString.StartsWith(KeyPrefix, StringComparison.OrdinalIgnoreCase))
+                return fullString;
+
+            return fullString.Substring(KeyPrefix.Length);
         }
+
+        #endregion
+        //=========================================================================================================================
     }
 }

@@ -2,7 +2,6 @@
 // Licensed under the MIT license. See the License.txt file in the project root for full license information.
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Configuration;
@@ -11,7 +10,6 @@ using System.Linq;
 
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using System.Globalization;
 using System.Xml;
 
 namespace Microsoft.Configuration.ConfigurationBuilders
@@ -23,7 +21,6 @@ namespace Microsoft.Configuration.ConfigurationBuilders
     {
         #pragma warning disable CS1591 // No xml comments for tag literals.
         public const string jsonFileTag = "jsonFile";
-        public const string optionalTag = "optional";
         public const string jsonModeTag = "jsonMode";
         public const string keyDelimiter = ":";
         #pragma warning restore CS1591 // No xml comments for tag literals.
@@ -36,31 +33,23 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// </summary>
         public string JsonFile { get; protected set; }
         /// <summary>
-        /// Specifies whether the config builder should cause errors if the json source file cannot be found.
-        /// </summary>
-        public bool Optional { get; protected set; }
-        /// <summary>
         /// Gets or sets the json parsing paradigm to be used by the SimpleJsonConfigBuilder.
         /// </summary>
         public SimpleJsonConfigBuilderMode JsonMode { get; protected set; } = SimpleJsonConfigBuilderMode.Flat; // Flat dictionary, like core secrets.json
 
         /// <summary>
-        /// Initializes the configuration builder.
+        /// Initializes the configuration builder lazily.
         /// </summary>
         /// <param name="name">The friendly name of the provider.</param>
         /// <param name="config">A collection of the name/value pairs representing builder-specific attributes specified in the configuration for this provider.</param>
-        public override void Initialize(string name, NameValueCollection config)
+        protected override void LazyInitialize(string name, NameValueCollection config)
         {
-            base.Initialize(name, config);
+            base.LazyInitialize(name, config);
 
             _allSettings = new Dictionary<string, Dictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
 
-            // Optional
-            bool optional;
-            Optional = (Boolean.TryParse(config?[optionalTag], out optional)) ? optional : true;
-
             // JsonFile
-            string jsonFile = config?[jsonFileTag];
+            string jsonFile = UpdateConfigSettingWithAppSettings(jsonFileTag);
             if (String.IsNullOrWhiteSpace(jsonFile))
             {
                 throw new ArgumentException($"Json file must be specified with the '{jsonFileTag}' attribute.");
@@ -79,7 +68,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             }
 
             // JsonMode
-            if (config != null && config[jsonModeTag] != null)
+            if (UpdateConfigSettingWithAppSettings(jsonModeTag) != null)
             {
                 // We want an exception here if 'jsonMode' is specified but unrecognized.
                 JsonMode = (SimpleJsonConfigBuilderMode)Enum.Parse(typeof(SimpleJsonConfigBuilderMode), config[jsonModeTag], true);
