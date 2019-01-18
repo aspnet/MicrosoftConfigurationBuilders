@@ -249,7 +249,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             {
                 // In Greedy mode, we need to know all the key/value pairs from this config source. So we
                 // can't 'cache' them as we go along. Slurp them all up now. But only once. ;)
-                if (!_greedyInitialized && ValidateKey(KeyPrefix))
+                if (!_greedyInitialized && (String.IsNullOrEmpty(KeyPrefix) || ValidateKey(KeyPrefix)))
                 {
                     lock (_cachedValues)
                     {
