@@ -50,14 +50,14 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
             base.LazyInitialize(name, config);
 
-            string directoryPath = config[directoryPathTag];
+            string directoryPath = UpdateConfigSettingWithAppSettings(directoryPathTag);
             DirectoryPath = Utils.MapPath(directoryPath);
             if (!Optional && (String.IsNullOrEmpty(DirectoryPath) || !Directory.Exists(DirectoryPath)))
             {
                 throw new ArgumentException($"'directoryPath' does not exist.");
             }
 
-            IgnorePrefix = config[ignorePrefixTag] ?? "ignore.";
+            IgnorePrefix = UpdateConfigSettingWithAppSettings(ignorePrefixTag) ?? "ignore.";
 
             // The Core KeyPerFile config provider does not do multi-level.
             // If KeyDelimiter is null, do single-level. Otherwise, multi-level.

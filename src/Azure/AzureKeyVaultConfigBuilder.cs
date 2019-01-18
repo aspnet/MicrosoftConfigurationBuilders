@@ -50,14 +50,14 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
             base.LazyInitialize(name, config);
 
-            if (!Boolean.TryParse(config[preloadTag], out _preload))
+            if (!Boolean.TryParse(UpdateConfigSettingWithAppSettings(preloadTag), out _preload))
                 _preload = true;
             if (!_preload && Mode == KeyValueMode.Greedy)
                 throw new ArgumentException($"'{preloadTag}'='false' is not compatible with {KeyValueMode.Greedy} mode.");
 
-            _uri = config[uriTag];
-            _vaultName = config[vaultNameTag];
-            _version = config[versionTag];
+            _uri = UpdateConfigSettingWithAppSettings(uriTag);
+            _vaultName = UpdateConfigSettingWithAppSettings(vaultNameTag);
+            _version = UpdateConfigSettingWithAppSettings(versionTag);
 
             if (String.IsNullOrWhiteSpace(_uri))
             {
@@ -68,7 +68,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             }
             _uri = _uri.TrimEnd(new char[] { '/' });
 
-            _connectionString = config[connectionStringTag];
+            _connectionString = UpdateConfigSettingWithAppSettings(connectionStringTag);
             _connectionString = String.IsNullOrWhiteSpace(_connectionString) ? null : _connectionString;
 
             // Connect to KeyVault

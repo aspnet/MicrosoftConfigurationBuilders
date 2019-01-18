@@ -30,6 +30,8 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         private IDictionary<string, string> _cachedValues;
         private bool _lazyInitialized = false;
         private bool _greedyInitialized = false;
+        private bool _inAppSettings = false;
+        private AppSettingsSection _appSettings = null;
 
         /// <summary>
         /// Gets or sets the substitution pattern to be used by the KeyValueConfigBuilder.
@@ -106,22 +108,76 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         protected virtual void LazyInitialize(string name, NameValueCollection config)
         {
             // Use pre-assigned defaults if not specified. Non-freeform options should throw on unrecognized values.
-            _keyPrefix = config[prefixTag] ?? _keyPrefix;
-            _stripPrefix = (config[stripPrefixTag] != null) ? Boolean.Parse(config[stripPrefixTag]) : _stripPrefix;
-            _optional = (config[optionalTag] != null) ? Boolean.Parse(config[optionalTag]) : _optional;
             _tokenPattern = config[tokenPatternTag] ?? _tokenPattern;
+            _keyPrefix = UpdateConfigSettingWithAppSettings(prefixTag) ?? _keyPrefix;
+            _stripPrefix = (UpdateConfigSettingWithAppSettings(stripPrefixTag) != null) ? Boolean.Parse(config[stripPrefixTag]) : _stripPrefix;
+            _optional = (UpdateConfigSettingWithAppSettings(optionalTag) != null) ? Boolean.Parse(config[optionalTag]) : _optional;
+
+            //string testString = "don't update ${fromAppSettings}";
+            //testString = Regex.Replace(testString, "^" + _tokenPattern + "$", (m) =>
+            //    {
+            //        string key = m.Groups[1].Value;
+
+            //        // Same prefix-handling rules apply in expand mode as in strict mode.
+            //        // Since the key is being completely replaced by the value, we don't need to call UpdateKey().
+            //        return $"I was '{m.Groups[0].Value}' but now I am from AppSettings";
+            //    });
+            //var blah = "newstring " + testString;
 
             _cachedValues = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             _lazyInitialized = true;
+        }
+
+        protected string UpdateConfigSettingWithAppSettings(string configName)
+        {
+            string configValue = _config[configName];
+
+            if (String.IsNullOrWhiteSpace(configValue))
+                return configValue;
+
+            // If we are processing appSettings in ProcessConfigurationSection(), then we can use that. Other config builders in
+            // the chain before us have already finished, so this is a relatively consistent and logical state to draw from.
+            if (_appSettings != null)
+            {
+                configValue = Regex.Replace(configValue, _tokenPattern, (m) =>
+                {
+                    string settingName = m.Groups[1].Value;
+                    return (_appSettings.Settings[settingName]?.Value ?? m.Groups[0].Value);
+                });
+            }
+
+            // But if we are processing appSettings in ProcessRawXml(), then it's iffy to parse the raw xml for values that might
+            // be inconsistent since other config builders in the chain before us have only 'half-executed' on this section.
+            // So just pass in this case.
+            // (Note: If we are processing appSettings, this condition will be true even after finishing ProcessRawXml(). That's why this check is second.)
+            else if (_inAppSettings)
+            {
+                return configValue;
+            }
+
+            // All other config sections can just go through ConfigurationManager to get app settings though. :)
+            else
+            {
+                configValue = Regex.Replace(configValue, _tokenPattern, (m) =>
+                {
+                    string settingName = m.Groups[1].Value;
+                    return (ConfigurationManager.AppSettings[settingName] ?? m.Groups[0].Value);
+                });
+            }
+
+            _config[configName] = configValue;
+            return configValue;
         }
 
         //=========================================================================================================================
         #region "Private" stuff
         // Sub-classes need not worry about this stuff, even though some of it is "public" because it comes from the framework.
 
-#pragma warning disable CS1591 // No xml comments for overrides that implementing classes shouldn't worry about.
+        #pragma warning disable CS1591 // No xml comments for overrides that implementing classes shouldn't worry about.
         public override XmlNode ProcessRawXml(XmlNode rawXml)
         {
+            _inAppSettings = (rawXml.Name == "appSettings");    // System.Configuration hard codes this, so we might as well too.
+
             if (Mode == KeyValueMode.Expand)
                 return ExpandTokens(rawXml);
 
@@ -138,6 +194,8 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             ISectionHandler handler = SectionHandlersSection.GetSectionHandler(configSection);
             if (handler == null)
                 return configSection;
+
+            _appSettings = configSection as AppSettingsSection;
 
             // Strict Mode. Only replace existing key/values.
             if (Mode == KeyValueMode.Strict)

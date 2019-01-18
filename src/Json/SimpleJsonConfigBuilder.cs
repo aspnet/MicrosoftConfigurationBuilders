@@ -51,7 +51,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             _allSettings = new Dictionary<string, Dictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
 
             // JsonFile
-            string jsonFile = config[jsonFileTag];
+            string jsonFile = UpdateConfigSettingWithAppSettings(jsonFileTag);
             if (String.IsNullOrWhiteSpace(jsonFile))
             {
                 throw new ArgumentException($"Json file must be specified with the '{jsonFileTag}' attribute.");
@@ -70,7 +70,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             }
 
             // JsonMode
-            if (config[jsonModeTag] != null)
+            if (UpdateConfigSettingWithAppSettings(jsonModeTag) != null)
             {
                 // We want an exception here if 'jsonMode' is specified but unrecognized.
                 JsonMode = (SimpleJsonConfigBuilderMode)Enum.Parse(typeof(SimpleJsonConfigBuilderMode), config[jsonModeTag], true);

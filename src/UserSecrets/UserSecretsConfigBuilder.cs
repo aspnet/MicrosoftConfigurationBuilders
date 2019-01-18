@@ -43,10 +43,10 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             base.LazyInitialize(name, config);
 
             // Explicit file reference takes precedence over an identifier.
-            string secretsFile = config[userSecretsFileTag];
+            string secretsFile = UpdateConfigSettingWithAppSettings(userSecretsFileTag);
             if (String.IsNullOrWhiteSpace(secretsFile))
             {
-                string secretsId = config[userSecretsIdTag];
+                string secretsId = UpdateConfigSettingWithAppSettings(userSecretsIdTag);
                 secretsFile = GetSecretsFileFromId(secretsId);
             }
 
