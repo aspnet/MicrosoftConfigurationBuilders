@@ -36,34 +36,40 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
         public override IEnumerator<KeyValuePair<string, object>> GetEnumerator()
         {
-            foreach (string key in ConfigSection.Settings.AllKeys)
+            // Grab a copy of the keys array since we are using 'yield' and the Settings collection may change on us.
+            string[] keys = (string[])ConfigSection.Settings.AllKeys;
+            foreach (string key in keys)
                 yield return new KeyValuePair<string, object>(key, key);
         }
     }
 
     public class ConnectionStringsSectionHandler : SectionHandler<ConnectionStringsSection>
     {
-        public override void InsertOrUpdate(string newKey, string newValue, string oldKey = null, object oldItem = null)
+        public override void InsertOrUpdate(string newKey, string newValue, string oldKey = null, object oldValue = null)
         {
             if (newValue != null)
             {
-                ConnectionStringSettings newSettings = ConfigSection.ConnectionStrings[newKey] ?? new ConnectionStringSettings();
+                // Preserve the old entry if it exists, as it might have more than just name/connectionString attributes.
+                ConnectionStringSettings cs = (oldValue as ConnectionStringSettings) ?? new ConnectionStringSettings();
 
-                // Remove the old stuff
-                ConfigSection.ConnectionStrings.Remove(newSettings);
-                if (oldKey != null)
-                    ConfigSection.ConnectionStrings.Remove(oldKey);
+                // Make sure there are no entries using the old or new name other than this one
+                ConfigSection.ConnectionStrings.Remove(oldKey);
+                ConfigSection.ConnectionStrings.Remove(newKey);
 
-                // Update settings and insert
-                newSettings.Name = newKey;
-                newSettings.ConnectionString = newValue;
-                ConfigSection.ConnectionStrings.Add(newSettings);
+                // Update values and re-add to the collection
+                cs.Name = newKey;
+                cs.ConnectionString = newValue;
+                ConfigSection.ConnectionStrings.Add(cs);
             }
         }
 
         public override IEnumerator<KeyValuePair<string, object>> GetEnumerator()
         {
-            foreach (ConnectionStringSettings cs in ConfigSection.ConnectionStrings)
+            // The ConnectionStrings collection may change on us while we enumerate. :/
+            ConnectionStringSettings[] connStrs = new ConnectionStringSettings[ConfigSection.ConnectionStrings.Count];
+            ConfigSection.ConnectionStrings.CopyTo(connStrs, 0);
+
+            foreach (ConnectionStringSettings cs in connStrs)
                 yield return new KeyValuePair<string, object>(cs.Name, cs);
         }
     }
