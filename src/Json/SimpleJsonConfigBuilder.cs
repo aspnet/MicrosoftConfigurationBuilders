@@ -40,18 +40,18 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         public SimpleJsonConfigBuilderMode JsonMode { get; protected set; } = SimpleJsonConfigBuilderMode.Flat; // Flat dictionary, like core secrets.json
 
         /// <summary>
-        /// Initializes the configuration builder.
+        /// Initializes the configuration builder lazily.
         /// </summary>
         /// <param name="name">The friendly name of the provider.</param>
         /// <param name="config">A collection of the name/value pairs representing builder-specific attributes specified in the configuration for this provider.</param>
-        public override void Initialize(string name, NameValueCollection config)
+        protected override void LazyInitialize(string name, NameValueCollection config)
         {
-            base.Initialize(name, config);
+            base.LazyInitialize(name, config);
 
             _allSettings = new Dictionary<string, Dictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
 
             // JsonFile
-            string jsonFile = config?[jsonFileTag];
+            string jsonFile = config[jsonFileTag];
             if (String.IsNullOrWhiteSpace(jsonFile))
             {
                 throw new ArgumentException($"Json file must be specified with the '{jsonFileTag}' attribute.");
@@ -70,7 +70,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             }
 
             // JsonMode
-            if (config != null && config[jsonModeTag] != null)
+            if (config[jsonModeTag] != null)
             {
                 // We want an exception here if 'jsonMode' is specified but unrecognized.
                 JsonMode = (SimpleJsonConfigBuilderMode)Enum.Parse(typeof(SimpleJsonConfigBuilderMode), config[jsonModeTag], true);

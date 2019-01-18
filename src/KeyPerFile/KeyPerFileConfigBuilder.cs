@@ -39,29 +39,31 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         private ConcurrentDictionary<string, string> _allValues = new ConcurrentDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
-        /// Initializes the configuration builder.
+        /// Initializes the configuration builder lazily.
         /// </summary>
         /// <param name="name">The friendly name of the provider.</param>
         /// <param name="config">A collection of the name/value pairs representing builder-specific attributes specified in the configuration for this provider.</param>
-        public override void Initialize(string name, NameValueCollection config)
+        protected override void LazyInitialize(string name, NameValueCollection config)
         {
             // Default 'Optional' to false. base.Initialize() will override if specified in config.
             Optional = false;
 
-            base.Initialize(name, config);
+            base.LazyInitialize(name, config);
 
-            string directoryPath = config?[directoryPathTag];
+            string directoryPath = config[directoryPathTag];
             DirectoryPath = Utils.MapPath(directoryPath);
             if (!Optional && (String.IsNullOrEmpty(DirectoryPath) || !Directory.Exists(DirectoryPath)))
             {
                 throw new ArgumentException($"'directoryPath' does not exist.");
             }
 
-            IgnorePrefix = config?[ignorePrefixTag] ?? "ignore.";
+            IgnorePrefix = config[ignorePrefixTag] ?? "ignore.";
 
             // The Core KeyPerFile config provider does not do multi-level.
             // If KeyDelimiter is null, do single-level. Otherwise, multi-level.
-            KeyDelimiter = config?[keyDelimiterTag];
+            // Empty string will do multi-level with simple non-delimited concatenation in greedy mode.
+            // Empty string will be effectively single-level in other modes.
+            KeyDelimiter = config[keyDelimiterTag];
         }
 
         /// <summary>

@@ -639,8 +639,8 @@ namespace Test
             get
             {
                 Type t = typeof(FakeConfigBuilder);
-                FieldInfo fi = t.BaseType.GetField("_stripPrefix", BindingFlags.NonPublic | BindingFlags.Instance);
-                return (bool)fi.GetValue(this);
+                PropertyInfo pi = t.BaseType.GetProperty("StripPrefix", BindingFlags.NonPublic | BindingFlags.Instance);
+                return (bool)pi.GetValue(this);
             }
         }
 

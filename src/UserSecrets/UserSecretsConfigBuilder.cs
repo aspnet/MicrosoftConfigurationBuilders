@@ -34,19 +34,19 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         public string UserSecretsFile { get; protected set; }
 
         /// <summary>
-        /// Initializes the configuration builder.
+        /// Initializes the configuration builder lazily.
         /// </summary>
         /// <param name="name">The friendly name of the provider.</param>
         /// <param name="config">A collection of the name/value pairs representing builder-specific attributes specified in the configuration for this provider.</param>
-        public override void Initialize(string name, NameValueCollection config)
+        protected override void LazyInitialize(string name, NameValueCollection config)
         {
-            base.Initialize(name, config);
+            base.LazyInitialize(name, config);
 
             // Explicit file reference takes precedence over an identifier.
-            string secretsFile = config?[userSecretsFileTag];
+            string secretsFile = config[userSecretsFileTag];
             if (String.IsNullOrWhiteSpace(secretsFile))
             {
-                string secretsId = config?[userSecretsIdTag];
+                string secretsId = config[userSecretsIdTag];
                 secretsFile = GetSecretsFileFromId(secretsId);
             }
 

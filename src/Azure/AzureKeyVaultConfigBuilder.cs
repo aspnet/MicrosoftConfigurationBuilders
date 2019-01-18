@@ -39,25 +39,25 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         private List<string> _allKeys;
 
         /// <summary>
-        /// Initializes the configuration builder.
+        /// Initializes the configuration builder lazily.
         /// </summary>
         /// <param name="name">The friendly name of the provider.</param>
         /// <param name="config">A collection of the name/value pairs representing builder-specific attributes specified in the configuration for this provider.</param>
-        public override void Initialize(string name, NameValueCollection config)
+        protected override void LazyInitialize(string name, NameValueCollection config)
         {
             // Default 'Optional' to false. base.Initialize() will override if specified in config.
             Optional = false;
 
-            base.Initialize(name, config);
+            base.LazyInitialize(name, config);
 
-            if (!Boolean.TryParse(config?[preloadTag], out _preload))
+            if (!Boolean.TryParse(config[preloadTag], out _preload))
                 _preload = true;
             if (!_preload && Mode == KeyValueMode.Greedy)
                 throw new ArgumentException($"'{preloadTag}'='false' is not compatible with {KeyValueMode.Greedy} mode.");
 
-            _uri = config?[uriTag];
-            _vaultName = config?[vaultNameTag];
-            _version = config?[versionTag];
+            _uri = config[uriTag];
+            _vaultName = config[vaultNameTag];
+            _version = config[versionTag];
 
             if (String.IsNullOrWhiteSpace(_uri))
             {
@@ -68,7 +68,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             }
             _uri = _uri.TrimEnd(new char[] { '/' });
 
-            _connectionString = config?[connectionStringTag];
+            _connectionString = config[connectionStringTag];
             _connectionString = String.IsNullOrWhiteSpace(_connectionString) ? null : _connectionString;
 
             // Connect to KeyVault

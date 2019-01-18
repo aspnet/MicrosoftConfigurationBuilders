@@ -26,14 +26,11 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         public const string optionalTag = "optional";
         #pragma warning restore CS1591 // No xml comments for tag literals.
 
-        private bool _greedyInited;
+        private NameValueCollection _config = null;
         private IDictionary<string, string> _cachedValues;
-        private bool _stripPrefix = false;  // Prefix-stripping is all handled in this class; this is private so it doesn't confuse sub-classes.
+        private bool _lazyInitialized = false;
+        private bool _greedyInitialized = false;
 
-        /// <summary>
-        /// Gets or sets a regular expression used for matching tokens in raw xml during Greedy substitution.
-        /// </summary>
-        public string TokenPattern { get; protected set; } = @"\$\{(\w+)\}";
         /// <summary>
         /// Gets or sets the substitution pattern to be used by the KeyValueConfigBuilder.
         /// </summary>
@@ -41,11 +38,20 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// <summary>
         /// Gets or sets a prefix string that must be matched by keys to be considered for value substitution.
         /// </summary>
-        public string KeyPrefix { get; private set; }
+        public string KeyPrefix { get { EnsureInitialized(); return _keyPrefix; } }
+        private string _keyPrefix = "";
+        private bool StripPrefix { get { EnsureInitialized(); return _stripPrefix; } }
+        private bool _stripPrefix = false;  // Prefix-stripping is all handled in this base class; this is private so it doesn't confuse sub-classes.
         /// <summary>
         /// Specifies whether the config builder should cause errors if the backing source cannot be found.
         /// </summary>
-        public bool Optional { get; protected set; } = true;
+        public bool Optional { get { EnsureInitialized(); return _optional; } protected set { _optional = value; } }
+        private bool _optional = true;
+        /// <summary>
+        /// Gets or sets a regular expression used for matching tokens in raw xml during Greedy substitution.
+        /// </summary>
+        public string TokenPattern { get { EnsureInitialized(); return _tokenPattern; } protected set { _tokenPattern = value; } }
+        private string _tokenPattern = @"\$\{(\w+)\}";
 
         /// <summary>
         /// Looks up a single 'value' for the given 'key.'
@@ -81,29 +87,39 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         public override void Initialize(string name, NameValueCollection config)
         {
             base.Initialize(name, config);
+            _config = config ?? new NameValueCollection();
 
-            // Override default config
-            if (config != null)
+            // Mode can't be lazy initialized, because it is used to determine how late we can go before initializing.
+            // Reading it would force initialization too early in many cases.
+            if (_config[modeTag] != null)
             {
-                KeyPrefix = config[prefixTag] ?? "";
-                TokenPattern = config[tokenPatternTag] ?? TokenPattern;
-                Optional = (Boolean.TryParse(config?[optionalTag], out bool optional)) ? optional : Optional;   // Keep default if not specified.
-
-                if (config[stripPrefixTag] != null) {
-                    // We want an exception here if 'stripPrefix' is specified but unrecognized.
-                    _stripPrefix = Boolean.Parse(config[stripPrefixTag]);
-                }
-
-                if (config[modeTag] != null) {
-                    // We want an exception here if 'mode' is specified but unrecognized.
-                    Mode = (KeyValueMode)Enum.Parse(typeof(KeyValueMode), config[modeTag], true);
-                }
+                // We want an exception here if 'mode' is specified but unrecognized.
+                Mode = (KeyValueMode)Enum.Parse(typeof(KeyValueMode), config[modeTag], true);
             }
-
-            _cachedValues = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         }
 
-        #pragma warning disable CS1591 // No xml comments for overrides that implementing classes shouldn't worry about.
+        /// <summary>
+        /// Initializes the configuration builder lazily.
+        /// </summary>
+        /// <param name="name">The friendly name of the provider.</param>
+        /// <param name="config">A collection of the name/value pairs representing builder-specific attributes specified in the configuration for this provider.</param>
+        protected virtual void LazyInitialize(string name, NameValueCollection config)
+        {
+            // Use pre-assigned defaults if not specified. Non-freeform options should throw on unrecognized values.
+            _keyPrefix = config[prefixTag] ?? _keyPrefix;
+            _stripPrefix = (config[stripPrefixTag] != null) ? Boolean.Parse(config[stripPrefixTag]) : _stripPrefix;
+            _optional = (config[optionalTag] != null) ? Boolean.Parse(config[optionalTag]) : _optional;
+            _tokenPattern = config[tokenPatternTag] ?? _tokenPattern;
+
+            _cachedValues = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            _lazyInitialized = true;
+        }
+
+        //=========================================================================================================================
+        #region "Private" stuff
+        // Sub-classes need not worry about this stuff, even though some of it is "public" because it comes from the framework.
+
+#pragma warning disable CS1591 // No xml comments for overrides that implementing classes shouldn't worry about.
         public override XmlNode ProcessRawXml(XmlNode rawXml)
         {
             if (Mode == KeyValueMode.Expand)
@@ -114,7 +130,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
         public override ConfigurationSection ProcessConfigurationSection(ConfigurationSection configSection)
         {
-            // Expand mode works on the raw string input
+            // Expand mode only works on the raw string input
             if (Mode == KeyValueMode.Expand)
                 return configSection;
 
@@ -123,29 +139,12 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             if (handler == null)
                 return configSection;
 
-            // In Greedy mode, we need to know all the key/value pairs from this config source. So we
-            // can't 'cache' them as we go along. Slurp them all up now. But only once. ;)
-            if ((Mode == KeyValueMode.Greedy) && (!_greedyInited))
-            {
-                lock (_cachedValues)
-                {
-                    if (!_greedyInited)
-                    {
-                        foreach (KeyValuePair<string, string> kvp in GetAllValuesInternal(KeyPrefix))
-                        {
-                            _cachedValues.Add(kvp);
-                        }
-                        _greedyInited = true;
-                    }
-                }
-            }
-
             // Strict Mode. Only replace existing key/values.
             if (Mode == KeyValueMode.Strict)
             {
                 foreach (var configItem in handler)
                 {
-                    string newValue = GetStrictValue(configItem.Key);
+                    string newValue = GetValueInternal(configItem.Key);
                     string newKey = UpdateKey(configItem.Key);
 
                     if (newValue != null)
@@ -156,6 +155,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             // Greedy Mode. Insert all key/values.
             else if (Mode == KeyValueMode.Greedy)
             {
+                EnsureGreedyInitialized();
                 foreach (KeyValuePair<string, string> kvp in _cachedValues)
                 {
                     if (kvp.Value != null)
@@ -171,6 +171,47 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         }
         #pragma warning restore CS1591 // No xml comments for overrides that implementing classes shouldn't worry about.
 
+        private void EnsureInitialized()
+        {
+            if (!_lazyInitialized)
+            {
+                lock (this)
+                {
+                    if (!_lazyInitialized)
+                    {
+                        LazyInitialize(Name, _config);
+                    }
+                }
+            }
+        }
+
+        private void EnsureGreedyInitialized()
+        {
+            try
+            {
+                // In Greedy mode, we need to know all the key/value pairs from this config source. So we
+                // can't 'cache' them as we go along. Slurp them all up now. But only once. ;)
+                if (!_greedyInitialized && ValidateKey(KeyPrefix))
+                {
+                    lock (_cachedValues)
+                    {
+                        if (!_greedyInitialized)
+                        {
+                            foreach (KeyValuePair<string, string> kvp in GetAllValues(KeyPrefix))
+                            {
+                                _cachedValues.Add(kvp);
+                            }
+                            _greedyInitialized = true;
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                throw new Exception($"Error in Configuration Builder '{Name}'::GetAllValues({KeyPrefix})", e);
+            }
+        }
+
         private XmlNode ExpandTokens(XmlNode rawXml)
         {
             string rawXmlString = rawXml.OuterXml;
@@ -184,7 +225,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
                     // Same prefix-handling rules apply in expand mode as in strict mode.
                     // Since the key is being completely replaced by the value, we don't need to call UpdateKey().
-                    return GetStrictValue(key) ?? m.Groups[0].Value;
+                    return GetValueInternal(key) ?? m.Groups[0].Value;
                 });
             
             XmlDocument doc = new XmlDocument();
@@ -193,23 +234,29 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             return doc.DocumentElement;
         }
 
-        private string GetStrictValue(string key)
+        private string GetValueInternal(string key)
         {
-            if (_stripPrefix)
+            if (String.IsNullOrEmpty(key))
+                return null;
+
+            try
             {
+                // Make sure the key we are looking up begins with the correct prefix... if we are not stripping prefixes.
+                if (!StripPrefix && !key.StartsWith(KeyPrefix, StringComparison.OrdinalIgnoreCase))
+                    return null;
+
                 // Stripping Prefix in strict mode means from the source key. The static config file will have a prefix-less key to match.
                 // ie <add key="MySetting" /> should only match the key/value (KeyPrefix + "MySetting") from the source.
-                string sourceKey = KeyPrefix + key;
-                return (_cachedValues.ContainsKey(sourceKey)) ? _cachedValues[sourceKey] : _cachedValues[sourceKey] = GetValueInternal(sourceKey);
+                string sourceKey = (StripPrefix) ? KeyPrefix + key : key;
+
+                if (!ValidateKey(sourceKey))
+                    return null;
+
+                return (_cachedValues.ContainsKey(sourceKey)) ? _cachedValues[sourceKey] : _cachedValues[sourceKey] = GetValue(sourceKey);
             }
-            else
+            catch (Exception e)
             {
-                // Not stripping Prefix in strict mode means the source and static config keys will match exactly, and they will both begin
-                // with the prefix.
-                if (key.StartsWith(KeyPrefix, StringComparison.OrdinalIgnoreCase))
-                {
-                    return (_cachedValues.ContainsKey(key)) ? _cachedValues[key] : _cachedValues[key] = GetValueInternal(key);
-                }
+                throw new Exception($"Error in Configuration Builder '{Name}'::GetValue({key})", e);
             }
 
             return null;
@@ -217,41 +264,13 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
         private string TrimPrefix(string fullString)
         {
-            if (!_stripPrefix || !fullString.StartsWith(KeyPrefix, StringComparison.OrdinalIgnoreCase))
+            if (!StripPrefix || !fullString.StartsWith(KeyPrefix, StringComparison.OrdinalIgnoreCase))
                 return fullString;
 
             return fullString.Substring(KeyPrefix.Length);
         }
 
-        private string GetValueInternal(string key)
-        {
-            if (String.IsNullOrEmpty(key) || !ValidateKey(key)) { return null; }
-
-            try
-            {
-                return GetValue(key);
-            }
-            catch (Exception e)
-            {
-                throw new Exception($"Error in Configuration Builder '{Name}'::GetValue({key})", e);
-            }
-        }
-
-        private ICollection<KeyValuePair<string, string>> GetAllValuesInternal(string prefix)
-        {
-            if (!ValidateKey(prefix))
-            {
-                return new ConcurrentDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            }
-
-            try
-            {
-                return GetAllValues(prefix);
-            }
-            catch (Exception e)
-            {
-                throw new Exception($"Error in Configuration Builder '{Name}'::GetAllValues({prefix})", e);
-            }
-        }
+        #endregion
+        //=========================================================================================================================
     }
 }
