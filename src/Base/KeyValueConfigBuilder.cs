@@ -113,17 +113,6 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             _stripPrefix = (UpdateConfigSettingWithAppSettings(stripPrefixTag) != null) ? Boolean.Parse(config[stripPrefixTag]) : _stripPrefix;
             _optional = (UpdateConfigSettingWithAppSettings(optionalTag) != null) ? Boolean.Parse(config[optionalTag]) : _optional;
 
-            //string testString = "don't update ${fromAppSettings}";
-            //testString = Regex.Replace(testString, "^" + _tokenPattern + "$", (m) =>
-            //    {
-            //        string key = m.Groups[1].Value;
-
-            //        // Same prefix-handling rules apply in expand mode as in strict mode.
-            //        // Since the key is being completely replaced by the value, we don't need to call UpdateKey().
-            //        return $"I was '{m.Groups[0].Value}' but now I am from AppSettings";
-            //    });
-            //var blah = "newstring " + testString;
-
             _cachedValues = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             _lazyInitialized = true;
         }
