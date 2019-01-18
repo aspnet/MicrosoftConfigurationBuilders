@@ -304,8 +304,6 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             {
                 throw new Exception($"Error in Configuration Builder '{Name}'::GetValue({key})", e);
             }
-
-            return null;
         }
 
         private string TrimPrefix(string fullString)
