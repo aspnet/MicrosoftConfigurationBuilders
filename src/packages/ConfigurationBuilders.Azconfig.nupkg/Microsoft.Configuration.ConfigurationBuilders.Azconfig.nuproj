@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory),MicrosoftConfigurationBuilders.sln))\tools\MicrosoftConfigurationBuilders.settings.targets" />
+
+    <PropertyGroup Label="Azconfig version adjustments">
+      <VersionMajor>$([MSBuild]::Subtract($(VersionMajor), 1))</VersionMajor>
+      <NuGetPackageVersion>$(VersionMajor).$(VersionMinor).$(VersionRelease)</NuGetPackageVersion>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <BuilderType>Microsoft.Configuration.ConfigurationBuilders.AzconfigBuilder</BuilderType>
+        <AssemblyName>$(MSBuildProjectName)</AssemblyName>
+        <NuGetPackageId>$(MSBuildProjectName)</NuGetPackageId>
+        <NuSpecFile>$(MSBuildProjectName).nuspec</NuSpecFile>
+        <IsPackage>true</IsPackage>
+    </PropertyGroup>
+    <ItemGroup>
+        <NuGetContent Include="$(AssemblyName).dll">
+            <Source>$(AssemblyPath)</Source>
+            <Destination>lib\Net471</Destination>
+        </NuGetContent>
+        <NuGetContent Include="$(AssemblyName).xml">
+            <Source>$(OutputPath)</Source>
+            <Destination>lib\Net471</Destination>
+        </NuGetContent>
+        <NuGetContent Include="$(AssemblyName).pdb" Condition="'$(NuGetPackSymbols)' == 'true'">
+            <Source>$(OutputPath)</Source>
+            <Destination>lib\Net471</Destination>
+        </NuGetContent>
+        <NuGetContentProject Include="$(RepositoryRoot)\src\Azconfig\Azconfig.csproj" Condition="'$(NuGetPackSymbols)' == 'true'" />
+        <NuGetContent Include="..\ConfigurationBuilders.Base.nupkg\shared\Content\Net471\config.install.xdt">
+            <Destination>content\Net471\app.config.install.xdt</Destination>
+        </NuGetContent>
+        <NuGetContent Include="..\ConfigurationBuilders.Base.nupkg\shared\Content\Net471\config.install.xdt">
+            <Destination>content\Net471\web.config.install.xdt</Destination>
+        </NuGetContent>
+        <NuGetContent Include="..\ConfigurationBuilders.Base.nupkg\shared\Content\Net471\config.uninstall.xdt">
+            <Destination>content\Net471\app.config.uninstall.xdt</Destination>
+        </NuGetContent>
+        <NuGetContent Include="..\ConfigurationBuilders.Base.nupkg\shared\Content\Net471\config.uninstall.xdt">
+            <Destination>content\Net471\web.config.uninstall.xdt</Destination>
+        </NuGetContent>
+        <NuGetContent Include="tools\Net471\pp\*.ps1">
+          <Destination>tools\Net471\</Destination>
+        </NuGetContent>
+        <NuGetContent Include="..\ConfigurationBuilders.Base.nupkg\shared\tools\Net471\pp\*.ps1">
+          <Destination>tools\Net471\</Destination>
+        </NuGetContent>
+    </ItemGroup>
+    <Import Project="$(RepositoryRoot)Tools\NuGetProj.targets"/>
+</Project>

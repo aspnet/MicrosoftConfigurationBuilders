@@ -32,6 +32,10 @@
     <VersionBuild Condition="'$(VersionBuild)' == '' OR '$(VersionBuild)' == '0'">$([MSBuild]::Add(1, $([MSBuild]::Subtract($([System.DateTime]::Now.Year), $(VersionStartYear)))))$([System.DateTime]::Now.ToString("MMdd"))</VersionBuild>
   </PropertyGroup>
 
+  <PropertyGroup Label="Azconfig adjustments" Condition="$(MSBuildProjectName.EndsWith('Azconfig'))">
+    <VersionMajor>$([MSBuild]::Subtract($(VersionMajor), 1))</VersionMajor>
+  </PropertyGroup>
+
   <PropertyGroup Label="NuGet package dependencies">
     <NuGetPackageVersion>$(VersionMajor).$(VersionMinor).$(VersionRelease)</NuGetPackageVersion>
     <NuGetPackageBaseDependencyVersion>$(VersionMajor).$(VersionMinor).$(VersionRelease)</NuGetPackageBaseDependencyVersion>
