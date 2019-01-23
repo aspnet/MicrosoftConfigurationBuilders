@@ -6,16 +6,25 @@ using System.Configuration;
 
 namespace Microsoft.Configuration.ConfigurationBuilders
 {
-    public class SectionHandlersSection : ConfigurationSection
+    /// <summary>
+    /// Provides programmatic access to the 'sectionHandlers' config section. This class can't be inherited.
+    /// </summary>
+    public sealed class SectionHandlersSection : ConfigurationSection
     {
         static readonly string handlerSectionName = "Microsoft.Configuration.ConfigurationBuilders.SectionHandlers";
 
+        /// <summary>
+        /// Gets the collection of <see cref="SectionHandler{T}" />s defined for processing config sections with <see cref="KeyValueConfigBuilder"/>s./>
+        /// </summary>
         [ConfigurationProperty("handlers", IsDefaultCollection = true, Options = ConfigurationPropertyOptions.IsDefaultCollection)]
-        protected ProviderSettingsCollection Handlers
+        public ProviderSettingsCollection Handlers
         {
             get { return (ProviderSettingsCollection)base["handlers"]; }
         }
 
+        /// <summary>
+        /// Used to initialize a default set of section handlers. (For the appSettings and connectionStrings sections.)
+        /// </summary>
         protected override void InitializeDefault()
         {
             // This only runs once at the top "parent" level of the config stack. If there is already an

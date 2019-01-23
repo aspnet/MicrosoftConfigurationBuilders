@@ -74,9 +74,9 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// <returns>True if the string is valid. False if the string is not a valid key.</returns>
         public virtual bool ValidateKey(string key) { return true; }
         /// <summary>
-        /// Transforms the raw key read from the config file to a new string when updating items in Strict and Greedy modes.
+        /// Transforms the raw key to a new string just before updating items in Strict and Greedy modes.
         /// </summary>
-        /// <param name="rawKey">The key as read from the incomming config section.</param>
+        /// <param name="rawKey">The key as read from the incoming config section.</param>
         /// <returns>The key string that will be left in the processed config section.</returns>
         public virtual string UpdateKey(string rawKey) { return rawKey; }
 
@@ -116,6 +116,11 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             _lazyInitialized = true;
         }
 
+        /// <summary>
+        /// Perform token substitution on a config parameter passed through builder initialization using token values from appSettings.
+        /// </summary>
+        /// <param name="configName">The name of the parameter to be retrieved.</param>
+        /// <returns>The updated parameter value if it exists. Null otherwise.</returns>
         protected string UpdateConfigSettingWithAppSettings(string configName)
         {
             string configValue = _config[configName];
