@@ -1,12 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory),MicrosoftConfigurationBuilders.sln))\tools\MicrosoftConfigurationBuilders.settings.targets" />
-
-    <PropertyGroup Label="Azconfig version adjustments">
-      <VersionMajor>$([MSBuild]::Subtract($(VersionMajor), 1))</VersionMajor>
-      <NuGetPackageVersion>$(VersionMajor).$(VersionMinor).$(VersionRelease)</NuGetPackageVersion>
-    </PropertyGroup>
-
     <PropertyGroup>
         <BuilderType>Microsoft.Configuration.ConfigurationBuilders.AzconfigBuilder</BuilderType>
         <AssemblyName>$(MSBuildProjectName)</AssemblyName>

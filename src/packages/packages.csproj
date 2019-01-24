@@ -29,12 +29,9 @@
     <NuGetProject Include="ConfigurationBuilders.KeyPerFile.nupkg\Microsoft.Configuration.ConfigurationBuilders.KeyPerFile.nuproj" />
     <NuGetProject Include="ConfigurationBuilders.Azure.nupkg\Microsoft.Configuration.ConfigurationBuilders.Azure.nuproj" />
     <NuGetProject Include="ConfigurationBuilders.Json.nupkg\Microsoft.Configuration.ConfigurationBuilders.Json.nuproj" />
+    <NuGetProject Include="ConfigurationBuilders.Azconfig.nupkg\Microsoft.Configuration.ConfigurationBuilders.Azconfig.nuproj" />
   </ItemGroup>
   <ItemGroup Label="Base">
-    <NuGetProject Include="ConfigurationBuilders.Azconfig.nupkg\Microsoft.Configuration.ConfigurationBuilders.Azconfig.nuproj" />
-    <None Include="ConfigurationBuilders.Azconfig.nupkg\Microsoft.Configuration.ConfigurationBuilders.Azconfig.nuspec" />
-    <None Include="ConfigurationBuilders.Azconfig.nupkg\tools\Net471\Install.ps1" />
-    <None Include="ConfigurationBuilders.Azconfig.nupkg\tools\Net471\Uninstall.ps1" />
     <None Include="ConfigurationBuilders.Base.nupkg\Microsoft.Configuration.ConfigurationBuilders.Base.nuspec" />
     <None Include="ConfigurationBuilders.Base.nupkg\content\Net471\config.install.xdt" />
     <None Include="ConfigurationBuilders.Base.nupkg\content\Net471\config.uninstall.xdt" />
@@ -66,6 +63,11 @@
     <None Include="ConfigurationBuilders.Json.nupkg\Microsoft.Configuration.ConfigurationBuilders.Json.nuspec" />
     <None Include="ConfigurationBuilders.Json.nupkg\tools\Net471\Install.ps1" />
     <None Include="ConfigurationBuilders.Json.nupkg\tools\Net471\Uninstall.ps1" />
+  </ItemGroup>
+  <ItemGroup Label="Azconfig">
+    <None Include="ConfigurationBuilders.Azconfig.nupkg\Microsoft.Configuration.ConfigurationBuilders.Azconfig.nuspec" />
+    <None Include="ConfigurationBuilders.Azconfig.nupkg\tools\Net471\Install.ps1" />
+    <None Include="ConfigurationBuilders.Azconfig.nupkg\tools\Net471\Uninstall.ps1" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="ConfigurationBuilders.Azure.nupkg\README.txt" />
