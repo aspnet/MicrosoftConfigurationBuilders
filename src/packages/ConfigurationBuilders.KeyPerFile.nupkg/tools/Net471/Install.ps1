@@ -14,8 +14,7 @@ $keyPerFileConfigBuilder = [BuilderDescription]@{
 	AllowedParameters=@( $keyValueCommonParameters +
 		[ParameterDescription]@{ Name="directoryPath"; IsRequired=$true; DefaultValue="[PathToSourceDirectory]" },
 		[ParameterDescription]@{ Name="keyDelimiter"; IsRequired=$false },
-		[ParameterDescription]@{ Name="ignorePrefix"; IsRequired=$false },
-		[ParameterDescription]@{ Name="optional"; IsRequired=$false });
+		[ParameterDescription]@{ Name="ignorePrefix"; IsRequired=$false });
 }
 
 CommonInstall $keyPerFileConfigBuilder

@@ -24,12 +24,12 @@
          Update package and file without touching assembly, except for major releases.
     -->
     <BuildQuality Condition="'$(BuildQuality)' == ''">preview</BuildQuality>
+    <VersionStartYear Condition="'$(VersionStartYear)' == ''">2019</VersionStartYear>
     <VersionMajor>2</VersionMajor>
     <VersionMinor>0</VersionMinor>
     <VersionRevision>0</VersionRevision>
     <VersionRelease>0</VersionRelease>
-    <VersionRelease Condition="'$(BuildQuality)' != 'rtm'">$(VersionRelease)-$(BuildQuality)</VersionRelease>
-    <VersionStartYear Condition="'$(VersionStartYear)' == ''">2019</VersionStartYear>
+    <VersionBuild Condition="'$(VersionBuild)' == '' OR '$(VersionBuild)' == '0'">$([MSBuild]::Add(1, $([MSBuild]::Subtract($([System.DateTime]::Now.Year), $(VersionStartYear)))))$([System.DateTime]::Now.ToString("MMdd"))</VersionBuild>
   </PropertyGroup>
 
   <PropertyGroup Label="NuGet package dependencies">
@@ -37,8 +37,10 @@
     <NuGetPackageBaseDependencyVersion>$(VersionMajor).$(VersionMinor).$(VersionRelease)</NuGetPackageBaseDependencyVersion>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(MSBuildProjectExtension)' == '.nuproj'">
-    <NuGetPackageVersion Condition="'$(UpdateNightlyPackages)' == 'true'">$(NuGetPackageVersion)-b$(VersionBuild)</NuGetPackageVersion>
+  <PropertyGroup Label="Prerelease version adjustments" Condition="'$(BuildQuality)' != 'rtm'">
+    <VersionRelease>$(VersionRelease)-$(BuildQuality)</VersionRelease>
+    <NuGetPackageVersion>$(VersionMajor).$(VersionMinor).$(VersionRelease)$(VersionBuild)</NuGetPackageVersion>
+    <NuGetPackageBaseDependencyVersion>$(VersionMajor).$(VersionMinor).$(VersionRelease)$(VersionBuild)</NuGetPackageBaseDependencyVersion>
   </PropertyGroup>
 
   <!-- Default properties -->
