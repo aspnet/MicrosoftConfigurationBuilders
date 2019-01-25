@@ -32,7 +32,8 @@ $keyValueCommonParameters = @(
 		[ParameterDescription]@{ Name="mode"; IsRequired=$false },
 		[ParameterDescription]@{ Name="prefix"; IsRequired=$false },
 		[ParameterDescription]@{ Name="stripPrefix"; IsRequired=$false },
-		[ParameterDescription]@{ Name="tokenPattern"; IsRequired=$false });
+		[ParameterDescription]@{ Name="tokenPattern"; IsRequired=$false },
+		[ParameterDescription]@{ Name="optional"; IsRequired=$false });
 
 
 function CommonInstall($builderDescription) {

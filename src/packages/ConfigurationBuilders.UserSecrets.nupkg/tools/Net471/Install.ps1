@@ -14,8 +14,7 @@ $secretsConfigBuilder = [BuilderDescription]@{
 	DefaultName="Secrets";
 	AllowedParameters=@( $keyValueCommonParameters +
 		[ParameterDescription]@{ Name="userSecretsId"; IsRequired=$false; DefaultValue=$userSecretsId },
-		[ParameterDescription]@{ Name="userSecretsFile"; IsRequired=$false },
-		[ParameterDescription]@{ Name="optional"; IsRequired=$false });
+		[ParameterDescription]@{ Name="userSecretsFile"; IsRequired=$false });
 }
 
 CommonInstall $secretsConfigBuilder

@@ -45,7 +45,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// <param name="config">A collection of the name/value pairs representing builder-specific attributes specified in the configuration for this provider.</param>
         protected override void LazyInitialize(string name, NameValueCollection config)
         {
-            // Default 'Optional' to false. base.Initialize() will override if specified in config.
+            // Default 'Optional' to false. base.LazyInitialize() will override if specified in config.
             Optional = false;
 
             base.LazyInitialize(name, config);
@@ -133,12 +133,22 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             return d;
         }
 
+        /// <summary>
+        /// Makes a determination about whether the input key is valid for this builder and backing store.
+        /// </summary>
+        /// <param name="key">The string to be validated. May be partial.</param>
+        /// <returns>True if the string is valid. False if the string is not a valid key.</returns>
         public override bool ValidateKey(string key)
         {
             // Key Vault only allows alphanumerics and '-'. This builder also allows for one '/'.
             return Regex.IsMatch(key, "^[a-zA-Z0-9-]+(/?[a-zA-Z0-9-]+)?$");
         }
 
+        /// <summary>
+        /// Transforms the raw key to a new string just before updating items in Strict and Greedy modes.
+        /// </summary>
+        /// <param name="rawKey">The key as read from the incoming config section.</param>
+        /// <returns>The key string that will be left in the processed config section.</returns>
         public override string UpdateKey(string rawKey)
         {
             // Remove the version segment if it's there.
