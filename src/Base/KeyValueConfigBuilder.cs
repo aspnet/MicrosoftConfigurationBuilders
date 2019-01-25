@@ -27,6 +27,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
         private NameValueCollection _config = null;
         private IDictionary<string, string> _cachedValues;
+        private bool _lazyInitializeStarted = false;
         private bool _lazyInitialized = false;
         private bool _greedyInitialized = false;
         private bool _inAppSettings = false;
@@ -107,6 +108,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         protected virtual void LazyInitialize(string name, NameValueCollection config)
         {
             // Use pre-assigned defaults if not specified. Non-freeform options should throw on unrecognized values.
+            _lazyInitializeStarted = true;
             _tokenPattern = config[tokenPatternTag] ?? _tokenPattern;
             _keyPrefix = UpdateConfigSettingWithAppSettings(prefixTag) ?? _keyPrefix;
             _stripPrefix = (UpdateConfigSettingWithAppSettings(stripPrefixTag) != null) ? Boolean.Parse(config[stripPrefixTag]) : _stripPrefix;
@@ -125,7 +127,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         {
             string configValue = _config[configName];
 
-            if (String.IsNullOrWhiteSpace(configValue))
+            if (!_lazyInitializeStarted || String.IsNullOrWhiteSpace(configValue))
                 return configValue;
 
             // If we are processing appSettings in ProcessConfigurationSection(), then we can use that. Other config builders in
