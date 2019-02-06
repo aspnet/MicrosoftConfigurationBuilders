@@ -7,8 +7,8 @@
     <owners>Microsoft</owners>
     <copyright>&#169; Microsoft Corporation. All rights reserved.</copyright>
     <title>Microsoft Configuration Builders - Environment</title>
-    <description>A simple key/value Configuration Builder for the .Net Desktop Framework that draws from environment variables.</description>
-    <summary>A simple key/value Configuration Builder for the .Net Desktop Framework that draws from environment variables.</summary>
+    <description>A key/value Configuration Builder for the .Net Framework that draws from environment variables.</description>
+    <summary>A simple key/value Configuration Builder for the .Net Framework that draws from environment variables.</summary>
     <language>en-US</language>
     <projectUrl>https://github.com/aspnet/MicrosoftConfigurationBuilders</projectUrl>
     <iconUrl>http://go.microsoft.com/fwlink/?LinkID=288859</iconUrl>
