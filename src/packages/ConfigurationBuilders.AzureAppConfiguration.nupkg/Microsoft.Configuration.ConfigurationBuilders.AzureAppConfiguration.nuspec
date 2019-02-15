@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
+  <metadata>
+    <id>$NuGetPackageId$</id>
+    <version>$NuGetPackageVersion$</version>
+    <authors>Microsoft</authors>
+    <owners>Microsoft</owners>
+    <copyright>&#169; Microsoft Corporation. All rights reserved.</copyright>
+    <title>Microsoft Configuration Builders - AzureAppConfiguration Builder</title>
+    <description>A set of Configuration Builders for the .Net Desktop Framework that draw from Azure AppConfiguration stores.</description>
+    <summary>A set of Configuration Builders for the .Net Desktop Framework that draw from Azure AppConfiguration stores.</summary>
+    <language>en-US</language>
+    <projectUrl>https://github.com/aspnet/MicrosoftConfigurationBuilders</projectUrl>
+    <iconUrl>http://go.microsoft.com/fwlink/?LinkID=288859</iconUrl>
+    <licenseUrl>http://www.microsoft.com/web/webpi/eula/net_library_eula_ENU.htm</licenseUrl>
+    <requireLicenseAcceptance>true</requireLicenseAcceptance>
+    <tags>Microsoft Configuration Builders AzureAppConfiguration</tags>
+
+    <dependencies>
+      <dependency id="Microsoft.Configuration.ConfigurationBuilders.Base" version="$NuGetPackageBaseDependencyVersion$" />
+      <!-- <dependency id="Microsoft.Azure.AppConfiguration.AzconfigClient" version="0.1" /> -->
+      <dependency id="Microsoft.AspNetCore.Http.Extensions" version="2.1.1" />
+      <dependency id="Newtonsoft.Json" version="11.0.2" />
+      <dependency id="System.Interactive.Async" version="3.1.1" />
+      <dependency id="System.Reactive.Linq" version="4.0.0" />
+      <!-- <dependency id="Microsoft.Azconfig.ManagedIdentityConnector" version="0.1" /> -->
+      <dependency id="Microsoft.Azure.Management.ResourceManager" version="2.0.0-preview" />
+      <dependency id="Microsoft.Azure.Services.AppAuthentication" version="1.0.3" />
+    </dependencies>
+  </metadata>
+</package>

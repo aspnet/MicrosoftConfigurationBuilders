@@ -58,7 +58,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KeyPerFile", "src\KeyPerFil
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleWebApp", "samples\SampleWebApp\SampleWebApp.csproj", "{590892DD-F842-4E7C-9400-4C6451C16B1A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Azconfig", "src\Azconfig\Azconfig.csproj", "{3F1BB24A-355F-49E7-B396-6AA2EB5DDA0E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AzureAppConfig", "src\AzureAppConfig\AzureAppConfig.csproj", "{3F1BB24A-355F-49E7-B396-6AA2EB5DDA0E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

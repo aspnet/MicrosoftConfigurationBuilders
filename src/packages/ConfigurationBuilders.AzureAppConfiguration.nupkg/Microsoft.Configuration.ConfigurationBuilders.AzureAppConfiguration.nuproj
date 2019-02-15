@@ -2,7 +2,7 @@
 <Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory),MicrosoftConfigurationBuilders.sln))\tools\MicrosoftConfigurationBuilders.settings.targets" />
     <PropertyGroup>
-        <BuilderType>Microsoft.Configuration.ConfigurationBuilders.AzconfigBuilder</BuilderType>
+        <BuilderType>Microsoft.Configuration.ConfigurationBuilders.AzureAppConfigurationBuilder</BuilderType>
         <AssemblyName>$(MSBuildProjectName)</AssemblyName>
         <NuGetPackageId>$(MSBuildProjectName)</NuGetPackageId>
         <NuSpecFile>$(MSBuildProjectName).nuspec</NuSpecFile>
@@ -21,7 +21,15 @@
             <Source>$(OutputPath)</Source>
             <Destination>lib\Net471</Destination>
         </NuGetContent>
-        <NuGetContentProject Include="$(RepositoryRoot)\src\Azconfig\Azconfig.csproj" Condition="'$(NuGetPackSymbols)' == 'true'" />
+      <NuGetContent Include="Microsoft.Azure.AppConfiguration.AzconfigClient.dll">
+        <Source>$(AssemblyPath)</Source>
+        <Destination>lib\Net471</Destination>
+      </NuGetContent>
+      <NuGetContent Include="Microsoft.Azure.AppConfiguration.ManagedIdentityConnector.dll">
+        <Source>$(AssemblyPath)</Source>
+        <Destination>lib\Net471</Destination>
+      </NuGetContent>
+      <NuGetContentProject Include="$(RepositoryRoot)\src\AzureAppConfig\AzureAppConfig.csproj" Condition="'$(NuGetPackSymbols)' == 'true'" />
         <NuGetContent Include="..\ConfigurationBuilders.Base.nupkg\shared\Content\Net471\config.install.xdt">
             <Destination>content\Net471\app.config.install.xdt</Destination>
         </NuGetContent>

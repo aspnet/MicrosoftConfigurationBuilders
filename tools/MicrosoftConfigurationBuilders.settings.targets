@@ -32,19 +32,21 @@
     <VersionBuild Condition="'$(VersionBuild)' == '' OR '$(VersionBuild)' == '0'">$([MSBuild]::Add(1, $([MSBuild]::Subtract($([System.DateTime]::Now.Year), $(VersionStartYear)))))$([System.DateTime]::Now.ToString("MMdd"))</VersionBuild>
   </PropertyGroup>
 
-  <PropertyGroup Label="Azconfig adjustments" Condition="$(MSBuildProjectName.EndsWith('Azconfig'))">
-    <VersionMajor>$([MSBuild]::Subtract($(VersionMajor), 1))</VersionMajor>
-  </PropertyGroup>
-
   <PropertyGroup Label="NuGet package dependencies">
     <NuGetPackageVersion>$(VersionMajor).$(VersionMinor).$(VersionRelease)</NuGetPackageVersion>
     <NuGetPackageBaseDependencyVersion>$(VersionMajor).$(VersionMinor).$(VersionRelease)</NuGetPackageBaseDependencyVersion>
   </PropertyGroup>
 
+  <PropertyGroup Label="Azure App Config adjustments" Condition="$(MSBuildProjectName.EndsWith('AzureAppConfig'))">
+    <VersionMajor>$([MSBuild]::Subtract($(VersionMajor), 1))</VersionMajor>
+    <NuGetPackageVersion>$(VersionMajor).$(VersionMinor).$(VersionRelease)</NuGetPackageVersion>
+    <!-- Leave <NuGetPackageBaseDependencyVersion> untouched. -->
+  </PropertyGroup>
+
   <PropertyGroup Label="Prerelease version adjustments" Condition="'$(BuildQuality)' != 'rtm'">
     <VersionRelease>$(VersionRelease)-$(BuildQuality)</VersionRelease>
-    <NuGetPackageVersion>$(VersionMajor).$(VersionMinor).$(VersionRelease)$(VersionBuild)</NuGetPackageVersion>
-    <NuGetPackageBaseDependencyVersion>$(VersionMajor).$(VersionMinor).$(VersionRelease)$(VersionBuild)</NuGetPackageBaseDependencyVersion>
+    <NuGetPackageVersion>$(NuGetPackageVersion)-$(BuildQuality)$(VersionBuild)</NuGetPackageVersion>
+    <NuGetPackageBaseDependencyVersion>$(NuGetPackageBaseDependencyVersion)-$(BuildQuality)$(VersionBuild)</NuGetPackageBaseDependencyVersion>
   </PropertyGroup>
 
   <!-- Default properties -->
@@ -82,7 +84,9 @@
 
   <Target Name="PreventReferenceCopy" AfterTargets="ResolveAssemblyReferences">
     <ItemGroup>
+      <TempReferenceCopyLocalPaths Include="@(ReferenceCopyLocalPaths)" Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('%(ReferenceCopyLocalPaths.Identity)', '.*Microsoft\.Azure\.AppConfiguration\..+\.dll'))" />
       <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)" />
+      <ReferenceCopyLocalPaths Include="@(TempReferenceCopyLocalPaths)" />
     </ItemGroup>
   </Target>
 

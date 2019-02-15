@@ -5,12 +5,12 @@ param($installPath, $toolsPath, $package, $project)
 
 . "$PSScriptRoot\KeyValueConfigBuildersCommon.ps1"
 
-##### Describe the Azconfig config builder #####
+##### Describe the AzureAppConfig config builder #####
 $keyVaultConfigBuilder = [BuilderDescription]@{
 	TypeName="$typeName$";
 	Assembly="$assemblyName$";
 	Version="$assemblyVersion$";
-	DefaultName="AzureKeyVault";
+	DefaultName="AzureAppConfig";
 	AllowedParameters=@( $keyValueCommonParameters +
 		[ParameterDescription]@{ Name="endpoint"; IsRequired=$false; DefaultValue="[Config_Store_Endpoint_Url]" },
 		[ParameterDescription]@{ Name="connectionString"; IsRequired=$false },

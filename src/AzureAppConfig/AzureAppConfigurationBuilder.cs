@@ -7,15 +7,15 @@ using System.Collections.Specialized;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Azconfig.Client;
-using Microsoft.Azconfig.ManagedIdentityConnector;
+using Microsoft.Azure.AppConfiguration.Azconfig;
+using Microsoft.Azure.AppConfiguration.ManagedIdentityConnector;
 
 namespace Microsoft.Configuration.ConfigurationBuilders
 {
     /// <summary>
-    /// A ConfigurationProvider that retrieves values from Azconfig stores.
+    /// A ConfigurationProvider that retrieves values from Azure App Configuration stores.
     /// </summary>
-    public class AzconfigBuilder : KeyValueConfigBuilder
+    public class AzureAppConfigurationBuilder : KeyValueConfigBuilder
     {
         #pragma warning disable CS1591 // No xml comments for tag literals.
         public const string endpointTag = "endpoint";
@@ -58,7 +58,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             if (_labelFilter.Contains('*') || _labelFilter.Contains(','))
             {
                 _labelFilter = "";
-                throw new ArgumentException("The characters '*' and ',' are note supported in label filters.", labelFilterTag);
+                throw new ArgumentException("The characters '*' and ',' are not supported in label filters.", labelFilterTag);
             }
 
             // Always allow 'connectionString' to override black magic. But we expect this to be null most of the time.
@@ -79,12 +79,12 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                     catch (Exception ex)
                     {
                         if (!Optional)
-                            throw new ArgumentException($"Exception encountered while creating connection to Azconfig store.", ex);
+                            throw new ArgumentException($"Exception encountered while creating connection to Azure App Configuration store.", ex);
                     }
                     return;
                 }
 
-                throw new ArgumentException($"An endpoint URI or connection string must be provided for connecting to Azconfig source via the '{endpointTag}' or '{connectionStringTag}' attributes.");
+                throw new ArgumentException($"An endpoint URI or connection string must be provided for connecting to Azure App Configuration service via the '{endpointTag}' or '{connectionStringTag}' attributes.");
             }
 
             // If we get here, then we should try to connect with a connection string.
@@ -102,7 +102,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// <returns>True if the string is valid. False if the string is not a valid key.</returns>
         public override bool ValidateKey(string key)
         {
-            // Azconfig does not restrict key names, although a couple characters have special meaning if not escaped.
+            // Azure App Config does not restrict key names, although a couple characters have special meaning if not escaped.
             // We may want to restrict using those characters unescaped in a key name in the future.
             return true;
         }
@@ -122,7 +122,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         }
 
         /// <summary>
-        /// Retrieves all known key/value pairs from the Azconfig store where the key begins with with <paramref name="prefix"/>.
+        /// Retrieves all known key/value pairs from the Azure App Config store where the key begins with with <paramref name="prefix"/>.
         /// </summary>
         /// <param name="prefix">A prefix string to filter the list of potential keys retrieved from the source.</param>
         /// <returns>A collection of key/value pairs.</returns>

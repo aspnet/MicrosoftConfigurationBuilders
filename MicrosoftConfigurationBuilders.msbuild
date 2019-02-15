@@ -6,7 +6,7 @@
     <AssemblyProject Include="src\UserSecrets\UserSecrets.csproj" />
     <AssemblyProject Include="src\Azure\Azure.csproj" />
     <AssemblyProject Include="src\Json\Json.csproj" />
-    <AssemblyProject Include="src\Azconfig\Azconfig.csproj" />
+    <AssemblyProject Include="src\AzureAppConfig\AzureAppConfig.csproj" />
   </ItemGroup>
 
   <ItemGroup>
