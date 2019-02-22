@@ -47,11 +47,11 @@
     <Reference Include="Microsoft.AspNetCore.Http.Features, Version=2.1.1.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
       <HintPath>..\..\packages\Microsoft.AspNetCore.Http.Features.2.1.1\lib\netstandard2.0\Microsoft.AspNetCore.Http.Features.dll</HintPath>
     </Reference>
-    <Reference Include="Microsoft.Azure.AppConfiguration.AzconfigClient, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\Microsoft.Azure.AppConfiguration.AzconfigClient.1.0.0-alpha-007740001\lib\netstandard2.0\Microsoft.Azure.AppConfiguration.AzconfigClient.dll</HintPath>
+    <Reference Include="Microsoft.Azure.AppConfiguration.AzconfigClient, Version=1.0.0.0, Culture=neutral, PublicKeyToken=69dad7634abb75e4, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\Microsoft.Azure.AppConfiguration.AzconfigClient.1.0.0-preview-007830001\lib\netstandard2.0\Microsoft.Azure.AppConfiguration.AzconfigClient.dll</HintPath>
     </Reference>
-    <Reference Include="Microsoft.Azure.AppConfiguration.ManagedIdentityConnector, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\Microsoft.Azure.AppConfiguration.ManagedIdentityConnector.1.0.0-alpha-007740001-1407\lib\netstandard2.0\Microsoft.Azure.AppConfiguration.ManagedIdentityConnector.dll</HintPath>
+    <Reference Include="Microsoft.Azure.AppConfiguration.ManagedIdentityConnector, Version=1.0.0.0, Culture=neutral, PublicKeyToken=69dad7634abb75e4, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\Microsoft.Azure.AppConfiguration.ManagedIdentityConnector.1.0.0-preview-007830001-1266\lib\netstandard2.0\Microsoft.Azure.AppConfiguration.ManagedIdentityConnector.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Azure.Management.ResourceManager, Version=2.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <HintPath>..\..\packages\Microsoft.Azure.Management.ResourceManager.2.0.0-preview\lib\net452\Microsoft.Azure.Management.ResourceManager.dll</HintPath>
