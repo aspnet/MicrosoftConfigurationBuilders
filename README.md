@@ -6,6 +6,7 @@ are also intended to address some of the basic needs of applications as they mov
 
 ### V2 Update:
 Version 2 is here with some new features:
+  * Azure App Configuration Support - There is a [new builder](#azureappconfigurationbuilder) for drawing values from the new Azure App Configuration service.
   * ConfigBuilder Parameters from AppSettings - This has been one of the most asked for features of these config builders. With V2, it is now possible to
 		read initialization parameters for config builders from `appSettings`. Read more about it [here](#appsettings-parameters).
   * Lazy Initialization - As part of the work to enable pulling config parameters from `appSettings`, these key/value configuration builders now support a
@@ -163,6 +164,49 @@ and currently exposes the format of the file which, as mentioned above, should b
   </secrets>
 </root>
 ```
+
+### AzureAppConfigurationBuilder
+```xml
+<add name="AzureAppConfig"
+    [mode|@prefix|@stripPrefix|tokenPattern|@optional=false]
+    (@vaultName="MyVaultName" | @uri="https://MyVaultName.vault.azure.net")
+    [@connectionString="connection string"]
+    [@version="secrets version"]
+    [@preloadSecretNames="true"]
+    type="Microsoft.Configuration.ConfigurationBuilders.AzureKeyVaultConfigBuilder, Microsoft.Configuration.ConfigurationBuilders.Azure" />
+```
+		[ParameterDescription]@{ Name="endpoint"; IsRequired=$false; DefaultValue="[Config_Store_Endpoint_Url]" },
+		[ParameterDescription]@{ Name="connectionString"; IsRequired=$false },
+		[ParameterDescription]@{ Name="keyFilter"; IsRequired=$false });
+		[ParameterDescription]@{ Name="labelFilter"; IsRequired=$false });
+		[ParameterDescription]@{ Name="preferredDateTime"; IsRequired=$false },
+If your secrets are kept in Azure Key Vault, then this config builder is for you. There are three additional attributes for this config builder. The `vaultName` is
+required. The other attributes allow you some manual control about which vault to connect to, but are only necessary if the application is not running in an
+environment that works magically with `Microsoft.Azure.Services.AppAuthentication`. The Azure Services Authentication library is used to automatically pick
+up connection information from the execution environment if possible, but you can override that feature by providing a connection string instead.
+  * `vaultName` - This is a required attribute. It specifies the name of the vault in your Azure subscription from which to read key/value pairs.
+  * `connectionString` - A connection string usable by [AzureServiceTokenProvider](https://docs.microsoft.com/en-us/azure/key-vault/service-to-service-authentication#connection-string-support)
+  * `uri` - Connect to other Key Vault providers with this attribute. If not specified, Azure is the assumed Vault provider. If the uri _is_specified, then `vaultName` is no longer a required parameter.
+  * `version` - Azure Key Vault provides a versioning feature for secrets. If this is specified, the builder will only retrieve secrets matching this version.
+  * `preloadSecretNames` - By default, this builder will query __all__ the key names in the key vault when it is initialized. If this is a concern, set
+  this attribute to 'false', and secrets will be retrieved one at a time. This could also be useful if the vault allows "Get" access but not
+  "List" access. (NOTE: Disabling preload is incompatible with Greedy mode.)
+Tip: Azure Key Vault uses random per-secret Guid assignments for versioning, which makes specifying a secret `version` tag on this builder rather
+limiting, as it will only ever update one config value. To make version handling more useful, V2 of this builder takes advantage of the new key-updating
+feature to allow users to specify version tags in key names rather than on the config builder declaration. That way, the same builder can handle multiple
+keys with specific versions instead of needing to redefine multiple builders.
+When requesting a specific version for a particular key, the key name in the original config file should look like __`keyName/versionId`__. The
+AzureKeyVaultConfigBuilder will only substitue values for 'keyName' if the specified 'versionId' exists in the vault. When that happens, the
+AzureKeyVaultConfigBuilder will remove the `/versionId` from the original key, and the resulting config section will only contain `keyName`.
+For example:
+```xml
+<appSettings configBuilders="AzureKeyVault">
+  <add key="item1" value="Replaced with latest value from the key vault." />
+  <add key="item2/0123456789abcdefdeadbeefbadf00d" value="Replaced with specific version only." />
+</appSettings>
+```
+Assuming both of these items exist in the vault, and the version tag for `item2` is valid, this would result in an collection of appSettings with two
+entries: `item1` and `item2`.
 
 ### AzureKeyVaultConfigBuilder
 ```xml

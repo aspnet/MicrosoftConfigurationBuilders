@@ -57,11 +57,14 @@ function GetConfigFileName() {
 	$configFile = $project.ProjectItems | where { $_.Name -ieq "web.config" }
 	if ($configFile -eq $null) { $configFile = $project.ProjectItems | where { $_.Name -ieq "app.config" } }
 	$configPath = $configFile.Properties | where { $_.Name -ieq "LocalPath" }
+    if ($configPath -eq $null) { $configPath = $configFile.Properties | where { $_.Name -ieq "FullPath" } }
 	return $configPath.Value
 }
 
 function GetTempFileName() {
-	return [io.path]::Combine($env:TEMP, "Microsoft.Configuration.ConfigurationBuilders.KeyValueConfigBuilders.Temp", $project.UniqueName + ".xml")
+	$uname = $project.UniqueName
+	if ([io.path]::IsPathRooted($uname)) { $uname = $project.Name }
+	return [io.path]::Combine($env:TEMP, "Microsoft.Configuration.ConfigurationBuilders.KeyValueConfigBuilders.Temp", $uname + ".xml")
 }
 
 function ReadConfigFile() {

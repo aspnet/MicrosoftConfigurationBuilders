@@ -37,10 +37,16 @@
     <NuGetPackageBaseDependencyVersion>$(VersionMajor).$(VersionMinor).$(VersionRelease)</NuGetPackageBaseDependencyVersion>
   </PropertyGroup>
 
+  <PropertyGroup Label="Azure App Config adjustments" Condition="$(MSBuildProjectName.Contains('AzureAppConfig'))">
+    <VersionMajor>$([MSBuild]::Subtract($(VersionMajor), 1))</VersionMajor>
+    <NuGetPackageVersion>$(VersionMajor).$(VersionMinor).$(VersionRelease)</NuGetPackageVersion>
+    <!-- Leave <NuGetPackageBaseDependencyVersion> untouched. -->
+  </PropertyGroup>
+
   <PropertyGroup Label="Prerelease version adjustments" Condition="'$(BuildQuality)' != 'rtm'">
     <VersionRelease>$(VersionRelease)-$(BuildQuality)</VersionRelease>
-    <NuGetPackageVersion>$(VersionMajor).$(VersionMinor).$(VersionRelease)$(VersionBuild)</NuGetPackageVersion>
-    <NuGetPackageBaseDependencyVersion>$(VersionMajor).$(VersionMinor).$(VersionRelease)$(VersionBuild)</NuGetPackageBaseDependencyVersion>
+    <NuGetPackageVersion>$(NuGetPackageVersion)-$(BuildQuality)$(VersionBuild)</NuGetPackageVersion>
+    <NuGetPackageBaseDependencyVersion>$(NuGetPackageBaseDependencyVersion)-$(BuildQuality)$(VersionBuild)</NuGetPackageBaseDependencyVersion>
   </PropertyGroup>
 
   <!-- Default properties -->
@@ -78,7 +84,9 @@
 
   <Target Name="PreventReferenceCopy" AfterTargets="ResolveAssemblyReferences">
     <ItemGroup>
+      <TempReferenceCopyLocalPaths Include="@(ReferenceCopyLocalPaths)" Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('%(ReferenceCopyLocalPaths.Identity)', '.*Microsoft\.Azure\.AppConfiguration\..+\.dll'))" />
       <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)" />
+      <ReferenceCopyLocalPaths Include="@(TempReferenceCopyLocalPaths)" />
     </ItemGroup>
   </Target>
 
