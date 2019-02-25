@@ -7,8 +7,8 @@
     <owners>Microsoft</owners>
     <copyright>&#169; Microsoft Corporation. All rights reserved.</copyright>
     <title>Microsoft Configuration Builders - Azure Builders</title>
-    <description>A set of Configuration Builders for the .Net Desktop Framework that draw from Azure resources.</description>
-    <summary>A set of Configuration Builders for the .Net Desktop Framework that draw from Azure resources.</summary>
+    <description>A set of Configuration Builders for the .Net Framework that draw from Azure resources.</description>
+    <summary>A set of Configuration Builders for the .Net Framework that draw from Azure resources.</summary>
     <language>en-US</language>
     <projectUrl>https://github.com/aspnet/MicrosoftConfigurationBuilders</projectUrl>
     <iconUrl>http://go.microsoft.com/fwlink/?LinkID=288859</iconUrl>

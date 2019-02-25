@@ -23,30 +23,35 @@
             Release:	Third for Info and Package.
          Update package and file without touching assembly, except for major releases.
     -->
-    <BuildQuality Condition="'$(BuildQuality)' == ''">preview</BuildQuality>
+    <BuildQuality Condition="'$(BuildQuality)' == ''">beta</BuildQuality>
     <VersionStartYear Condition="'$(VersionStartYear)' == ''">2019</VersionStartYear>
     <VersionMajor>2</VersionMajor>
     <VersionMinor>0</VersionMinor>
     <VersionRevision>0</VersionRevision>
     <VersionRelease>0</VersionRelease>
     <VersionBuild Condition="'$(VersionBuild)' == '' OR '$(VersionBuild)' == '0'">$([MSBuild]::Add(1, $([MSBuild]::Subtract($([System.DateTime]::Now.Year), $(VersionStartYear)))))$([System.DateTime]::Now.ToString("MMdd"))</VersionBuild>
-  </PropertyGroup>
-
-  <PropertyGroup Label="NuGet package dependencies">
     <NuGetPackageVersion>$(VersionMajor).$(VersionMinor).$(VersionRelease)</NuGetPackageVersion>
     <NuGetPackageBaseDependencyVersion>$(VersionMajor).$(VersionMinor).$(VersionRelease)</NuGetPackageBaseDependencyVersion>
   </PropertyGroup>
 
+  <!-- Azure App Config is versioned 1 behind everyone else. -->
   <PropertyGroup Label="Azure App Config adjustments" Condition="$(MSBuildProjectName.Contains('AzureAppConfig'))">
     <VersionMajor>$([MSBuild]::Subtract($(VersionMajor), 1))</VersionMajor>
     <NuGetPackageVersion>$(VersionMajor).$(VersionMinor).$(VersionRelease)</NuGetPackageVersion>
     <!-- Leave <NuGetPackageBaseDependencyVersion> untouched. -->
   </PropertyGroup>
 
+  <!-- Add release type for non-RTM releases. -->
   <PropertyGroup Label="Prerelease version adjustments" Condition="'$(BuildQuality)' != 'rtm'">
     <VersionRelease>$(VersionRelease)-$(BuildQuality)</VersionRelease>
-    <NuGetPackageVersion>$(NuGetPackageVersion)-$(BuildQuality)$(VersionBuild)</NuGetPackageVersion>
-    <NuGetPackageBaseDependencyVersion>$(NuGetPackageBaseDependencyVersion)-$(BuildQuality)$(VersionBuild)</NuGetPackageBaseDependencyVersion>
+    <NuGetPackageVersion>$(NuGetPackageVersion)-$(BuildQuality)</NuGetPackageVersion>
+    <NuGetPackageBaseDependencyVersion>$(NuGetPackageBaseDependencyVersion)-$(BuildQuality)</NuGetPackageBaseDependencyVersion>
+  </PropertyGroup>
+
+  <!-- Additionaly, add date stamp to 'preview' releases. -->
+  <PropertyGroup Label="Prerelease version adjustments" Condition="'$(BuildQuality)' == 'preview'">
+    <NuGetPackageVersion>$(NuGetPackageVersion)$(VersionBuild)</NuGetPackageVersion>
+    <NuGetPackageBaseDependencyVersion>$(NuGetPackageBaseDependencyVersion)$(VersionBuild)</NuGetPackageBaseDependencyVersion>
   </PropertyGroup>
 
   <!-- Default properties -->

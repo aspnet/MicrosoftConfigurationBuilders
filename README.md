@@ -24,7 +24,7 @@ Version 2 is here with some new features:
 ## Key/Value Config Builders
 
 If you read the blog post linked above, you probably recognize that Configuration Builders can be quite flexible. Applications can use the Configuration Builder
-concept to construct incredibly complex configuration on the fly. But for the most common usage scenarios, a simple key/value replacement mechanism is all that
+concept to construct incredibly complex configuration on the fly. But for the most common usage scenarios, a basic key/value replacement mechanism is all that
 is needed. Most of the config builders in this project are such key/value builders.
 
 #### mode
@@ -36,13 +36,13 @@ set to run in three different modes:
 		external source.
   * `Greedy` - This mode is closely related to `Strict` mode, but instead of being limited to keys that already exist in the original configuration, the config builders
 		will dump all key/value pairs from the external source into the resulting config section.
-  * `Expand` - This last mode operates on the raw xml before it gets parsed into a config section object. It can be thought of as a simple expansion of tokens in a
+  * `Expand` - This last mode operates on the raw xml before it gets parsed into a config section object. It can be thought of as a basic expansion of tokens in a
 		string. Any part of the raw xml string that matches the pattern __`${token}`__ is a candidate for token expansion. If no corresponding value is found in the
 		external source, then the token is left alone.
 
 #### prefix
 Another feature of these key/value Configuration Builders is prefix handling. Because full-framework .Net configuration is complex and nested, and external key/value
-sources are by nature quite simple and flat, leveraging key prefixes can be useful. For example, if you want to inject both App Settings and Connection Strings into
+sources are by nature quite basic and flat, leveraging key prefixes can be useful. For example, if you want to inject both App Settings and Connection Strings into
 your configuration via environment variables, you could accomplish this in two ways. Use the `EnvironmentConfigBuilder` in the default `Strict` mode and make sure you
 have the appropriate key names already coded into your config file. __OR__ you could use two `EnvironmentConfigBuilder`s in `Greedy` mode with distinct prefixes
 so they can slurp up any setting or connection string you provide without needing to update the raw config file in advance. Like this:
@@ -63,10 +63,10 @@ This way the same flat key/value source can be used to populate configuration fo
 #### stripPrefix
 A related setting that is common among all of these key/value builders is `stripPrefix`. The code above does a good job of separating app settings from connection
 strings... but now all the keys in AppSettings start with "AppSetting_". Maybe this is fine for code you wrote. Chances are that prefix is better off stripped from the
-key name before being inserted into AppSettings. `stripPrefix` is a simple boolean value, and accomplishes just that. It's default value is `false`.
+key name before being inserted into AppSettings. `stripPrefix` is a boolean value, and accomplishes just that. It's default value is `false`.
 
 #### optional
-This setting is a simple boolean that specified whether to avoid throwing exceptions when the backing configuration source cannot be found or connected.
+This setting is a boolean that specified whether to avoid throwing exceptions when the backing configuration source cannot be found or connected.
 The default default value is `true`, though some config builders (such as the Azure-based builders) will use a different default.
 
 #### tokenPattern
@@ -75,7 +75,7 @@ above, it was mentioned that the raw xml is searched for tokens that look like _
 The set of characters that matches `\w` is more strict than xml and many sources of config values allow, and some applications may need to allow more exotic characters
 in their token names. Additionally there might be scenarios where the `${}` pattern is not acceptable.
 
-`tokenPattern` allows developers to change the regex that is used for token matching. It is a simple string argument, and no validation is done to make sure it is
+`tokenPattern` allows developers to change the regex that is used for token matching. It is a string argument, and no validation is done to make sure it is
 a well-formed non-dangerous regex - so use it wisely. The only real restriction is that is must contain a capture group. The entire regex must match the entire token,
 and the first capture must be the token name to look up in the config source.
 
@@ -122,7 +122,7 @@ preceded with an '@' symbol.
     [mode|@prefix|@stripPrefix|tokenPattern|@optional=true]
     type="Microsoft.Configuration.ConfigurationBuilders.EnvironmentConfigBuilder, Microsoft.Configuration.ConfigurationBuilders.Environment" />
 ```
-This is the simplest of the config builders. It draws its values from Environment, and it does not have any additional configuration options.
+This is the most basic of the config builders. It draws its values from Environment, and it does not have any additional configuration options.
   * __NOTE:__ In a Windows container environment, variables set at run time are only injected into the EntryPoint process environment. 
   Applications that run as a service or a non-EntryPoint process will not pick up these variables unless they are otherwise injected through
   some mechanism in the container. For [IIS](https://github.com/Microsoft/iis-docker/pull/41)/[ASP.Net](https://github.com/Microsoft/aspnet-docker)-based
@@ -255,7 +255,7 @@ entries: `item1` and `item2`.
     [keyDelimiter=":"]
     type="Microsoft.Configuration.ConfigurationBuilders.KeyPerFileConfigBuilder, Microsoft.Configuration.ConfigurationBuilders.KeyPerFile" />
 ```
-This is a simple config builder that uses a directory's files as a source of values. A file's name is the key, and the contents are the value. This
+This config builder uses a directory's files as a source of values. A file's name is the key, and the contents are the value. This
 config builder can be useful when running in an orchestrated container environment, as systems like Docker Swarm and Kubernetes provide 'secrets' to
 their orchestrated windows containers in this key-per-file manner.
   * `directoryPath` - This is a required attribute. It specifies a path to the source directory to look in for values. Docker for Windows secrets
@@ -275,7 +275,7 @@ their orchestrated windows containers in this key-per-file manner.
 Because .Net Core projects can rely heavily on json files for configuration, it makes some sense to allow those same files to be used in full-framework
 configuration as well. You can imagine that the heirarchical nature of json might enable some fantastic capabilities for building complex configuration sections.
 But this config builders is meant to be a simple mapping from a flat key/value source into specific key/value areas of full-framework configuration. Thus its name
-begins with 'Simple.' Think of the backing json file as a simple dictionary, rather than a comlex heirarchical object.
+begins with 'Simple.' Think of the backing json file as a basic dictionary, rather than a comlex heirarchical object.
 
 (A multi-level heirarchical file can be used. This provider will simply 'flatten' the depth by appending the property name at each level using ':' as a delimiter.)
 
@@ -345,7 +345,7 @@ When adding additional handlers, the name of the section must be 'Microsoft.Conf
 
 If you don't see a config builder here that suits your needs, you can write your own. Referencing the `Basic` nuget package for this project will get you the base upon which
 all of these builders inherit. Most of the heavy-ish lifting and consistent behavior across key/value config builders comes from this base. Take a look at the code for more
-detail, but in many cases implementing a custom key/value config builder in this same vein is as simple as inheriting the base, and implementing two simple methods.
+detail, but in many cases implementing a custom key/value config builder in this same vein is as easy as inheriting the base, and implementing two basic methods.
 ```CSharp
 using Microsoft.Configuration.ConfigurationBuilders;
 
