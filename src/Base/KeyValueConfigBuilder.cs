@@ -11,8 +11,8 @@ using System.Xml;
 namespace Microsoft.Configuration.ConfigurationBuilders
 {
     /// <summary>
-    /// Base class for a set of ConfigurationBuilders that follow a simple key/value pair substitution model. This base
-    /// class handles substitution modes and most prefix concerns, so implementing classes only need to be a simple
+    /// Base class for a set of ConfigurationBuilders that follow a basic key/value pair substitution model. This base
+    /// class handles substitution modes and most prefix concerns, so implementing classes only need to be a basic
     /// source of key/value pairs through the <see cref="GetValue(string)"/> and <see cref="GetAllValues(string)"/> methods.
     /// </summary>
     public abstract class KeyValueConfigBuilder : ConfigurationBuilder

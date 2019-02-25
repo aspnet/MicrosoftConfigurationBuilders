@@ -7,8 +7,8 @@
     <owners>Microsoft</owners>
     <copyright>&#169; Microsoft Corporation. All rights reserved.</copyright>
     <title>Microsoft Configuration Builders - Base</title>
-    <description>In .Net 4.7.1, the configuration system allows applications to use ConfigurationBuilders to build up and modify configuration at runtime when it is loaded. This package provides a base framework to ease development of simple key/value configuration builders.</description>
-    <summary>A base framework for simple key/value Configuration Builders for the .Net Desktop Framework.</summary>
+    <description>In .Net 4.7.1, the configuration system allows applications to use ConfigurationBuilders to build up and modify configuration at runtime when it is loaded. This package provides a base framework to ease development of basic key/value configuration builders.</description>
+    <summary>A base framework for basic key/value Configuration Builders for the .Net Framework.</summary>
     <language>en-US</language>
     <projectUrl>https://github.com/aspnet/MicrosoftConfigurationBuilders</projectUrl>
     <iconUrl>http://go.microsoft.com/fwlink/?LinkID=288859</iconUrl>

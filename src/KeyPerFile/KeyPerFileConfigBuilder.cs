@@ -61,7 +61,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
             // The Core KeyPerFile config provider does not do multi-level.
             // If KeyDelimiter is null, do single-level. Otherwise, multi-level.
-            // Empty string will do multi-level with simple non-delimited concatenation in greedy mode.
+            // Empty string will do multi-level with basic non-delimited concatenation in greedy mode.
             // Empty string will be effectively single-level in other modes.
             KeyDelimiter = config[keyDelimiterTag];
         }
