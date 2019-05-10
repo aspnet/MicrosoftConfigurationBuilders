@@ -140,13 +140,17 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
         private Dictionary<string, string> GetCurrentDictionary()
         {
+            Dictionary<string, string> d = _allSettings[""];
+
             if (JsonMode == SimpleJsonConfigBuilderMode.Sectional && _currentSection != null)
-            {
-                Dictionary<string, string> d = _allSettings[_currentSection];
-                return d ?? _allSettings[""];
+            {                
+                if (_allSettings.ContainsKey(_currentSection))
+                {
+                    d = _allSettings[_currentSection];
+                }                
             }
 
-            return _allSettings[""];
+            return d;
         }
 
         private Dictionary<string, string> LoadDictionaryFromJObject(JObject root)
