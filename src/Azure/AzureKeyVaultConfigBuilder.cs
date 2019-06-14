@@ -20,13 +20,13 @@ namespace Microsoft.Configuration.ConfigurationBuilders
     /// </summary>
     public class AzureKeyVaultConfigBuilder : KeyValueConfigBuilder
     {
-        #pragma warning disable CS1591 // No xml comments for tag literals.
+#pragma warning disable CS1591 // No xml comments for tag literals.
         public const string vaultNameTag = "vaultName";
         public const string connectionStringTag = "connectionString";
         public const string uriTag = "uri";
         public const string versionTag = "version";
         public const string preloadTag = "preloadSecretNames";
-        #pragma warning restore CS1591 // No xml comments for tag literals.
+#pragma warning restore CS1591 // No xml comments for tag literals.
 
         private string _vaultName;
         private string _connectionString;
@@ -62,9 +62,18 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             if (String.IsNullOrWhiteSpace(_uri))
             {
                 if (String.IsNullOrWhiteSpace(_vaultName))
+                {
+                    if (Optional)
+                    {
+                        return;
+                    }
+
                     throw new ArgumentException($"Vault must be specified by name or URI using the '{vaultNameTag}' or '{uriTag}' attribute.");
+                }
                 else
+                {
                     _uri = $"https://{_vaultName}.vault.azure.net";
+                }
             }
             _uri = _uri.TrimEnd(new char[] { '/' });
 
@@ -84,7 +93,8 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                 _kvClient = null;
             }
 
-            if (_preload) {
+            if (_preload)
+            {
                 _allKeys = GetAllKeys();
             }
         }
@@ -175,7 +185,9 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
                     SecretBundle secret = await _kvClient.GetSecretAsync(_uri, vKey.Key);
                     return secret;
-                } catch (KeyVaultErrorException kve) {
+                }
+                catch (KeyVaultErrorException kve)
+                {
                     // Simply return null if the secret wasn't found
                     if (kve.Body.Error.Code == "SecretNotFound" || kve.Body.Error.Code == "BadParameter")
                         return null;
