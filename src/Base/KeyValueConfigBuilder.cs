@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Text.RegularExpressions;
 using System.Xml;
+using System.Security;
 
 namespace Microsoft.Configuration.ConfigurationBuilders
 {
@@ -23,7 +24,8 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         public const string stripPrefixTag = "stripPrefix";
         public const string tokenPatternTag = "tokenPattern";
         public const string optionalTag = "optional";
-        #pragma warning restore CS1591 // No xml comments for tag literals.
+        public const string escapeTag = "escapeExpandedValues";
+#pragma warning restore CS1591 // No xml comments for tag literals.
 
         private NameValueCollection _config = null;
         private IDictionary<string, string> _cachedValues;
@@ -49,6 +51,11 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// </summary>
         public bool Optional { get { EnsureInitialized(); return _optional; } protected set { _optional = value; } }
         private bool _optional = true;
+        /// <summary>
+        /// Specifies whether the config builder should cause errors if the backing source cannot be found.
+        /// </summary>
+        public bool EscapeValues { get { EnsureInitialized(); return _escapeValues; } protected set { _escapeValues = value; } }
+        private bool _escapeValues = false;
         /// <summary>
         /// Gets or sets a regular expression used for matching tokens in raw xml during Greedy substitution.
         /// </summary>
@@ -113,6 +120,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             _keyPrefix = UpdateConfigSettingWithAppSettings(prefixTag) ?? _keyPrefix;
             _stripPrefix = (UpdateConfigSettingWithAppSettings(stripPrefixTag) != null) ? Boolean.Parse(config[stripPrefixTag]) : _stripPrefix;
             _optional = (UpdateConfigSettingWithAppSettings(optionalTag) != null) ? Boolean.Parse(config[optionalTag]) : _optional;
+            _escapeValues = (UpdateConfigSettingWithAppSettings(escapeTag) != null) ? Boolean.Parse(config[escapeTag]) : _escapeValues;
 
             _cachedValues = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             _lazyInitialized = true;
@@ -278,7 +286,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
                     // Same prefix-handling rules apply in expand mode as in strict mode.
                     // Since the key is being completely replaced by the value, we don't need to call UpdateKey().
-                    return GetValueInternal(key) ?? m.Groups[0].Value;
+                    return EscapeValue(GetValueInternal(key)) ?? m.Groups[0].Value;
                 });
             
             XmlDocument doc = new XmlDocument();
@@ -319,6 +327,12 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                 return fullString;
 
             return fullString.Substring(KeyPrefix.Length);
+        }
+
+        // Maybe this could be virtual? Simple xml escaping should be enough for most folks.
+        private string EscapeValue(string original)
+        {
+            return (_escapeValues && original != null) ? SecurityElement.Escape(original) : original;
         }
 
         #endregion

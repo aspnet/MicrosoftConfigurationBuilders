@@ -21,7 +21,7 @@
     "jsonComplex": {
       "setting1": "Complex Setting 1",
       "setting2": "Complex Setting 2",
-      "jsonArrayOfSettings": [ "one", "two", "three"]
+      "jsonArrayOfSettings": [ "one", "two", "three" ]
     }
   }
 }
