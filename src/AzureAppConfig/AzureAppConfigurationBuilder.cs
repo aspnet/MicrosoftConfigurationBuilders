@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Azure.AppConfiguration.Azconfig;
@@ -100,10 +101,23 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// </summary>
         /// <param name="key">The string to be validated. May be partial.</param>
         /// <returns>True if the string is valid. False if the string is not a valid key.</returns>
-        public override bool ValidateKey(ref string key)
+        public override bool ValidateKey(string key)
         {
-            // Azure App Config does not restrict key names, although a couple characters have special meaning if not escaped.
-            // We may want to restrict using those characters unescaped in a key name in the future.
+            // From - https://docs.microsoft.com/en-us/azure/azure-app-configuration/concept-key-value
+            // You can use any unicode character in key names entered into App Configuration except for *, ,, and \. These characters are
+            // reserved.If you need to include a reserved character, you must escape it by using \{ Reserved Character}.
+            if (String.IsNullOrWhiteSpace(key))
+                return false;
+
+            if (key.Contains('*') || key.Contains(','))
+                return false;
+
+            // We don't want to completely disallow '\' since it is used for escaping. But writing a full parser for someone elses
+            // naming format could be error prone. If we see a '\' followed by a '{', just call it good. Don't bother with the Regex
+            // if there aren't any backslashes though.
+            if (key.Contains('\\'))
+                return !Regex.IsMatch(key, @"\\[^{]");
+
             return true;
         }
 

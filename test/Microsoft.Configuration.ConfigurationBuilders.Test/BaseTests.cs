@@ -786,10 +786,9 @@ namespace Test
 
     class FakeKeyMappingConfigBuilder : FakeConfigBuilder
     {
-        public override bool ValidateKey(ref string key)
+        public override string MapKey(string key)
         {
-            key = key.Replace(":", "_");
-            return true;
+            return key.Replace(":", "_");
         }
 
         public override string UpdateKey(string rawKey)

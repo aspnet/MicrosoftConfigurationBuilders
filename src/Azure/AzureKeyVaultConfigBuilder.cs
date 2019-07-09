@@ -144,13 +144,32 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         }
 
         /// <summary>
+        /// Transform the given key to an intermediate format that will be used to look up values in backing store.
+        /// </summary>
+        /// <param name="key">The string to be mapped.</param>
+        /// <returns>The key string to be used while looking up config values..</returns>
+        public override string MapKey(string key)
+        {
+            if (String.IsNullOrEmpty(key))
+                return key;
+
+            // Colons and underscores are common in appSettings keys, but not allowed in key vault key names.
+            // It's likely that apps will want to lookup config values with these characters in their name in
+            // key vault. More extensive key mapping can be done with subclasses. But let's handle the most
+            // most common case here.
+            key = key.Replace(':', '-');
+            key = key.Replace('_', '-');
+            return key;
+        }
+
+        /// <summary>
         /// Makes a determination about whether the input key is valid for this builder and backing store.
         /// </summary>
         /// <param name="key">The string to be validated. May be partial.</param>
         /// <returns>True if the string is valid. False if the string is not a valid key.</returns>
-        public override bool ValidateKey(ref string key)
+        public override bool ValidateKey(string key)
         {
-            // Key Vault only allows alphanumerics and '-'. This builder also allows for one '/'.
+            // Key Vault only allows alphanumerics and '-'. This builder also allows for one '/' for versioning.
             return Regex.IsMatch(key, "^[a-zA-Z0-9-]+(/?[a-zA-Z0-9-]+)?$");
         }
 
