@@ -45,9 +45,9 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
             base.LazyInitialize(name, config);
 
-            _keyFilter = config[keyFilterTag];
-            _labelFilter = config[labelFilterTag];
-            _dateTimeFilter = DateTimeOffset.TryParse(config[dateTimeFilterTag], out _dateTimeFilter) ? _dateTimeFilter : DateTimeOffset.MinValue;
+            _keyFilter = UpdateConfigSettingWithAppSettings(keyFilterTag);
+            _labelFilter = UpdateConfigSettingWithAppSettings(labelFilterTag);
+            _dateTimeFilter = DateTimeOffset.TryParse(UpdateConfigSettingWithAppSettings(dateTimeFilterTag), out _dateTimeFilter) ? _dateTimeFilter : DateTimeOffset.MinValue;
 
             // Place some restrictions on label filter, similar to the .net core provider.
             // The idea is to restrict queries to one label, and one label only. Even if that
