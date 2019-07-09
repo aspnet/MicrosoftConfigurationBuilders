@@ -73,7 +73,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// </summary>
         /// <param name="key">The string to be validated. May be partial.</param>
         /// <returns>True if the string is valid. False if the string is not a valid key.</returns>
-        public virtual bool ValidateKey(string key) { return true; }
+        public virtual bool ValidateKey(ref string key) { return true; }
         /// <summary>
         /// Transforms the raw key to a new string just before updating items in Strict and Greedy modes.
         /// </summary>
@@ -244,13 +244,14 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             {
                 // In Greedy mode, we need to know all the key/value pairs from this config source. So we
                 // can't 'cache' them as we go along. Slurp them all up now. But only once. ;)
-                if (!_greedyInitialized && (String.IsNullOrEmpty(KeyPrefix) || ValidateKey(KeyPrefix)))
+                if (!_greedyInitialized)
                 {
+                    string prefix = KeyPrefix;  // Do this outside the lock. It ensures _cachedValues is initialized.
                     lock (_cachedValues)
                     {
-                        if (!_greedyInitialized)
+                        if (!_greedyInitialized && (String.IsNullOrEmpty(prefix) || ValidateKey(ref prefix)))
                         {
-                            foreach (KeyValuePair<string, string> kvp in GetAllValues(KeyPrefix))
+                            foreach (KeyValuePair<string, string> kvp in GetAllValues(prefix))
                             {
                                 _cachedValues.Add(kvp);
                             }
@@ -302,7 +303,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                 // ie <add key="MySetting" /> should only match the key/value (KeyPrefix + "MySetting") from the source.
                 string sourceKey = (StripPrefix) ? KeyPrefix + key : key;
 
-                if (!ValidateKey(sourceKey))
+                if (!ValidateKey(ref sourceKey))
                     return null;
 
                 return (_cachedValues.ContainsKey(sourceKey)) ? _cachedValues[sourceKey] : _cachedValues[sourceKey] = GetValue(sourceKey);

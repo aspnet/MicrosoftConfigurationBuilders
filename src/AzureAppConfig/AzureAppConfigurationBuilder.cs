@@ -100,7 +100,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// </summary>
         /// <param name="key">The string to be validated. May be partial.</param>
         /// <returns>True if the string is valid. False if the string is not a valid key.</returns>
-        public override bool ValidateKey(string key)
+        public override bool ValidateKey(ref string key)
         {
             // Azure App Config does not restrict key names, although a couple characters have special meaning if not escaped.
             // We may want to restrict using those characters unescaped in a key name in the future.

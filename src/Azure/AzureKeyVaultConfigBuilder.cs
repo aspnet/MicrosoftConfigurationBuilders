@@ -148,7 +148,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// </summary>
         /// <param name="key">The string to be validated. May be partial.</param>
         /// <returns>True if the string is valid. False if the string is not a valid key.</returns>
-        public override bool ValidateKey(string key)
+        public override bool ValidateKey(ref string key)
         {
             // Key Vault only allows alphanumerics and '-'. This builder also allows for one '/'.
             return Regex.IsMatch(key, "^[a-zA-Z0-9-]+(/?[a-zA-Z0-9-]+)?$");
