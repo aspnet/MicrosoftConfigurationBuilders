@@ -39,11 +39,13 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// Gets or sets the substitution pattern to be used by the KeyValueConfigBuilder.
         /// </summary>
         public KeyValueMode Mode { get; private set; } = KeyValueMode.Strict;
+
         /// <summary>
         /// Gets or sets a prefix string that must be matched by keys to be considered for value substitution.
         /// </summary>
         public string KeyPrefix { get { EnsureInitialized(); return _keyPrefix; } }
         private string _keyPrefix = "";
+
         private bool StripPrefix { get { EnsureInitialized(); return _stripPrefix; } }
         private bool _stripPrefix = false;  // Prefix-stripping is all handled in this base class; this is private so it doesn't confuse sub-classes.
         /// <summary>
@@ -51,6 +53,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// </summary>
         public bool Optional { get { EnsureInitialized(); return _optional; } protected set { _optional = value; } }
         private bool _optional = true;
+
         /// <summary>
         /// Specifies whether the config builder should cause errors if the backing source cannot be found.
         /// </summary>
@@ -60,7 +63,8 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// Gets or sets a regular expression used for matching tokens in raw xml during Greedy substitution.
         /// </summary>
         public string TokenPattern { get { EnsureInitialized(); return _tokenPattern; } protected set { _tokenPattern = value; } }
-        private string _tokenPattern = @"\$\{(\w+)\}";
+        //private string _tokenPattern = @"\$\{(\w+)\}";
+        private string _tokenPattern = @"\$\{(\w[\w-_$@#+,.:~]*)\}";    // Updated to be more reasonable for V2
 
         /// <summary>
         /// Looks up a single 'value' for the given 'key.'
@@ -68,6 +72,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// <param name="key">The 'key' to look up in the config source. (Prefix handling is not needed here.)</param>
         /// <returns>The value corresponding to the given 'key' or null if no value is found.</returns>
         public abstract string GetValue(string key);
+
         /// <summary>
         /// Retrieves all known key/value pairs for the configuration source where the key begins with with <paramref name="prefix"/>.
         /// </summary>
@@ -87,6 +92,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// <param name="key">The string to be validated. May be partial.</param>
         /// <returns>True if the string is valid. False if the string is not a valid key.</returns>
         public virtual bool ValidateKey(string key) { return true; }
+
         /// <summary>
         /// Transforms the raw key to a new string just before updating items in Strict and Greedy modes.
         /// </summary>
