@@ -138,7 +138,7 @@ function UpdateDeclarations($config, $builderDescription) {
 		$count++
 
 		# Update type
-		$builder.type = "$($builderDescription.TypeName), $($builderDescription.Assembly), Version=$($builderDescription.Version), Culture=neutral"
+		$builder.type = "$($builderDescription.TypeName), $($builderDescription.Assembly), Version=$($builderDescription.Version), Culture=neutral, PublicKeyToken=31bf3856ad364e35"
 
 		# Add default parameters if they are required and not already present
 		foreach ($p in $builderDescription.AllowedParameters | where { $_.IsRequired -eq $true }) {
@@ -182,7 +182,7 @@ function AddDefaultDeclaration($config, $builderDescription) {
 	}
 
 	# type last
-	$dd.SetAttribute("type", "$($builderDescription.TypeName), $($builderDescription.Assembly), Version=$($builderDescription.Version), Culture=neutral")
+	$dd.SetAttribute("type", "$($builderDescription.TypeName), $($builderDescription.Assembly), Version=$($builderDescription.Version), Culture=neutral, PublicKeyToken=31bf3856ad364e35")
 
 	AppendBuilderNode $dd $config.xml.configuration.configBuilders.builders
 }
