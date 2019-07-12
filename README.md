@@ -176,44 +176,22 @@ and currently exposes the format of the file which, as mentioned above, should b
 ```xml
 <add name="AzureAppConfig"
     [mode|@prefix|@stripPrefix|tokenPattern|@escapeExpandedValues|@optional=false]
-    (@vaultName="MyVaultName" | @uri="https://MyVaultName.vault.azure.net")
-    [@connectionString="connection string"]
-    [@version="secrets version"]
-    [@preloadSecretNames="true"]
-    type="Microsoft.Configuration.ConfigurationBuilders.AzureKeyVaultConfigBuilder, Microsoft.Configuration.ConfigurationBuilders.Azure" />
+    (@endpoint="https://your-appconfig-store.azconfig.io" | @connectionString="Endpoint=https://your-appconfig-store.azconfig.io;Id=XXXXXXXXXX;Secret=XXXXXXXXXX")
+    [@keyFilter="string"]
+    [@labelFilter="label"]
+    [@preferredDateTime="DateTimeOffset"]
+    type="Microsoft.Configuration.ConfigurationBuilders.AzureAppConfigurationBuilder, Microsoft.Configuration.ConfigurationBuilders.AzureAppConfig" />
 ```
-		[ParameterDescription]@{ Name="endpoint"; IsRequired=$false; DefaultValue="[Config_Store_Endpoint_Url]" },
-		[ParameterDescription]@{ Name="connectionString"; IsRequired=$false },
-		[ParameterDescription]@{ Name="keyFilter"; IsRequired=$false });
-		[ParameterDescription]@{ Name="labelFilter"; IsRequired=$false });
-		[ParameterDescription]@{ Name="preferredDateTime"; IsRequired=$false },
-If your secrets are kept in Azure Key Vault, then this config builder is for you. There are three additional attributes for this config builder. The `vaultName` is
-required. The other attributes allow you some manual control about which vault to connect to, but are only necessary if the application is not running in an
-environment that works magically with `Microsoft.Azure.Services.AppAuthentication`. The Azure Services Authentication library is used to automatically pick
-up connection information from the execution environment if possible, but you can override that feature by providing a connection string instead.
-  * `vaultName` - This is a required attribute. It specifies the name of the vault in your Azure subscription from which to read key/value pairs.
-  * `connectionString` - A connection string usable by [AzureServiceTokenProvider](https://docs.microsoft.com/en-us/azure/key-vault/service-to-service-authentication#connection-string-support)
-  * `uri` - Connect to other Key Vault providers with this attribute. If not specified, Azure is the assumed Vault provider. If the uri _is_specified, then `vaultName` is no longer a required parameter.
-  * `version` - Azure Key Vault provides a versioning feature for secrets. If this is specified, the builder will only retrieve secrets matching this version.
-  * `preloadSecretNames` - By default, this builder will query __all__ the key names in the key vault when it is initialized. If this is a concern, set
-  this attribute to 'false', and secrets will be retrieved one at a time. This could also be useful if the vault allows "Get" access but not
-  "List" access. (NOTE: Disabling preload is incompatible with Greedy mode.)
-Tip: Azure Key Vault uses random per-secret Guid assignments for versioning, which makes specifying a secret `version` tag on this builder rather
-limiting, as it will only ever update one config value. To make version handling more useful, V2 of this builder takes advantage of the new key-updating
-feature to allow users to specify version tags in key names rather than on the config builder declaration. That way, the same builder can handle multiple
-keys with specific versions instead of needing to redefine multiple builders.
-When requesting a specific version for a particular key, the key name in the original config file should look like __`keyName/versionId`__. The
-AzureKeyVaultConfigBuilder will only substitue values for 'keyName' if the specified 'versionId' exists in the vault. When that happens, the
-AzureKeyVaultConfigBuilder will remove the `/versionId` from the original key, and the resulting config section will only contain `keyName`.
-For example:
-```xml
-<appSettings configBuilders="AzureKeyVault">
-  <add key="item1" value="Replaced with latest value from the key vault." />
-  <add key="item2/0123456789abcdefdeadbeefbadf00d" value="Replaced with specific version only." />
-</appSettings>
-```
-Assuming both of these items exist in the vault, and the version tag for `item2` is valid, this would result in an collection of appSettings with two
-entries: `item1` and `item2`.
+[AppConfiguration](https://docs.microsoft.com/en-us/azure/azure-app-configuration/overview) is a new offering from Azure, currently in preview. If you
+wish to use this new service for managing your configuration, then use this AzureAppConfigurationBuilder. Either `endpoint` or `connectionString` are
+required, but all other attributes are optional. If both `endpoint` and `connectionString` are used, then preference is given to the connection string.
+It is however, __strongly__ encouraged to use `endpoint` with a managed service identity in Azure.
+  * `endpoint` - This specifies the AppConfiguration store to connect to.
+  * `connectionString` - This specifies the AppConfiguration store to connect to, along with the Id and Secret necessary to access the service.
+  * `keyFilter` - Use this to select a set of configuration values matching a certain key pattern.
+  * `labelFilter` - Only retrieve configuration values that match a certain label.
+  * `preferredDateTime` - Instead of versioning ala Azure Key Vault, AppConfiguration uses timestamps. Use this attribute to go back in time
+  to retrieve configuration values from a past state.
 
 ### AzureKeyVaultConfigBuilder
 ```xml
@@ -314,7 +292,8 @@ will allow any `KeyValueConfigBuilder` to operate specifically on a section of t
 ```CSharp
 public class MySpecialSectionHandler : SectionHandler<MySpecialSection>
 {
-	// T ConfigSection;
+    // T ConfigSection;
+    // public override void Initialize(string name, NameValueCollection config) {}
 
     public override IEnumerator<KeyValuePair<string, object>> GetEnumerator() {}
 
@@ -331,7 +310,12 @@ enumerable list of key/value things. The 'value' side of that pair doesn't even 
 can simply update the old connection string (thereby preserving other existing properties like 'ProviderName') instead of creating a
 new one from scratch.
 
-New section handlers can be introduced to the config system... via config. The `AppSettingsSectionHandler` and `ConnectionStringsSectionHandler`
+New section handlers can be introduced to the config system... via config. Section handlers do follow along with the old 
+provider model introduced in .Net 2.0, so they require `name` and `type` attributes, but can additionally support any other
+attribute needed by passing them in a `NameValueCollection` to the `Initialize(name, config)` method.
+
+
+The `AppSettingsSectionHandler` and `ConnectionStringsSectionHandler`
 are implicitly added at the root level config, but they can be clear/removed just like any other item in an add/remove/clear configuration
 collection. As an example, here is what their explicit declaration would look like:
 ```xml
@@ -359,9 +343,9 @@ compiled in a separate assembly in the 'bin' directory. For example:
 <Microsoft.Configuration.ConfigurationBuilders.SectionHandlers>
   <handlers>
     <remove name="DefaultAppSettingsHandler" />
-    <add name="DefaultAppSettingsHandler" type="MyCustomAppSettingsSectionHandler, RefAssemblyInBin" />
+    <add name="DefaultAppSettingsHandler" customAttr="foo" type="MyCustomAppSettingsSectionHandler, RefAssemblyInBin" />
     <remove name="DefaultConnectionStringsHandler" />
-    <add name="DefaultConnectionStringsHandler" type="MyCustomConnectionStringsSectionHandler, App_Code" />
+    <add name="DefaultConnectionStringsHandler" superCustomAttr="bar" superDuperCustomAttr="42" type="MyCustomConnectionStringsSectionHandler, App_Code" />
   </handlers>
 </Microsoft.Configuration.ConfigurationBuilders.SectionHandlers>
 ```
@@ -398,7 +382,7 @@ public class CustomConfigBuilder : KeyValueConfigBuilder
         {
             // Use this initializer for things that must be read from 'config' immediately upon creation.
             // AppSettings parameter substitution is not available at this point.
-			// Try using LazyInitialize(string, NameValueCollection) instead when possible.
+            // Try using LazyInitialize(string, NameValueCollection) instead when possible.
         }
 
         protected override void LazyInitialize(string name, NameValueCollection config)
@@ -416,9 +400,9 @@ public class CustomConfigBuilder : KeyValueConfigBuilder
             // are able to translate the bad format to a known good format to get a value from your
             // config source, use this method.
             // Ex) AppSettings are commonly named things like "area:feature", but the ':' is not a legal
-			//    character for key names in Azure Key Vault. MapKey() can help translate the ':' to a
-			//    '-' in this case, which will allow the ability to look up a config value for this appSetting
-			//    in Key Vault, even though it's original key name is not valid in Key Vault.
+            //    character for key names in Azure Key Vault. MapKey() can help translate the ':' to a
+            //    '-' in this case, which will allow the ability to look up a config value for this appSetting
+            //    in Key Vault, even though it's original key name is not valid in Key Vault.
         }
 
         public override bool ValidateKey(string key)
