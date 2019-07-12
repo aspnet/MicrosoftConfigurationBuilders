@@ -3,6 +3,9 @@
 
 using System.Configuration;
 using System.Collections.Generic;
+using System.Configuration.Provider;
+using System.Collections.Specialized;
+using System;
 
 namespace Microsoft.Configuration.ConfigurationBuilders
 {
@@ -17,7 +20,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
     /// A class to be used by <see cref="KeyValueConfigBuilder"/>s to apply key/value config pairs to .Net configuration sections.
     /// </summary>
     /// <typeparam name="T">The type of <see cref="ConfigurationSection"/> that the implementing class can process.</typeparam>
-    public abstract class SectionHandler<T> : ISectionHandler where T : ConfigurationSection
+    public abstract class SectionHandler<T> : ProviderBase, ISectionHandler where T : ConfigurationSection
     {
         /// <summary>
         /// The <see cref="ConfigurationSection"/> instance being processed by this <see cref="SectionHandler{T}"/>.
@@ -41,6 +44,12 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// <param name="oldKey">The old key name for the config item, or null.</param>
         /// <param name="oldItem">A reference to the old key/value pair obtained by <see cref="GetEnumerator"/>, or null.</param>
         public abstract void InsertOrUpdate(string newKey, string newValue, string oldKey = null, object oldItem = null);
+
+        private void Initialize(string name, T configSection, NameValueCollection config)
+        {
+            ConfigSection = configSection;
+            Initialize(name, config);
+        }
     }
 
     /// <summary>

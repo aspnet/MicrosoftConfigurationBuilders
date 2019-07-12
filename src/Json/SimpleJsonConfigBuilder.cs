@@ -142,8 +142,8 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         {
             if (JsonMode == SimpleJsonConfigBuilderMode.Sectional && _currentSection != null)
             {
-                Dictionary<string, string> d = _allSettings[_currentSection];
-                return d ?? _allSettings[""];
+                if (_allSettings.TryGetValue(_currentSection, out Dictionary<string, string> d))
+                    return d;
             }
 
             return _allSettings[""];

@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Text.RegularExpressions;
 using System.Xml;
+using System.Security;
 
 namespace Microsoft.Configuration.ConfigurationBuilders
 {
@@ -23,7 +24,8 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         public const string stripPrefixTag = "stripPrefix";
         public const string tokenPatternTag = "tokenPattern";
         public const string optionalTag = "optional";
-        #pragma warning restore CS1591 // No xml comments for tag literals.
+        public const string escapeTag = "escapeExpandedValues";
+#pragma warning restore CS1591 // No xml comments for tag literals.
 
         private NameValueCollection _config = null;
         private IDictionary<string, string> _cachedValues;
@@ -53,6 +55,11 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         private bool _optional = true;
 
         /// <summary>
+        /// Specifies whether the config builder should cause errors if the backing source cannot be found.
+        /// </summary>
+        public bool EscapeValues { get { EnsureInitialized(); return _escapeValues; } protected set { _escapeValues = value; } }
+        private bool _escapeValues = false;
+        /// <summary>
         /// Gets or sets a regular expression used for matching tokens in raw xml during Greedy substitution.
         /// </summary>
         public string TokenPattern { get { EnsureInitialized(); return _tokenPattern; } protected set { _tokenPattern = value; } }
@@ -73,6 +80,12 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// <returns>A collection of key/value pairs.</returns>
         public abstract ICollection<KeyValuePair<string, string>> GetAllValues(string prefix);
 
+        /// <summary>
+        /// Transform the given key to an intermediate format that will be used to look up values in backing store.
+        /// </summary>
+        /// <param name="key">The string to be mapped.</param>
+        /// <returns>The key string to be used while looking up config values..</returns>
+        public virtual string MapKey(string key) { return key; }
         /// <summary>
         /// Makes a determination about whether the input key is valid for this builder and backing store.
         /// </summary>
@@ -119,6 +132,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             _keyPrefix = UpdateConfigSettingWithAppSettings(prefixTag) ?? _keyPrefix;
             _stripPrefix = (UpdateConfigSettingWithAppSettings(stripPrefixTag) != null) ? Boolean.Parse(config[stripPrefixTag]) : _stripPrefix;
             _optional = (UpdateConfigSettingWithAppSettings(optionalTag) != null) ? Boolean.Parse(config[optionalTag]) : _optional;
+            _escapeValues = (UpdateConfigSettingWithAppSettings(escapeTag) != null) ? Boolean.Parse(config[escapeTag]) : _escapeValues;
 
             _cachedValues = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             _lazyInitialized = true;
@@ -250,13 +264,14 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             {
                 // In Greedy mode, we need to know all the key/value pairs from this config source. So we
                 // can't 'cache' them as we go along. Slurp them all up now. But only once. ;)
-                if (!_greedyInitialized && (String.IsNullOrEmpty(KeyPrefix) || ValidateKey(KeyPrefix)))
+                if (!_greedyInitialized)
                 {
+                    string prefix = MapKey(KeyPrefix);  // Do this outside the lock. It ensures _cachedValues is initialized.
                     lock (_cachedValues)
                     {
-                        if (!_greedyInitialized)
+                        if (!_greedyInitialized && (String.IsNullOrEmpty(prefix) || ValidateKey(prefix)))
                         {
-                            foreach (KeyValuePair<string, string> kvp in GetAllValues(KeyPrefix))
+                            foreach (KeyValuePair<string, string> kvp in GetAllValues(prefix))
                             {
                                 _cachedValues.Add(kvp);
                             }
@@ -284,7 +299,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
                     // Same prefix-handling rules apply in expand mode as in strict mode.
                     // Since the key is being completely replaced by the value, we don't need to call UpdateKey().
-                    return GetValueInternal(key) ?? m.Groups[0].Value;
+                    return EscapeValue(GetValueInternal(key)) ?? m.Groups[0].Value;
                 });
             
             XmlDocument doc = new XmlDocument();
@@ -306,7 +321,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
                 // Stripping Prefix in strict mode means from the source key. The static config file will have a prefix-less key to match.
                 // ie <add key="MySetting" /> should only match the key/value (KeyPrefix + "MySetting") from the source.
-                string sourceKey = (StripPrefix) ? KeyPrefix + key : key;
+                string sourceKey = MapKey((StripPrefix) ? KeyPrefix + key : key);
 
                 if (!ValidateKey(sourceKey))
                     return null;
@@ -325,6 +340,12 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                 return fullString;
 
             return fullString.Substring(KeyPrefix.Length);
+        }
+
+        // Maybe this could be virtual? Simple xml escaping should be enough for most folks.
+        private string EscapeValue(string original)
+        {
+            return (_escapeValues && original != null) ? SecurityElement.Escape(original) : original;
         }
 
         #endregion

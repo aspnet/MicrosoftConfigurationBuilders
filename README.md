@@ -19,7 +19,7 @@ Version 2 is here with some new features:
   * Base Optional Tag - The [optional](#optional) tag that some of the builders in this project employed in V1 has been moved into the base class and is now available
 		on all key/value config builders.
   * Section Handlers - This feature allows users to develop extensions that will apply key/value config to sections other than `appSettings` and `connectionStrings`
-		if desired. Read more about this feature in the [Section Handlers](#sectionhandlers) segment below.
+		if desired. Read more about this feature in the [Section Handlers](#section-handlers) segment below.
 
 ## Key/Value Config Builders
 
@@ -68,6 +68,13 @@ key name before being inserted into AppSettings. `stripPrefix` is a boolean valu
 #### optional
 This setting is a boolean that specified whether to avoid throwing exceptions when the backing configuration source cannot be found or connected.
 The default default value is `true`, though some config builders (such as the Azure-based builders) will use a different default.
+
+#### escapeExpandedValues
+.Net configuration is XML-based in it's raw form. While these config builders work on `ConfigurationSection` objects in `Strict` and `Greedy` modes,
+when operating in `Expand` mode, tokens in the raw XML input are directly replaced with values. Applications that use `Expand` mode may do so because
+they need to inject additional XML rather than just a string value. But for the cases when a simple string replacement is the goal, unescaped XML
+characters in replacement values may result in invalid XML. In these cases, simply set the `escapeExpandedValues` attribute to `true` and the
+config builder will escape special XML characters before replacing tokens in `Expand` mode. The default value is `false`.
 
 #### tokenPattern
 This is a setting that is shared between all KeyValueConfigBuilder-derived builders is `tokenPattern`. When describing the `Expand` behavior of these builders
@@ -119,7 +126,7 @@ preceded with an '@' symbol.
 ### EnvironmentConfigBuilder
 ```xml
 <add name="Environment"
-    [mode|@prefix|@stripPrefix|tokenPattern|@optional=true]
+    [mode|@prefix|@stripPrefix|tokenPattern|@escapeExpandedValues|@optional=true]
     type="Microsoft.Configuration.ConfigurationBuilders.EnvironmentConfigBuilder, Microsoft.Configuration.ConfigurationBuilders.Environment" />
 ```
 This is the most basic of the config builders. It draws its values from Environment, and it does not have any additional configuration options.
@@ -132,7 +139,7 @@ This is the most basic of the config builders. It draws its values from Environm
 ### UserSecretsConfigBuilder
 ```xml
 <add name="UserSecrets"
-    [mode|@prefix|@stripPrefix|tokenPattern|@optional=true]
+    [mode|@prefix|@stripPrefix|tokenPattern|@escapeExpandedValues|@optional=true]
     (@userSecretsId="12345678-90AB-CDEF-1234-567890" | @userSecretsFile="~\secrets.file")
     type="Microsoft.Configuration.ConfigurationBuilders.UserSecretsConfigBuilder, Microsoft.Configuration.ConfigurationBuilders.UserSecrets" />
 ```
@@ -168,7 +175,7 @@ and currently exposes the format of the file which, as mentioned above, should b
 ### AzureAppConfigurationBuilder
 ```xml
 <add name="AzureAppConfig"
-    [mode|@prefix|@stripPrefix|tokenPattern|@optional=false]
+    [mode|@prefix|@stripPrefix|tokenPattern|@escapeExpandedValues|@optional=false]
     (@vaultName="MyVaultName" | @uri="https://MyVaultName.vault.azure.net")
     [@connectionString="connection string"]
     [@version="secrets version"]
@@ -211,7 +218,7 @@ entries: `item1` and `item2`.
 ### AzureKeyVaultConfigBuilder
 ```xml
 <add name="AzureKeyVault"
-    [mode|@prefix|@stripPrefix|tokenPattern|@optional=false]
+    [mode|@prefix|@stripPrefix|tokenPattern|@escapeExpandedValues|@optional=false]
     (@vaultName="MyVaultName" | @uri="https://MyVaultName.vault.azure.net")
     [@connectionString="connection string"]
     [@version="secrets version"]
@@ -249,7 +256,7 @@ entries: `item1` and `item2`.
 ### KeyPerFileConfigBuilder
 ```xml
 <add name="KeyPerFile"
-    [mode|@prefix|@stripPrefix|tokenPattern|@optional=false]
+    [mode|@prefix|@stripPrefix|tokenPattern|@escapeExpandedValues|@optional=false]
 	(@directoryPath="PathToSourceDirectory")
     [@ignorePrefix="ignore."]
     [keyDelimiter=":"]
@@ -267,7 +274,7 @@ their orchestrated windows containers in this key-per-file manner.
 ### SimpleJsonConfigBuilder
 ```xml
 <add name="SimpleJson"
-    [mode|@prefix|@stripPrefix|tokenPattern|@optional=true]
+    [mode|@prefix|@stripPrefix|tokenPattern|@escapeExpandedValues|@optional=true]
     @jsonFile="~\config.json"
     [@jsonMode="(Flat|Sectional)"]
     type="Microsoft.Configuration.ConfigurationBuilders.SimpleJsonConfigBuilder, Microsoft.Configuration.ConfigurationBuilders.Json" />
@@ -339,7 +346,25 @@ collection. As an example, here is what their explicit declaration would look li
   </handlers>
 </Microsoft.Configuration.ConfigurationBuilders.SectionHandlers>
 ```
-When adding additional handlers, the name of the section must be 'Microsoft.Configuration.ConfigurationBuilders.SectionHandlers' so key/value config builders can find it.
+When adding additional handlers, the name of this section must be 'Microsoft.Configuration.ConfigurationBuilders.SectionHandlers' so key/value config builders can find it.
+Also note that a more qualified type will be required so the runtime can determine which assembly contains the new handler type. When working
+with ASP.Net applications, it is hit and miss regarding whether its able to define new section handlers in `App_Code` or not. Some configuration
+sections (such as `appSettings`) get loaded by ASP.Net before `App_Code` is compiled, so handlers for those sections will need to be
+compiled in a separate assembly in the 'bin' directory. For example:
+```xml
+<configSections>
+  <section name="Microsoft.Configuration.ConfigurationBuilders.SectionHandlers" type="Microsoft.Configuration.ConfigurationBuilders.SectionHandlersSection, Microsoft.Configuration.ConfigurationBuilders.Base" restartOnExternalChanges="false" requirePermission="false" />
+</configSections>
+
+<Microsoft.Configuration.ConfigurationBuilders.SectionHandlers>
+  <handlers>
+    <remove name="DefaultAppSettingsHandler" />
+    <add name="DefaultAppSettingsHandler" type="MyCustomAppSettingsSectionHandler, RefAssemblyInBin" />
+    <remove name="DefaultConnectionStringsHandler" />
+    <add name="DefaultConnectionStringsHandler" type="MyCustomConnectionStringsSectionHandler, App_Code" />
+  </handlers>
+</Microsoft.Configuration.ConfigurationBuilders.SectionHandlers>
+```
 
 ## Implementing More Key/Value Config Builders
 

@@ -2,7 +2,9 @@
 // Licensed under the MIT license. See the License.txt file in the project root for full license information.
 
 using System;
+using System.Collections.Specialized;
 using System.Configuration;
+using System.Reflection;
 
 namespace Microsoft.Configuration.ConfigurationBuilders
 {
@@ -62,13 +64,20 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                     ISectionHandler handler = Activator.CreateInstance(handlerType) as ISectionHandler;
                     if (handler != null)
                     {
-                        sectionHandlerDesiredType.GetProperty("ConfigSection").SetValue(handler, configSection);
+                        ProviderSettings settings = handlerSection.Handlers[i];
+                        NameValueCollection clonedParams = new NameValueCollection(settings.Parameters.Count);
+                        foreach (string key in settings.Parameters)
+                            clonedParams[key] = settings.Parameters[key];
+
+                        MethodInfo init = sectionHandlerDesiredType.GetMethod("Initialize", BindingFlags.NonPublic | BindingFlags.Instance);
+                        init.Invoke(handler, new object[] { settings.Name, configSection, clonedParams });
+
+                        return handler;
                     }
-                    return handler;
                 }
             }
 
-            return null;
+            throw new Exception($"Error in Configuration: Cannot find ISectionHandler for '{configSection.SectionInformation.Name}' section.");
         }
     }
 }
