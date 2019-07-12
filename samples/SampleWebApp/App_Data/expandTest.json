@@ -1,0 +1,3 @@
+﻿{
+  "expandTestCS": "A & really ' bad \" unescaped < connection > string."
+}
