@@ -119,7 +119,7 @@ namespace Test
             // Default string. (Not null)
             var builder = new FakeConfigBuilder();
             builder.Initialize("test", new System.Collections.Specialized.NameValueCollection());
-            Assert.Equal(@"\$\{(\w+)\}", builder.TokenPattern);
+            Assert.Equal(@"\$\{(\w[\w-_$@#+,.:~]*)\}", builder.TokenPattern);
 
             // TokenPattern, case preserved
             builder = new FakeConfigBuilder();

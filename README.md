@@ -396,32 +396,44 @@ public class CustomConfigBuilder : KeyValueConfigBuilder
 {
         public override void Initialize(string name, NameValueCollection config)
         {
-			// Use this initializer for things that must be read from 'config' immediately upon creation.
-			// AppSettings parameter substitution is not available at this point.
-		}
+            // Use this initializer for things that must be read from 'config' immediately upon creation.
+            // AppSettings parameter substitution is not available at this point.
+			// Try using LazyInitialize(string, NameValueCollection) instead when possible.
+        }
 
         protected override void LazyInitialize(string name, NameValueCollection config)
         {
-			// Use this for things that don't need to be initialized until just before
-			// config values are retrieved.
-			// Be sure to begin with 'base.LazyInitialize(name, config)'. AppSettings
-			// parameter substitution via 'UpdateConfigSettingWithAppSettings(parameterName)'
-			// will be available after that call.
-		}
+            // Use this for things that don't need to be initialized until just before
+            // config values are retrieved.
+            // Be sure to begin with 'base.LazyInitialize(name, config)'. AppSettings
+            // parameter substitution via 'UpdateConfigSettingWithAppSettings(parameterName)'
+            // will be available after that call.
+        }
 
-		public override bool ValidateKey(string key)
-		{
-			// A no-op by default. If your backing storage cannot handle certain characters, this is a one-stop
-			// place for screening key names. It is particularly helpful in `Strict` and `Expand` modes where
-			// key names for lookup are taken from *.config files and could potentially contain invalid
-			// characters that cause exceptions in the backing config store.
-		}
+        public override bool MapKey(string key)
+        {
+            // If you know the format of the key pulled from *.config files is going to be invalid, but you
+            // are able to translate the bad format to a known good format to get a value from your
+            // config source, use this method.
+            // Ex) AppSettings are commonly named things like "area:feature", but the ':' is not a legal
+			//    character for key names in Azure Key Vault. MapKey() can help translate the ':' to a
+			//    '-' in this case, which will allow the ability to look up a config value for this appSetting
+			//    in Key Vault, even though it's original key name is not valid in Key Vault.
+        }
 
-		public override string UpdateKey(string rawKey)
-		{
-			// Just before replacing retrieved values in a config section, this method gets called.
-			// 'AzureKeyVaultConfigBuilder' uses this override to strip version tags from keys.
-		}
+        public override bool ValidateKey(string key)
+        {
+            // A no-op by default. If your backing storage cannot handle certain characters, this is a one-stop
+            // place for screening key names. It is particularly helpful in `Strict` and `Expand` modes where
+            // key names for lookup are taken from *.config files and could potentially contain invalid
+            // characters that cause exceptions in the backing config store.
+        }
+
+        public override string UpdateKey(string rawKey)
+        {
+            // Just before replacing retrieved values in a config section, this method gets called.
+            // 'AzureKeyVaultConfigBuilder' uses this override to strip version tags from keys.
+        }
 }
 ```
 
