@@ -494,6 +494,113 @@ namespace Test
             Assert.Equal("Prefix_TestKey1Value", newSettings.Settings["Prefix_TestKey1"]?.Value);
         }
 
+        // ======================================================================
+        //   Extension Points
+        // ======================================================================
+        [Fact]
+        public void Ext_KeyMapping()
+        {
+            // Strict
+            var builder = new FakeKeyMappingConfigBuilder();
+            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection());
+            AppSettingsSection newSettings = (AppSettingsSection)builder.ProcessConfigurationSection(GetAppSettings());
+            Assert.Equal("TestKey1Value", newSettings.Settings["TestKey1"]?.Value);
+            Assert.Equal("${TestKey1}", newSettings.Settings["test1"]?.Value);
+            Assert.Equal("expandTestValue", newSettings.Settings["${TestKey1}"]?.Value);
+            Assert.Equal("PrefixTest1", newSettings.Settings["TestKey"]?.Value);
+            Assert.Null(newSettings.Settings["Prefix_TestKey"]?.Value);
+            Assert.Equal("Prefix_TestKeyValue", newSettings.Settings["Prefix#TestKey"]?.Value);
+            Assert.Equal("${Prefix_TestKey1}", newSettings.Settings["PreTest2"]?.Value);
+            Assert.Equal("MappingTest1", newSettings.Settings["Prefix_Alt_Token"]?.Value);
+            Assert.Null(newSettings.Settings["Alt#Token"]?.Value);
+            Assert.Null(newSettings.Settings["Alt_Token"]?.Value);
+            Assert.Equal("ThisWasADifferentAlternateTokenPattern", newSettings.Settings["Alt:Token"]?.Value);
+
+            // Strict with prefix
+            builder = new FakeKeyMappingConfigBuilder();
+            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "prefix", "Prefix_" } });
+            newSettings = (AppSettingsSection)builder.ProcessConfigurationSection(GetAppSettings());
+            Assert.Equal("val1", newSettings.Settings["TestKey1"]?.Value);
+            Assert.Equal("${TestKey1}", newSettings.Settings["test1"]?.Value);
+            Assert.Equal("expandTestValue", newSettings.Settings["${TestKey1}"]?.Value);
+            Assert.Equal("PrefixTest1", newSettings.Settings["TestKey"]?.Value);
+            Assert.Null(newSettings.Settings["Prefix_TestKey"]?.Value);
+            Assert.Equal("Prefix_TestKeyValue", newSettings.Settings["Prefix#TestKey"]?.Value);
+            Assert.Equal("${Prefix_TestKey1}", newSettings.Settings["PreTest2"]?.Value);
+            Assert.Equal("MappingTest1", newSettings.Settings["Prefix_Alt_Token"]?.Value);
+            Assert.Null(newSettings.Settings["Alt#Token"]?.Value);
+            Assert.Null(newSettings.Settings["Alt_Token"]?.Value);
+            Assert.Equal("MappingTest2", newSettings.Settings["Alt:Token"]?.Value);
+
+            // Greedy
+            builder = new FakeKeyMappingConfigBuilder();
+            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Greedy" } });
+            newSettings = (AppSettingsSection)builder.ProcessConfigurationSection(GetAppSettings());
+            Assert.Equal("TestKey1Value", newSettings.Settings["TestKey1"]?.Value);
+            Assert.Equal("TestKey2Value", newSettings.Settings["TestKey2"]?.Value);
+            Assert.Equal("${TestKey1}", newSettings.Settings["test1"]?.Value);
+            Assert.Equal("expandTestValue", newSettings.Settings["${TestKey1}"]?.Value);
+            Assert.Equal("PrefixTest1", newSettings.Settings["TestKey"]?.Value);
+            Assert.Null(newSettings.Settings["Prefix_TestKey"]?.Value);
+            Assert.Equal("Prefix_TestKeyValue", newSettings.Settings["Prefix#TestKey"]?.Value);
+            Assert.Null(newSettings.Settings["Prefix_TestKey1"]?.Value);
+            Assert.Equal("Prefix_TestKey1Value", newSettings.Settings["Prefix#TestKey1"]?.Value);
+            Assert.Equal("${Prefix_TestKey1}", newSettings.Settings["PreTest2"]?.Value);
+            Assert.Equal("MappingTest1", newSettings.Settings["Prefix_Alt_Token"]?.Value);
+            Assert.Equal("ThisWasAnAltTokenPatternWithPrefix", newSettings.Settings["Prefix#Alt:Token"]?.Value);
+            Assert.Null(newSettings.Settings["Prefix_Alt:Token"]?.Value);
+            Assert.Equal("ThisWasADifferentAlternateTokenPattern", newSettings.Settings["Alt#Token"]?.Value);
+            Assert.Null(newSettings.Settings["Alt_Token"]?.Value);
+            Assert.Equal("ThisWasAnAlternateTokenPattern", newSettings.Settings["Alt:Token"]?.Value);
+
+            // Greedy with prefix and stripping
+            builder = new FakeKeyMappingConfigBuilder();
+            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Greedy" }, { "prefix", "Prefix_" }, { "stripPrefix", "TRUE" } });
+            newSettings = (AppSettingsSection)builder.ProcessConfigurationSection(GetAppSettings());
+            Assert.Equal("Prefix_TestKey1Value", newSettings.Settings["TestKey1"]?.Value);
+            Assert.Null(newSettings.Settings["TestKey2"]?.Value);
+            Assert.Equal("${TestKey1}", newSettings.Settings["test1"]?.Value);
+            Assert.Equal("expandTestValue", newSettings.Settings["${TestKey1}"]?.Value);
+            Assert.Equal("Prefix_TestKeyValue", newSettings.Settings["TestKey"]?.Value);
+            Assert.Equal("PrefixTest2", newSettings.Settings["Prefix_TestKey"]?.Value);
+            Assert.Null(newSettings.Settings["Prefix#TestKey"]?.Value);
+            Assert.Null(newSettings.Settings["Prefix_TestKey1"]?.Value);
+            Assert.Null(newSettings.Settings["Prefix#TestKey1"]?.Value);
+            Assert.Equal("${Prefix_TestKey1}", newSettings.Settings["PreTest2"]?.Value);
+            Assert.Equal("MappingTest1", newSettings.Settings["Prefix_Alt_Token"]?.Value);
+            Assert.Equal("ThisWasAnAltTokenPatternWithPrefix", newSettings.Settings["Alt:Token"]?.Value);
+            Assert.Null(newSettings.Settings["Alt#Token"]?.Value);
+            Assert.Null(newSettings.Settings["Alt_Token"]?.Value);
+
+            // Greedy with interesting prefix
+            builder = new FakeKeyMappingConfigBuilder();
+            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Greedy" }, { "prefix", "Prefix:" } });
+            newSettings = (AppSettingsSection)builder.ProcessConfigurationSection(GetAppSettings());
+            Assert.Equal("val1", newSettings.Settings["TestKey1"]?.Value);
+            Assert.Null(newSettings.Settings["TestKey2"]?.Value);
+            Assert.Equal("${TestKey1}", newSettings.Settings["test1"]?.Value);
+            Assert.Equal("expandTestValue", newSettings.Settings["${TestKey1}"]?.Value);
+            Assert.Equal("PrefixTest1", newSettings.Settings["TestKey"]?.Value);
+            Assert.Null(newSettings.Settings["Prefix_TestKey"]?.Value);
+            Assert.Null(newSettings.Settings["Prefix:TestKey"]?.Value);
+            Assert.Equal("Prefix_TestKeyValue", newSettings.Settings["Prefix#TestKey"]?.Value);
+            Assert.Null(newSettings.Settings["Prefix_TestKey1"]?.Value);
+            Assert.Null(newSettings.Settings["Prefix:TestKey1"]?.Value);
+            Assert.Equal("Prefix_TestKey1Value", newSettings.Settings["Prefix#TestKey1"]?.Value);
+            Assert.Equal("${Prefix_TestKey1}", newSettings.Settings["PreTest2"]?.Value);
+            Assert.Equal("MappingTest1", newSettings.Settings["Prefix_Alt_Token"]?.Value);
+            Assert.Null(newSettings.Settings["Prefix_Alt:Token"]?.Value);
+            Assert.Null(newSettings.Settings["Prefix_Alt#Token"]?.Value);
+            Assert.Null(newSettings.Settings["Prefix#Alt_Token"]?.Value);
+            Assert.Equal("ThisWasAnAltTokenPatternWithPrefix", newSettings.Settings["Prefix#Alt:Token"]?.Value);
+            Assert.Null(newSettings.Settings["Prefix#Alt#Token"]?.Value);
+            Assert.Null(newSettings.Settings["Prefix:Alt_Token"]?.Value);
+            Assert.Null(newSettings.Settings["Prefix:Alt#Token"]?.Value);
+            Assert.Null(newSettings.Settings["Prefix:Alt:Token"]?.Value);
+            Assert.Equal("MappingTest2", newSettings.Settings["Alt:Token"]?.Value);
+            Assert.Null(newSettings.Settings["Alt#Token"]?.Value);
+            Assert.Null(newSettings.Settings["Alt_Token"]?.Value);
+        }
 
         // ======================================================================
         //   Errors
@@ -605,6 +712,8 @@ namespace Test
             appSettings.Settings.Add("TestKey", "PrefixTest1");
             appSettings.Settings.Add("Prefix_TestKey", "PrefixTest2");
             appSettings.Settings.Add("PreTest2", "${Prefix_TestKey1}");
+            appSettings.Settings.Add("Prefix_Alt_Token", "MappingTest1");
+            appSettings.Settings.Add("Alt:Token", "MappingTest2");
             return appSettings;
         }
 
@@ -628,6 +737,7 @@ namespace Test
                 { "Prefix_TestKey", "Prefix_TestKeyValue" },
                 { "Prefix_TestKey1", "Prefix_TestKey1Value" },
                 { "Alt:Token", "ThisWasAnAlternateTokenPattern" },
+                { "Alt_Token", "ThisWasADifferentAlternateTokenPattern" },
                 { "Prefix_Alt:Token", "ThisWasAnAltTokenPatternWithPrefix" }
             };
 
@@ -671,6 +781,19 @@ namespace Test
         public void SetTokenPattern(string newPattern)
         {
             this.TokenPattern = newPattern;
+        }
+    }
+
+    class FakeKeyMappingConfigBuilder : FakeConfigBuilder
+    {
+        public override string MapKey(string key)
+        {
+            return key.Replace(":", "_");
+        }
+
+        public override string UpdateKey(string rawKey)
+        {
+            return rawKey.Replace("_", "#");
         }
     }
 }

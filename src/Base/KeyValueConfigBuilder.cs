@@ -76,6 +76,12 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         public abstract ICollection<KeyValuePair<string, string>> GetAllValues(string prefix);
 
         /// <summary>
+        /// Transform the given key to an intermediate format that will be used to look up values in backing store.
+        /// </summary>
+        /// <param name="key">The string to be mapped.</param>
+        /// <returns>The key string to be used while looking up config values..</returns>
+        public virtual string MapKey(string key) { return key; }
+        /// <summary>
         /// Makes a determination about whether the input key is valid for this builder and backing store.
         /// </summary>
         /// <param name="key">The string to be validated. May be partial.</param>
@@ -252,13 +258,14 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             {
                 // In Greedy mode, we need to know all the key/value pairs from this config source. So we
                 // can't 'cache' them as we go along. Slurp them all up now. But only once. ;)
-                if (!_greedyInitialized && (String.IsNullOrEmpty(KeyPrefix) || ValidateKey(KeyPrefix)))
+                if (!_greedyInitialized)
                 {
+                    string prefix = MapKey(KeyPrefix);  // Do this outside the lock. It ensures _cachedValues is initialized.
                     lock (_cachedValues)
                     {
-                        if (!_greedyInitialized)
+                        if (!_greedyInitialized && (String.IsNullOrEmpty(prefix) || ValidateKey(prefix)))
                         {
-                            foreach (KeyValuePair<string, string> kvp in GetAllValues(KeyPrefix))
+                            foreach (KeyValuePair<string, string> kvp in GetAllValues(prefix))
                             {
                                 _cachedValues.Add(kvp);
                             }
@@ -308,7 +315,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
                 // Stripping Prefix in strict mode means from the source key. The static config file will have a prefix-less key to match.
                 // ie <add key="MySetting" /> should only match the key/value (KeyPrefix + "MySetting") from the source.
-                string sourceKey = (StripPrefix) ? KeyPrefix + key : key;
+                string sourceKey = MapKey((StripPrefix) ? KeyPrefix + key : key);
 
                 if (!ValidateKey(sourceKey))
                     return null;
