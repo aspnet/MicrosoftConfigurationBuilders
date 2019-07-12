@@ -19,7 +19,7 @@ Version 2 is here with some new features:
   * Base Optional Tag - The [optional](#optional) tag that some of the builders in this project employed in V1 has been moved into the base class and is now available
 		on all key/value config builders.
   * Section Handlers - This feature allows users to develop extensions that will apply key/value config to sections other than `appSettings` and `connectionStrings`
-		if desired. Read more about this feature in the [Section Handlers](#sectionhandlers) segment below.
+		if desired. Read more about this feature in the [Section Handlers](#section-handlers) segment below.
 
 ## Key/Value Config Builders
 
@@ -346,7 +346,25 @@ collection. As an example, here is what their explicit declaration would look li
   </handlers>
 </Microsoft.Configuration.ConfigurationBuilders.SectionHandlers>
 ```
-When adding additional handlers, the name of the section must be 'Microsoft.Configuration.ConfigurationBuilders.SectionHandlers' so key/value config builders can find it.
+When adding additional handlers, the name of this section must be 'Microsoft.Configuration.ConfigurationBuilders.SectionHandlers' so key/value config builders can find it.
+Also note that a more qualified type will be required so the runtime can determine which assembly contains the new handler type. When working
+with ASP.Net applications, it is hit and miss regarding whether its able to define new section handlers in `App_Code` or not. Some configuration
+sections (such as `appSettings`) get loaded by ASP.Net before `App_Code` is compiled, so handlers for those sections will need to be
+compiled in a separate assembly in the 'bin' directory. For example:
+```xml
+<configSections>
+  <section name="Microsoft.Configuration.ConfigurationBuilders.SectionHandlers" type="Microsoft.Configuration.ConfigurationBuilders.SectionHandlersSection, Microsoft.Configuration.ConfigurationBuilders.Base" restartOnExternalChanges="false" requirePermission="false" />
+</configSections>
+
+<Microsoft.Configuration.ConfigurationBuilders.SectionHandlers>
+  <handlers>
+    <remove name="DefaultAppSettingsHandler" />
+    <add name="DefaultAppSettingsHandler" type="MyCustomAppSettingsSectionHandler, RefAssemblyInBin" />
+    <remove name="DefaultConnectionStringsHandler" />
+    <add name="DefaultConnectionStringsHandler" type="MyCustomConnectionStringsSectionHandler, App_Code" />
+  </handlers>
+</Microsoft.Configuration.ConfigurationBuilders.SectionHandlers>
+```
 
 ## Implementing More Key/Value Config Builders
 
