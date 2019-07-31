@@ -60,6 +60,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CommonBuilderTests.cs" />
+    <Compile Include="WorkerRoleConfigurationBuilderTests.cs" />
     <Compile Include="UserSecretsTests.cs" />
     <Compile Include="KeyPerFileTests.cs" />
     <Compile Include="SimpleJsonTests.cs" />
