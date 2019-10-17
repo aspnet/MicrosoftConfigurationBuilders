@@ -14,9 +14,10 @@ $keyVaultConfigBuilder = [BuilderDescription]@{
 	AllowedParameters=@( $keyValueCommonParameters +
 		[ParameterDescription]@{ Name="endpoint"; IsRequired=$false; DefaultValue="[Config_Store_Endpoint_Url]" },
 		[ParameterDescription]@{ Name="connectionString"; IsRequired=$false },
-		[ParameterDescription]@{ Name="keyFilter"; IsRequired=$false });
-		[ParameterDescription]@{ Name="labelFilter"; IsRequired=$false });
-		[ParameterDescription]@{ Name="preferredDateTime"; IsRequired=$false },
+		[ParameterDescription]@{ Name="keyFilter"; IsRequired=$false },
+		[ParameterDescription]@{ Name="labelFilter"; IsRequired=$false },
+		[ParameterDescription]@{ Name="preferredDateTime"; IsRequired=$false }
+	)
 }
 
 CommonInstall $keyVaultConfigBuilder
