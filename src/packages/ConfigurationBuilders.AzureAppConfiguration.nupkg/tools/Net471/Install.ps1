@@ -16,7 +16,7 @@ $keyVaultConfigBuilder = [BuilderDescription]@{
 		[ParameterDescription]@{ Name="connectionString"; IsRequired=$false },
 		[ParameterDescription]@{ Name="keyFilter"; IsRequired=$false },
 		[ParameterDescription]@{ Name="labelFilter"; IsRequired=$false },
-		[ParameterDescription]@{ Name="preferredDateTime"; IsRequired=$false }
+		[ParameterDescription]@{ Name="acceptDateTime"; IsRequired=$false };
 	)
 }
 

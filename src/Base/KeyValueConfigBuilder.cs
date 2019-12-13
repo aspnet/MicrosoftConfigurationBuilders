@@ -184,6 +184,39 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             return configValue;
         }
 
+        /// <summary>
+        /// Use <see cref="GetAllValues(string)" /> to populate a cache of possible key/value pairs and avoid
+        /// querying the config source multiple times. Always called in 'Greedy' mode. May be called by
+        /// individual builders in some other cases.
+        /// </summary>
+        protected void EnsureGreedyInitialized()
+        {
+            try
+            {
+                // In Greedy mode, we need to know all the key/value pairs from this config source. So we
+                // can't 'cache' them as we go along. Slurp them all up now. But only once. ;)
+                if (!_greedyInitialized)
+                {
+                    string prefix = MapKey(KeyPrefix);  // Do this outside the lock. It ensures _cachedValues is initialized.
+                    lock (_cachedValues)
+                    {
+                        if (!_greedyInitialized && (String.IsNullOrEmpty(prefix) || ValidateKey(prefix)))
+                        {
+                            foreach (KeyValuePair<string, string> kvp in GetAllValues(prefix))
+                            {
+                                _cachedValues.Add(kvp);
+                            }
+                            _greedyInitialized = true;
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                throw new Exception($"Error in Configuration Builder '{Name}'::GetAllValues({KeyPrefix})", e);
+            }
+        }
+
         //=========================================================================================================================
         #region "Private" stuff
         // Sub-classes need not worry about this stuff, even though some of it is "public" because it comes from the framework.
@@ -210,7 +243,8 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             if (handler == null)
                 return configSection;
 
-            _appSettings = configSection as AppSettingsSection;
+            if (configSection.SectionInformation?.SectionName == "appSettings")
+                _appSettings = configSection as AppSettingsSection;
 
             // Strict Mode. Only replace existing key/values.
             if (Mode == KeyValueMode.Strict)
@@ -255,34 +289,6 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                         LazyInitialize(Name, _config);
                     }
                 }
-            }
-        }
-
-        private void EnsureGreedyInitialized()
-        {
-            try
-            {
-                // In Greedy mode, we need to know all the key/value pairs from this config source. So we
-                // can't 'cache' them as we go along. Slurp them all up now. But only once. ;)
-                if (!_greedyInitialized)
-                {
-                    string prefix = MapKey(KeyPrefix);  // Do this outside the lock. It ensures _cachedValues is initialized.
-                    lock (_cachedValues)
-                    {
-                        if (!_greedyInitialized && (String.IsNullOrEmpty(prefix) || ValidateKey(prefix)))
-                        {
-                            foreach (KeyValuePair<string, string> kvp in GetAllValues(prefix))
-                            {
-                                _cachedValues.Add(kvp);
-                            }
-                            _greedyInitialized = true;
-                        }
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                throw new Exception($"Error in Configuration Builder '{Name}'::GetAllValues({KeyPrefix})", e);
             }
         }
 
