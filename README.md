@@ -179,7 +179,7 @@ and currently exposes the format of the file which, as mentioned above, should b
     (@endpoint="https://your-appconfig-store.azconfig.io" | @connectionString="Endpoint=https://your-appconfig-store.azconfig.io;Id=XXXXXXXXXX;Secret=XXXXXXXXXX")
     [@keyFilter="string"]
     [@labelFilter="label"]
-    [@preferredDateTime="DateTimeOffset"]
+    [@acceptDateTime="DateTimeOffset"]
     type="Microsoft.Configuration.ConfigurationBuilders.AzureAppConfigurationBuilder, Microsoft.Configuration.ConfigurationBuilders.AzureAppConfig" />
 ```
 [AppConfiguration](https://docs.microsoft.com/en-us/azure/azure-app-configuration/overview) is a new offering from Azure, currently in preview. If you
@@ -190,7 +190,7 @@ It is however, __strongly__ encouraged to use `endpoint` with a managed service 
   * `connectionString` - This specifies the AppConfiguration store to connect to, along with the Id and Secret necessary to access the service.
   * `keyFilter` - Use this to select a set of configuration values matching a certain key pattern.
   * `labelFilter` - Only retrieve configuration values that match a certain label.
-  * `preferredDateTime` - Instead of versioning ala Azure Key Vault, AppConfiguration uses timestamps. Use this attribute to go back in time
+  * `acceptDateTime` - Instead of versioning ala Azure Key Vault, AppConfiguration uses timestamps. Use this attribute to go back in time
   to retrieve configuration values from a past state.
 
 ### AzureKeyVaultConfigBuilder

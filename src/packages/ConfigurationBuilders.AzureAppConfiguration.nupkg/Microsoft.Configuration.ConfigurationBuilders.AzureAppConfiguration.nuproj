@@ -21,14 +21,6 @@
             <Source>$(OutputPath)</Source>
             <Destination>lib\Net471</Destination>
         </NuGetContent>
-      <NuGetContent Include="Microsoft.Azure.AppConfiguration.AzconfigClient.dll">
-        <Source>$(AssemblyPath)</Source>
-        <Destination>lib\Net471</Destination>
-      </NuGetContent>
-      <NuGetContent Include="Microsoft.Azure.AppConfiguration.ManagedIdentityConnector.dll">
-        <Source>$(AssemblyPath)</Source>
-        <Destination>lib\Net471</Destination>
-      </NuGetContent>
       <NuGetContentProject Include="$(RepositoryRoot)\src\AzureAppConfig\AzureAppConfig.csproj" Condition="'$(NuGetPackSymbols)' == 'true'" />
         <NuGetContent Include="..\ConfigurationBuilders.Base.nupkg\shared\Content\Net471\config.install.xdt">
             <Destination>content\Net471\app.config.install.xdt</Destination>

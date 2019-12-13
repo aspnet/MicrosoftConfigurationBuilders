@@ -18,14 +18,8 @@
 
     <dependencies>
       <dependency id="Microsoft.Configuration.ConfigurationBuilders.Base" version="$NuGetPackageBaseDependencyVersion$" />
-      <!-- <dependency id="Microsoft.Azure.AppConfiguration.AzconfigClient" version="0.1" /> -->
-      <dependency id="Microsoft.AspNetCore.Http.Extensions" version="2.1.1" />
-      <dependency id="Newtonsoft.Json" version="11.0.2" />
-      <dependency id="System.Interactive.Async" version="3.1.1" />
-      <dependency id="System.Reactive.Linq" version="4.0.0" />
-      <!-- <dependency id="Microsoft.Azconfig.ManagedIdentityConnector" version="0.1" /> -->
-      <dependency id="Microsoft.Azure.Management.ResourceManager" version="2.0.0-preview" />
-      <dependency id="Microsoft.Azure.Services.AppAuthentication" version="1.0.3" />
+      <dependency id="Azure.Data.AppConfiguration" version="1.0.0-preview.6" />
+      <dependency id="Azure.Identity" version="1.0.0" />
     </dependencies>
   </metadata>
 </package>
