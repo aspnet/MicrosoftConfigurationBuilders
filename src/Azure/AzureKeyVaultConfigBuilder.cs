@@ -20,13 +20,13 @@ namespace Microsoft.Configuration.ConfigurationBuilders
     /// </summary>
     public class AzureKeyVaultConfigBuilder : KeyValueConfigBuilder
     {
-#pragma warning disable CS1591 // No xml comments for tag literals.
+        #pragma warning disable CS1591 // No xml comments for tag literals.
         public const string vaultNameTag = "vaultName";
         public const string connectionStringTag = "connectionString";
         public const string uriTag = "uri";
         public const string versionTag = "version";
         public const string preloadTag = "preloadSecretNames";
-#pragma warning restore CS1591 // No xml comments for tag literals.
+        #pragma warning restore CS1591 // No xml comments for tag literals.
 
         private string _vaultName;
         private string _connectionString;
