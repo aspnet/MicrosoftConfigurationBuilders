@@ -68,7 +68,6 @@
   <PropertyGroup Label="Nuget Configuration">
     <NuGetOutputPath>$(RepositoryRoot).binaries\Packages\$(Configuration)</NuGetOutputPath>
     <NuGetPackSymbols Condition="'$(NuGetPackSymbols)' == ''">true</NuGetPackSymbols>
-    <ReferencePackagesPath>$(RepositoryRoot)packages\</ReferencePackagesPath>
     <SourceRootFullPath>$(RepositoryRoot)\src\$(MSBuildProjectName)\</SourceRootFullPath>
     <NuGetScriptDirectory>$(MSBuildProjectDirectory)\tools\Net471</NuGetScriptDirectory>
     <NuGetSharedScriptDirectory>$(MSBuildProjectDirectory)\shared\tools\Net471</NuGetSharedScriptDirectory>
