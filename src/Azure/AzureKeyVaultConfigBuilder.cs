@@ -9,9 +9,9 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
-using Microsoft.Azure.KeyVault;
-using Microsoft.Azure.KeyVault.Models;
-using Microsoft.Azure.Services.AppAuthentication;
+using Azure;
+using Azure.Identity;
+using Azure.Security.KeyVault.Secrets;
 
 namespace Microsoft.Configuration.ConfigurationBuilders
 {
@@ -35,7 +35,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         private bool _preload;
         private bool _preloadFailed;
 
-        private KeyVaultClient _kvClient;
+        private SecretClient _kvClient;
         private List<string> _allKeys;
 
         /// <summary>
@@ -58,6 +58,8 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             _uri = UpdateConfigSettingWithAppSettings(uriTag);
             _vaultName = UpdateConfigSettingWithAppSettings(vaultNameTag);
             _version = UpdateConfigSettingWithAppSettings(versionTag);
+            if (String.IsNullOrWhiteSpace(_version))
+                _version = null;
 
             if (String.IsNullOrWhiteSpace(_uri))
             {
@@ -83,8 +85,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             // Connect to KeyVault
             try
             {
-                AzureServiceTokenProvider tokenProvider = new AzureServiceTokenProvider(_connectionString);
-                _kvClient = new KeyVaultClient(new KeyVaultClient.AuthenticationCallback(tokenProvider.KeyVaultTokenCallback));
+                _kvClient = new SecretClient(new Uri(_uri), new DefaultAzureCredential());
             }
             catch (Exception)
             {
@@ -130,10 +131,10 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                     {
                         // Azure Key Vault keys are case-insensitive, so there shouldn't be any races here.
                         // Include version information. It will get filtered out later before updating config.
-                        SecretBundle secret = t.Result;
+                        KeyVaultSecret secret = t.Result;
                         if (secret != null)
                         {
-                            string versionedKey = key + "/" + (secret.SecretIdentifier.Version ?? "0");
+                            string versionedKey = key + "/" + (secret.Properties?.Version ?? "0");
                             d[versionedKey] = secret.Value;
                         }
                     })));
@@ -184,31 +185,36 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             return new VersionedKey(rawKey).Key;
         }
 
-        private async Task<SecretBundle> GetValueAsync(string key)
+        private async Task<KeyVaultSecret> GetValueAsync(string key)
         {
             if (_kvClient == null)
                 return null;
 
             VersionedKey vKey = new VersionedKey(key);
 
+            // If we successfully preloaded key names, see if the requested key is valid before making network request.
             if (!_preload || _preloadFailed || _allKeys.Contains(vKey.Key, StringComparer.OrdinalIgnoreCase))
             {
                 try
                 {
-                    string version = !String.IsNullOrWhiteSpace(_version) ? _version : vKey.Version;
+                    string version = _version ?? vKey.Version;
                     if (version != null)
                     {
-                        SecretBundle versionedSecret = await _kvClient.GetSecretAsync(_uri, vKey.Key, version);
+                        KeyVaultSecret versionedSecret = await _kvClient.GetSecretAsync(vKey.Key, version);
                         return versionedSecret;
                     }
 
-                    SecretBundle secret = await _kvClient.GetSecretAsync(_uri, vKey.Key);
+                    KeyVaultSecret secret = await _kvClient.GetSecretAsync(vKey.Key);
                     return secret;
                 }
-                catch (KeyVaultErrorException kve)
+                catch (RequestFailedException rfex)
                 {
                     // Simply return null if the secret wasn't found
-                    if (kve.Body.Error.Code == "SecretNotFound" || kve.Body.Error.Code == "BadParameter")
+                    //if (rfex.ErrorCode == "SecretNotFound" || rfex.ErrorCode == "BadParameter")
+                    // .ErrorCode doesn't get populated. :/
+                    // "SecretNotFound" == 404
+                    // "BadParameter" = 400
+                    if (rfex.Status == 404 || rfex.Status == 400)
                         return null;
 
                     // If there was a permission issue or some other error, let the exception bubble
@@ -230,35 +236,25 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
             try
             {
-                // Get first page of secret keys
-                var allSecrets = Task.Run(async () => { return await _kvClient.GetSecretsAsync(_uri); }).Result;
-                foreach (var secretItem in allSecrets)
-                    keys.Add(secretItem.Identifier.Name);
-
-                // If there more more pages, get those too
-                string nextPage = allSecrets.NextPageLink;
-                while (!String.IsNullOrWhiteSpace(nextPage))
+                foreach (SecretProperties secretProps in _kvClient.GetPropertiesOfSecrets())
                 {
-                    var moreSecrets = Task.Run(async () => { return await _kvClient.GetSecretsNextAsync(nextPage); }).Result;
-                    foreach (var secretItem in moreSecrets)
-                        keys.Add(secretItem.Identifier.Name);
-                    nextPage = moreSecrets.NextPageLink;
+                    // Don't include disabled secrets
+                    if (!secretProps.Enabled.GetValueOrDefault())
+                        continue;
+
+                    keys.Add(secretProps.Name);
                 }
             }
-            catch (AggregateException ae)
+            catch (RequestFailedException rfex)
             {
-                ae.Handle(ex =>
-                {
-                    var exAsKve = ex as KeyVaultErrorException;
-                    // If List Permission on Secrets in not available return empty list of keys
-                    if (exAsKve != null && exAsKve.Body.Error.Code == "Forbidden")
-                    {
-                        _preloadFailed = true;
-                        return true;
-                    }
-                    else
-                        return Optional;    // False == throw.
-                });
+                _preloadFailed = true;
+
+                // If List Permission on Secrets in not available return empty list of keys
+                if (rfex.ErrorCode == "Forbidden")
+                    return keys;
+
+                if (!Optional)
+                    throw;
             }
 
             return keys;
