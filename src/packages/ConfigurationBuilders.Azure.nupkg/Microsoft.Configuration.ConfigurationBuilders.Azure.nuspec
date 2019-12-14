@@ -18,8 +18,8 @@
 
     <dependencies>
       <dependency id="Microsoft.Configuration.ConfigurationBuilders.Base" version="$NuGetPackageBaseDependencyVersion$" />
-      <dependency id="Microsoft.Azure.KeyVault" version="2.3.2" />
-      <dependency id="Microsoft.Azure.Services.AppAuthentication" version="1.0.1" />
+      <dependency id="Azure.Security.KeyVault.Secrets" version="4.0.0" />
+      <dependency id="Azure.Identity" version="1.0.0" />
     </dependencies>
   </metadata>
 </package>
