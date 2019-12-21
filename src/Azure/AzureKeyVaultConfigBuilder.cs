@@ -201,11 +201,15 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                     if (version != null)
                     {
                         KeyVaultSecret versionedSecret = await _kvClient.GetSecretAsync(vKey.Key, version);
-                        return versionedSecret;
+                        if (versionedSecret != null && versionedSecret.Properties.Enabled.GetValueOrDefault())
+                            return versionedSecret;
+                        return null;
                     }
 
                     KeyVaultSecret secret = await _kvClient.GetSecretAsync(vKey.Key);
-                    return secret;
+                    if (secret != null && secret.Properties.Enabled.GetValueOrDefault())
+                        return secret;
+                    return null;
                 }
                 catch (RequestFailedException rfex)
                 {

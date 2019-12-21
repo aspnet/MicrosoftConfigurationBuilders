@@ -2,14 +2,20 @@
 // Licensed under the MIT license. See the License.txt file in the project root for full license information.
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.Configuration;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+
 using Azure;
 using Azure.Data.AppConfiguration;
 using Azure.Identity;
+using Azure.Security.KeyVault.Secrets;
+using Newtonsoft.Json;
 
 namespace Microsoft.Configuration.ConfigurationBuilders
 {
@@ -18,12 +24,15 @@ namespace Microsoft.Configuration.ConfigurationBuilders
     /// </summary>
     public class AzureAppConfigurationBuilder : KeyValueConfigBuilder
     {
+        private const string KeyVaultContentType = "application/vnd.microsoft.appconfig.keyvaultref+json";
+
         #pragma warning disable CS1591 // No xml comments for tag literals.
         public const string endpointTag = "endpoint";
         public const string connectionStringTag = "connectionString";
         public const string keyFilterTag = "keyFilter";
         public const string labelFilterTag = "labelFilter";
         public const string dateTimeFilterTag = "acceptDateTime";
+        public const string useKeyVaultTag = "useAzureKeyVault";
         #pragma warning restore CS1591 // No xml comments for tag literals.
 
         private Uri _endpoint;
@@ -31,7 +40,8 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         private string _keyFilter;
         private string _labelFilter;
         private DateTimeOffset _dateTimeFilter;
-
+        private bool _useKeyVault = false;
+        private ConcurrentDictionary<Uri, SecretClient> _kvClientCache;
         private ConfigurationClient _client;
 
         /// <summary>
@@ -68,6 +78,10 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             // acceptDateTime
             _dateTimeFilter = DateTimeOffset.TryParse(UpdateConfigSettingWithAppSettings(dateTimeFilterTag), out _dateTimeFilter) ? _dateTimeFilter : DateTimeOffset.MinValue;
 
+            // Azure Key Vault Integration
+            _useKeyVault = (UpdateConfigSettingWithAppSettings(useKeyVaultTag) != null) ? Boolean.Parse(config[useKeyVaultTag]) : _useKeyVault;
+            if (_useKeyVault)
+                _kvClientCache = new ConcurrentDictionary<Uri, SecretClient>(EqualityComparer<Uri>.Default);
 
             // Always allow 'connectionString' to override black magic. But we expect this to be null most of the time.
             _connectionString = UpdateConfigSettingWithAppSettings(connectionStringTag);
@@ -186,7 +200,8 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                 return null;
 
             SettingSelector selector = new SettingSelector(key, _labelFilter);
-            selector.Fields = SettingFields.Key | SettingFields.Value;
+            // TODO: Reduce bandwidth by limiting the fields we retrieve.
+            //selector.Fields = SettingFields.Key | SettingFields.Value | SettingFields.ContentType;
             if (_dateTimeFilter > DateTimeOffset.MinValue)
             {
                 selector.AcceptDateTime = _dateTimeFilter;
@@ -201,7 +216,27 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                 {
                     // There should only be one result. If there's more, we're only returning the fisrt.
                     await enumerator.MoveNextAsync();
-                    return enumerator.Current?.Value;
+                    ConfigurationSetting current = enumerator.Current;
+                    if (current == null)
+                        return null;
+
+                    if (_useKeyVault && IsKeyVaultReference(current))
+                    {
+                        try
+                        {
+                            return await GetKeyVaultValue(current);
+                        }
+                        catch (Exception)
+                        {
+                            // 'Optional' plays a double role with this provider. Being optional means it is
+                            // ok for us to fail to resolve a keyvault reference. If we are not optional though,
+                            // we want to make some noise when a reference fails to resolve.
+                            if (!Optional)
+                                throw;
+                        }
+                    }
+
+                    return current.Value;
                 }
                 finally
                 {
@@ -221,7 +256,8 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                 return data;
 
             SettingSelector selector = new SettingSelector(_keyFilter, _labelFilter);
-            selector.Fields = SettingFields.Key | SettingFields.Value;
+            // TODO: Reduce bandwidth by limiting the fields we retrieve.
+            //selector.Fields = SettingFields.Key | SettingFields.Value | SettingFields.ContentType;
             if (_dateTimeFilter > DateTimeOffset.MinValue)
             {
                 selector.AcceptDateTime = _dateTimeFilter;
@@ -239,8 +275,27 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                     while (await enumerator.MoveNextAsync())
                     {
                         ConfigurationSetting setting = enumerator.Current;
+                        string configValue = setting.Value;
+
+                        // If it's a key vault reference, go fetch the value from key vault
+                        if (_useKeyVault && IsKeyVaultReference(setting))
+                        {
+                            try
+                            {
+                                configValue = await GetKeyVaultValue(setting);
+                            }
+                            catch (Exception)
+                            {
+                                // 'Optional' plays a double role with this provider. Being optional means it is
+                                // ok for us to fail to resolve a keyvault reference. If we are not optional though,
+                                // we want to make some noise when a reference fails to resolve.
+                                if (!Optional)
+                                    throw;
+                            }
+                        }
+
                         if (!data.ContainsKey(setting.Key))
-                            data[setting.Key] = setting.Value;
+                            data[setting.Key] = configValue;
                     }
                 }
                 finally
@@ -251,6 +306,52 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             catch (Exception e) when (Optional && ((e.InnerException is System.Net.Http.HttpRequestException) || (e.InnerException is UnauthorizedAccessException))) { }
 
             return data;
+        }
+
+        private bool IsKeyVaultReference(ConfigurationSetting setting)
+        {
+            string contentType = setting.ContentType?.Split(';')[0].Trim();
+
+            return String.Equals(contentType, KeyVaultContentType);
+        }
+
+        private async Task<string> GetKeyVaultValue(ConfigurationSetting setting)
+        {
+            // The key vault reference will be in the form of a Uri wrapped in JSON, like so:
+            // {"uri":"https://vaultName.vault.azure.net/secrets/secretName"}
+
+            // Content validation - will throw JsonReaderException on failure
+            KeyVaultSecretReference secretRef = JsonConvert.DeserializeObject<KeyVaultSecretReference>(setting.Value, KeyVaultSecretReference.s_SerializationSettings);
+
+            // Uri validation - will throw UriFormatException upon failure
+            Uri secretUri = new Uri(secretRef.Uri);
+            Uri vaultUri = new Uri(secretUri.GetLeftPart(UriPartial.Authority));
+
+            // TODO: Check to see if SecretClient can take the full uri instead of requiring us to parse out the secretID.
+            SecretClient kvClient = GetSecretClient(vaultUri);
+            if (kvClient == null && !Optional)
+                throw new ConfigurationErrorsException("Could not connect to Azure Key Vault while retrieving secret. Connection is not optional.");
+
+            // Retrieve Value
+            KeyVaultSecret kvSecret = await kvClient.GetSecretAsync(secretUri.Segments[2].TrimEnd(new char[] { '/' }));  // ['/', 'secrets/', '{secretID}/']
+            if (kvSecret != null && kvSecret.Properties.Enabled.GetValueOrDefault())
+                return kvSecret.Value;
+
+            return null;
+        }
+
+        private SecretClient GetSecretClient(Uri vaultUri)
+        {
+            return _kvClientCache.GetOrAdd(vaultUri, uri => new SecretClient(uri, new DefaultAzureCredential()));
+        }
+
+        [JsonObject(MemberSerialization.OptIn)]
+        private class KeyVaultSecretReference
+        {
+            public static JsonSerializerSettings s_SerializationSettings = new JsonSerializerSettings { DateParseHandling = DateParseHandling.None };
+
+            [JsonProperty("uri")]
+            public string Uri { get; set; }
         }
     }
 }
