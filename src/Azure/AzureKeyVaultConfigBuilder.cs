@@ -22,14 +22,13 @@ namespace Microsoft.Configuration.ConfigurationBuilders
     {
         #pragma warning disable CS1591 // No xml comments for tag literals.
         public const string vaultNameTag = "vaultName";
-        public const string connectionStringTag = "connectionString";
+        public const string connectionStringTag = "connectionString";   // obsolete
         public const string uriTag = "uri";
         public const string versionTag = "version";
         public const string preloadTag = "preloadSecretNames";
         #pragma warning restore CS1591 // No xml comments for tag literals.
 
         private string _vaultName;
-        private string _connectionString;
         private string _uri;
         private string _version;
         private bool _preload;
@@ -79,8 +78,14 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             }
             _uri = _uri.TrimEnd(new char[] { '/' });
 
-            _connectionString = UpdateConfigSettingWithAppSettings(connectionStringTag);
-            _connectionString = String.IsNullOrWhiteSpace(_connectionString) ? null : _connectionString;
+            if (config[connectionStringTag] != null)
+            {
+                // A connection string was given. Connection strings are no longer supported. Azure.Identity is the preferred way to
+                // authenticate, and that library has various mechanisms other than a plain text connection string in config to obtain
+                // the necessary client credentials for connecting to Azure.
+                // Be noisy about this even if optional, as it is a fundamental misconfiguration going forward.
+                throw new ArgumentException("AzureKeyVaultConfigBuilder no longer supports connection strings.", connectionStringTag);
+            }
 
             // Connect to KeyVault
             try

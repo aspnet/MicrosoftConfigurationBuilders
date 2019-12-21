@@ -14,7 +14,7 @@ $keyVaultConfigBuilder = [BuilderDescription]@{
 	AllowedParameters=@( $keyValueCommonParameters +
 		[ParameterDescription]@{ Name="vaultName"; IsRequired=$false; DefaultValue="[VaultName]" },
 		[ParameterDescription]@{ Name="uri"; IsRequired=$false },
-		[ParameterDescription]@{ Name="connectionString"; IsRequired=$false },
+		[ParameterDescription]@{ Name="connectionString"; IsRequired=$false }, # Obsolete, but don't complain about it here.
 		[ParameterDescription]@{ Name="version"; IsRequired=$false },
 		[ParameterDescription]@{ Name="preloadSecretNames"; IsRequired=$false });
 }
