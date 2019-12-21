@@ -180,6 +180,7 @@ and currently exposes the format of the file which, as mentioned above, should b
     [@keyFilter="string"]
     [@labelFilter="label"]
     [@acceptDateTime="DateTimeOffset"]
+	[@useAzureKeyVault="bool"]
     type="Microsoft.Configuration.ConfigurationBuilders.AzureAppConfigurationBuilder, Microsoft.Configuration.ConfigurationBuilders.AzureAppConfig" />
 ```
 [AppConfiguration](https://docs.microsoft.com/en-us/azure/azure-app-configuration/overview) is a new offering from Azure, currently in preview. If you
@@ -192,6 +193,9 @@ It is however, __strongly__ encouraged to use `endpoint` with a managed service 
   * `labelFilter` - Only retrieve configuration values that match a certain label.
   * `acceptDateTime` - Instead of versioning ala Azure Key Vault, AppConfiguration uses timestamps. Use this attribute to go back in time
   to retrieve configuration values from a past state.
+  * `useAzureKeyVault` - Enable this feature to allow AzureAppConfigurationBuilder to connect to and retrieve secrets from Azure Key Vault for
+  config values that are stored in Key Vault. The same managed service identity that is used for connecting to the AppConfiguration service will
+  be used to connect to Key Vault. Default is `false`.
 
 ### AzureKeyVaultConfigBuilder
 ```xml
