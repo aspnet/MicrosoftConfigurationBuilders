@@ -176,7 +176,7 @@ and currently exposes the format of the file which, as mentioned above, should b
 ```xml
 <add name="AzureAppConfig"
     [mode|@prefix|@stripPrefix|tokenPattern|@escapeExpandedValues|@optional=false]
-    (@endpoint="https://your-appconfig-store.azconfig.io" | @connectionString="Endpoint=https://your-appconfig-store.azconfig.io;Id=XXXXXXXXXX;Secret=XXXXXXXXXX")
+    @endpoint="https://your-appconfig-store.azconfig.io"
     [@keyFilter="string"]
     [@labelFilter="label"]
     [@acceptDateTime="DateTimeOffset"]
@@ -184,11 +184,12 @@ and currently exposes the format of the file which, as mentioned above, should b
     type="Microsoft.Configuration.ConfigurationBuilders.AzureAppConfigurationBuilder, Microsoft.Configuration.ConfigurationBuilders.AzureAppConfig" />
 ```
 [AppConfiguration](https://docs.microsoft.com/en-us/azure/azure-app-configuration/overview) is a new offering from Azure, currently in preview. If you
-wish to use this new service for managing your configuration, then use this AzureAppConfigurationBuilder. Either `endpoint` or `connectionString` are
-required, but all other attributes are optional. If both `endpoint` and `connectionString` are used, then preference is given to the connection string.
-It is however, __strongly__ encouraged to use `endpoint` with a managed service identity in Azure.
+wish to use this new service for managing your configuration, then use this AzureAppConfigurationBuilder. `endpoint` is
+required, but all other attributes are optional.
+Previous iterations of this config builder allowed for a `connectionString` to connect to the
+App Configuration service. This method is no longer allowed, and this config builder now exclusively uses [DefaultAzureCredential](https://docs.microsoft.com/en-us/dotnet/api/azure.identity.defaultazurecredential)
+from the Azure.Identity package to handle credentials for connecting to the service.
   * `endpoint` - This specifies the AppConfiguration store to connect to.
-  * `connectionString` - This specifies the AppConfiguration store to connect to, along with the Id and Secret necessary to access the service.
   * `keyFilter` - Use this to select a set of configuration values matching a certain key pattern.
   * `labelFilter` - Only retrieve configuration values that match a certain label.
   * `acceptDateTime` - Instead of versioning ala Azure Key Vault, AppConfiguration uses timestamps. Use this attribute to go back in time
@@ -202,21 +203,20 @@ It is however, __strongly__ encouraged to use `endpoint` with a managed service 
 <add name="AzureKeyVault"
     [mode|@prefix|@stripPrefix|tokenPattern|@escapeExpandedValues|@optional=false]
     (@vaultName="MyVaultName" | @uri="https://MyVaultName.vault.azure.net")
-    [@connectionString="connection string"]
     [@version="secrets version"]
     [@preloadSecretNames="true"]
     type="Microsoft.Configuration.ConfigurationBuilders.AzureKeyVaultConfigBuilder, Microsoft.Configuration.ConfigurationBuilders.Azure" />
 ```
-If your secrets are kept in Azure Key Vault, then this config builder is for you. There are three additional attributes for this config builder. The `vaultName` is
-required. The other attributes allow you some manual control about which vault to connect to, but are only necessary if the application is not running in an
-environment that works magically with `Microsoft.Azure.Services.AppAuthentication`. The Azure Services Authentication library is used to automatically pick
-up connection information from the execution environment if possible, but you can override that feature by providing a connection string instead.
-  * `vaultName` - This is a required attribute. It specifies the name of the vault in your Azure subscription from which to read key/value pairs.
-  * `connectionString` - A connection string usable by [AzureServiceTokenProvider](https://docs.microsoft.com/en-us/azure/key-vault/service-to-service-authentication#connection-string-support)
-  * `uri` - Connect to other Key Vault providers with this attribute. If not specified, Azure is the assumed Vault provider. If the uri _is_specified, then `vaultName` is no longer a required parameter.
+If your secrets are kept in Azure Key Vault, then this config builder is for you. There are three additional attributes for this config builder. The `vaultName`
+(or `uri`) is required. Previous iterations of this config builder allowed for a `connectionString` as a way to supply credential information for connecting to
+Azure Key Vault. This method is no longer allowed as it is not a supported scenario for the current `Azure.Identity` SDK which is used for connecting
+to Azure services. Instead, this iteration of the config builder exclusively uses [DefaultAzureCredential](https://docs.microsoft.com/en-us/dotnet/api/azure.identity.defaultazurecredential)
+from the `Azure.Identity` package to handle credentials for connecting to Azure Key Vault.
+  * `vaultName` - This (or `uri`) is a required attribute. It specifies the name of the vault in your Azure subscription from which to read key/value pairs.
+  * `uri` - Connect to non-Azure Key Vault providers with this attribute. If not specified, Azure is the assumed Vault provider. If the uri _is_ specified, then `vaultName` is no longer a required parameter.
   * `version` - Azure Key Vault provides a versioning feature for secrets. If this is specified, the builder will only retrieve secrets matching this version.
-  * `preloadSecretNames` - By default, this builder will query __all__ the key names in the key vault when it is initialized. If this is a concern, set
-  this attribute to 'false', and secrets will be retrieved one at a time. This could also be useful if the vault allows "Get" access but not
+  * `preloadSecretNames` - By default, this builder will query __all__ the key names in the key vault when it is initialized to improve performance. If this is
+  a concern, set this attribute to 'false', and secrets will be retrieved one at a time. This could also be useful if the vault allows "Get" access but not
   "List" access. (NOTE: Disabling preload is incompatible with Greedy mode.)
 Tip: Azure Key Vault uses random per-secret Guid assignments for versioning, which makes specifying a secret `version` tag on this builder rather
 limiting, as it will only ever update one config value. To make version handling more useful, V2 of this builder takes advantage of the new key-updating

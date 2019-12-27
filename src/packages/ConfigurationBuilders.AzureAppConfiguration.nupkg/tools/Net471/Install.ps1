@@ -12,8 +12,7 @@ $keyVaultConfigBuilder = [BuilderDescription]@{
 	Version="$assemblyVersion$";
 	DefaultName="AzureAppConfig";
 	AllowedParameters=@( $keyValueCommonParameters +
-		[ParameterDescription]@{ Name="endpoint"; IsRequired=$false; DefaultValue="[Config_Store_Endpoint_Url]" },
-		[ParameterDescription]@{ Name="connectionString"; IsRequired=$false },
+		[ParameterDescription]@{ Name="endpoint"; IsRequired=$true; DefaultValue="[Config_Store_Endpoint_Url]" },
 		[ParameterDescription]@{ Name="keyFilter"; IsRequired=$false },
 		[ParameterDescription]@{ Name="labelFilter"; IsRequired=$false },
 		[ParameterDescription]@{ Name="acceptDateTime"; IsRequired=$false };
