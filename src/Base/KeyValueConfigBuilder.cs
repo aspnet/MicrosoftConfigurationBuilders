@@ -251,8 +251,9 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             {
                 foreach (var configItem in handler)
                 {
-                    string newValue = GetValueInternal(configItem.Key);
+                    // Presumably, UpdateKey will preserve casing appropriately, so newKey is cased as expected.
                     string newKey = UpdateKey(configItem.Key);
+                    string newValue = GetValueInternal(configItem.Key);
 
                     if (newValue != null)
                         handler.InsertOrUpdate(newKey, newValue, configItem.Key, configItem.Value);
@@ -267,8 +268,9 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                 {
                     if (kvp.Value != null)
                     {
+                        // Here, kvp.Key is not from the config file, so it might not be correctly cased. Get the correct casing for UpdateKey.
                         string oldKey = TrimPrefix(kvp.Key);
-                        string newKey = UpdateKey(oldKey);
+                        string newKey = UpdateKey(handler.TryGetOriginalCase(oldKey));
                         handler.InsertOrUpdate(newKey, kvp.Value, oldKey);
                     }
                 }
