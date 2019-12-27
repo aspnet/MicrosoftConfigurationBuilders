@@ -84,7 +84,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                 // authenticate, and that library has various mechanisms other than a plain text connection string in config to obtain
                 // the necessary client credentials for connecting to Azure.
                 // Be noisy about this even if optional, as it is a fundamental misconfiguration going forward.
-                throw new ArgumentException("AzureKeyVaultConfigBuilder no longer supports connection strings.", connectionStringTag);
+                throw new ArgumentException("AzureKeyVaultConfigBuilder no longer supports connection strings as of version 2.", connectionStringTag);
             }
 
             // Connect to KeyVault

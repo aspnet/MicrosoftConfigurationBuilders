@@ -176,7 +176,7 @@ and currently exposes the format of the file which, as mentioned above, should b
 ```xml
 <add name="AzureAppConfig"
     [mode|@prefix|@stripPrefix|tokenPattern|@escapeExpandedValues|@optional=false]
-    (@endpoint="https://your-appconfig-store.azconfig.io")
+    @endpoint="https://your-appconfig-store.azconfig.io"
     [@keyFilter="string"]
     [@labelFilter="label"]
     [@acceptDateTime="DateTimeOffset"]
@@ -207,17 +207,16 @@ from the Azure.Identity package to handle credentials for connecting to the serv
     [@preloadSecretNames="true"]
     type="Microsoft.Configuration.ConfigurationBuilders.AzureKeyVaultConfigBuilder, Microsoft.Configuration.ConfigurationBuilders.Azure" />
 ```
-If your secrets are kept in Azure Key Vault, then this config builder is for you. There are three additional attributes for this config builder. The `vaultName` is
-required. The other attributes allow you some manual control about which vault to connect to, but are only necessary if the application is not running in an
-environment that works magically with `Microsoft.Azure.Services.AppAuthentication`.
-Previous iterations of this config builder allowed for a `connectionString` as a way to supply credential information for connecting to
-Azure Key Vault. This method is no longer allowed, and this config builder exclusively uses [DefaultAzureCredential](https://docs.microsoft.com/en-us/dotnet/api/azure.identity.defaultazurecredential)
-from the Azure.Identity package to handle credentials for connecting to Azure Key Vault.
-  * `vaultName` - This is a required attribute. It specifies the name of the vault in your Azure subscription from which to read key/value pairs.
-  * `uri` - Connect to other Key Vault providers with this attribute. If not specified, Azure is the assumed Vault provider. If the uri _is_specified, then `vaultName` is no longer a required parameter.
+If your secrets are kept in Azure Key Vault, then this config builder is for you. There are three additional attributes for this config builder. The `vaultName`
+(or `uri`) is required. Previous iterations of this config builder allowed for a `connectionString` as a way to supply credential information for connecting to
+Azure Key Vault. This method is no longer allowed as it is not a supported scenario for the current `Azure.Identity` SDK which is used for connecting
+to Azure services. Instead, this iteration of the config builder exclusively uses [DefaultAzureCredential](https://docs.microsoft.com/en-us/dotnet/api/azure.identity.defaultazurecredential)
+from the `Azure.Identity` package to handle credentials for connecting to Azure Key Vault.
+  * `vaultName` - This (or `uri`) is a required attribute. It specifies the name of the vault in your Azure subscription from which to read key/value pairs.
+  * `uri` - Connect to non-Azure Key Vault providers with this attribute. If not specified, Azure is the assumed Vault provider. If the uri _is_ specified, then `vaultName` is no longer a required parameter.
   * `version` - Azure Key Vault provides a versioning feature for secrets. If this is specified, the builder will only retrieve secrets matching this version.
-  * `preloadSecretNames` - By default, this builder will query __all__ the key names in the key vault when it is initialized. If this is a concern, set
-  this attribute to 'false', and secrets will be retrieved one at a time. This could also be useful if the vault allows "Get" access but not
+  * `preloadSecretNames` - By default, this builder will query __all__ the key names in the key vault when it is initialized to improve performance. If this is
+  a concern, set this attribute to 'false', and secrets will be retrieved one at a time. This could also be useful if the vault allows "Get" access but not
   "List" access. (NOTE: Disabling preload is incompatible with Greedy mode.)
 Tip: Azure Key Vault uses random per-secret Guid assignments for versioning, which makes specifying a secret `version` tag on this builder rather
 limiting, as it will only ever update one config value. To make version handling more useful, V2 of this builder takes advantage of the new key-updating
