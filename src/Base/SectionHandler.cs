@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Configuration.Provider;
 using System.Collections.Specialized;
 using System;
+using System.Linq.Expressions;
 
 namespace Microsoft.Configuration.ConfigurationBuilders
 {
@@ -14,6 +15,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
     {
         void InsertOrUpdate(string newKey, string newValue, string oldKey = null, object oldItem = null);
         IEnumerator<KeyValuePair<string, object>> GetEnumerator();
+        string TryGetOriginalCase(string requestedKey);
     }
 
     /// <summary>
@@ -44,6 +46,17 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// <param name="oldKey">The old key name for the config item, or null.</param>
         /// <param name="oldItem">A reference to the old key/value pair obtained by <see cref="GetEnumerator"/>, or null.</param>
         public abstract void InsertOrUpdate(string newKey, string newValue, string oldKey = null, object oldItem = null);
+
+        /// <summary>
+        /// Attempt to lookup the original key casing so it can be preserved during greedy updates which would otherwise lose
+        /// the original casing in favor of the casing used in the config source.
+        /// </summary>
+        /// <param name="requestedKey">The key to find original casing for.</param>
+        /// <returns>Unless overridden, returns the string passed in.</returns>
+        public virtual string TryGetOriginalCase(string requestedKey)
+        {
+            return requestedKey;
+        }
 
         private void Initialize(string name, T configSection, NameValueCollection config)
         {
@@ -87,6 +100,25 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             string[] keys = (string[])ConfigSection.Settings.AllKeys;
             foreach (string key in keys)
                 yield return new KeyValuePair<string, object>(key, key);
+        }
+
+        /// <summary>
+        /// Attempt to lookup the original key casing so it can be preserved during greedy updates which would otherwise lose
+        /// the original casing in favor of the casing used in the config source.
+        /// </summary>
+        /// <param name="requestedKey">The key to find original casing for.</param>
+        /// <returns>A string containing the key with original casing from the config section, or the key as passed in if no match
+        /// can be found.</returns>
+        public override string TryGetOriginalCase(string requestedKey)
+        {
+            if (!String.IsNullOrWhiteSpace(requestedKey))
+            {
+                var keyval = ConfigSection.Settings[requestedKey];
+                if (keyval != null)
+                    return keyval.Key;
+            }
+
+            return base.TryGetOriginalCase(requestedKey);
         }
     }
 
@@ -135,6 +167,25 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
             foreach (ConnectionStringSettings cs in connStrs)
                 yield return new KeyValuePair<string, object>(cs.Name, cs);
+        }
+
+        /// <summary>
+        /// Attempt to lookup the original key casing so it can be preserved during greedy updates which would otherwise lose
+        /// the original casing in favor of the casing used in the config source.
+        /// </summary>
+        /// <param name="requestedKey">The key to find original casing for.</param>
+        /// <returns>A string containing the key with original casing from the config section, or the key as passed in if no match
+        /// can be found.</returns>
+        public override string TryGetOriginalCase(string requestedKey)
+        {
+            if (!String.IsNullOrWhiteSpace(requestedKey))
+            {
+                var connStr = ConfigSection.ConnectionStrings[requestedKey];
+                if (connStr != null)
+                    return connStr.Name;
+            }
+
+            return base.TryGetOriginalCase(requestedKey);
         }
     }
 }

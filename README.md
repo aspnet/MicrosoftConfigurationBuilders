@@ -298,6 +298,7 @@ public class MySpecialSectionHandler : SectionHandler<MySpecialSection>
 {
     // T ConfigSection;
     // public override void Initialize(string name, NameValueCollection config) {}
+	// public override string TryGetOriginalCase(string requestedKey) {}
 
     public override IEnumerator<KeyValuePair<string, object>> GetEnumerator() {}
 
@@ -306,7 +307,7 @@ public class MySpecialSectionHandler : SectionHandler<MySpecialSection>
 ```
 Keep in mind when implementing a section handler, that `InsertOrUpdate()` will be called while iterating over the enumerator
 supplied by `GetEnumerator()`. So the two methods must work in cooperation to make sure that the enumerator does not get confused
-while iterating.
+while iterating. Ie, don't tamper with the collection that the enumerator is iterating over.
 
 A section handler is free to interpret the structure of a `ConfigurationSection` in any way it sees fit, so long it can be exposed as an
 enumerable list of key/value things. The 'value' side of that pair doesn't even have to be a string. Consider the implementation of
@@ -318,6 +319,12 @@ New section handlers can be introduced to the config system... via config. Secti
 provider model introduced in .Net 2.0, so they require `name` and `type` attributes, but can additionally support any other
 attribute needed by passing them in a `NameValueCollection` to the `Initialize(name, config)` method.
 
+Section handlers also have an optional override method `TryGetOriginalCase` that attempts to preserve casing in config files
+when executing in `Greedy` mode. When operating in `Strict` mode, config builders in this repo always preserved the case of the
+key when updating the value. This was easy because the original key was already at hand during lookup and replacement. In `Greedy`
+mode however, the original key from the config file was not used since it was not needed for a one-item lookup. Thus any greedy substitutions
+had their keys replaced with the keys from the external config source. Functionally they should be the same, since key/value config
+is supposed to be case-insensitive. But aesthetically, being a good citizen and not replacing the original key case is good.
 
 The `AppSettingsSectionHandler` and `ConnectionStringsSectionHandler`
 are implicitly added at the root level config, but they can be clear/removed just like any other item in an add/remove/clear configuration
