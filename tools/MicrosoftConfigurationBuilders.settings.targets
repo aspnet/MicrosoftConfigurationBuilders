@@ -23,7 +23,7 @@
             Release:	Third for Info and Package.
          Update package and file without touching assembly, except for major releases.
     -->
-    <BuildQuality Condition="'$(BuildQuality)' == ''">beta</BuildQuality>
+    <BuildQuality Condition="'$(BuildQuality)' == ''">rc</BuildQuality>
     <VersionStartYear Condition="'$(VersionStartYear)' == ''">2019</VersionStartYear>
     <VersionMajor>2</VersionMajor>
     <VersionMinor>0</VersionMinor>
