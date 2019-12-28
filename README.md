@@ -1,8 +1,8 @@
 # Configuration Builders
 
 Configuration Builders are a new feature of the full .Net Framework, introduced in .Net 4.7.1. You can read about the concept in [this blog post](http://jeffreyfritz.com/2017/11/modern-configuration-for-asp-net-4-7-1-with-configurationbuilders/).
-With this project, Microsoft is providing a basic set of Configuration Builders that should make it easy for developers to get started with the new feature. They
-are also intended to address some of the basic needs of applications as they move into a container and cloud focused environment.
+With this project, Microsoft is providing a basic set of Configuration Builders that should make it easy for developers to leverage this feature in their apps. They
+are also intended to address some of the basic dynamic/non-local configuration needs of applications as they move into a container and cloud focused environment.
 
 ### V2 Update:
 Version 2 is here with some new features:
@@ -11,13 +11,14 @@ Version 2 is here with some new features:
 		read initialization parameters for config builders from `appSettings`. Read more about it [here](#appsettings-parameters).
   * Lazy Initialization - As part of the work to enable pulling config parameters from `appSettings`, these key/value configuration builders now support a
 		lazy initialization model. Things that must happen immediately can be left in the existing `Initialize(name, config)` method, or builders can leverage
-		the `LazyInitialize(name, config)` method for things that can happen just before retrieving values. All builders in this project have been updated to
+		the new `LazyInitialize(name, config)` method for things that can happen just before retrieving values. All builders in this project have been updated to
 		be lazy whenever possible.
   * Updateable Keys - Builders can now massage key names before inserting into config. The [AzureKeyVaultConfigBuilder](#azurekeyvaultconfigbuilder) has been
 		updated to use this feature to allow embedding 'version' tags in key names instead of applying a single 'version' tag to the builder.  (Note: This is
 		seperate from, and performed *after* prefix stripping.)
   * Base Optional Tag - The [optional](#optional) tag that some of the builders in this project employed in V1 has been moved into the base class and is now available
 		on all key/value config builders.
+  * Escaping Expanded Values - It is possible to xml-escape inserted values in `Expand` mode now using the new [escapeExpandedValues](#escapeexpandedvalues) attribute.
   * Section Handlers - This feature allows users to develop extensions that will apply key/value config to sections other than `appSettings` and `connectionStrings`
 		if desired. Read more about this feature in the [Section Handlers](#section-handlers) segment below.
 
@@ -117,11 +118,10 @@ configuration section) there are limitations when using this feature on the `app
 is enabled - __but__ it can only draw on values that were hard-coded, or inserted into `appSettings` by config builders that execute before it in the builder chain.
 
 Although most initialization parameters can take advantage of this flexibility, it might not always make sense to apply this technique to all parameters. Of the
-base parameters defined for all key/value config builders, `mode` and `tokenPrefix` stand out as the two that *do not allow* reading from `appSettings`. *To make
-it easier to identify parameters that do allow appSettings substitution, in the definitions below of builders available in this project, such parameter names are
-preceded with an '@' symbol.
+base parameters defined for all key/value config builders, `mode` and `tokenPrefix` stand out as the two that *do not allow* reading from `appSettings`. 
 
 ## Config Builders In This Project
+*Note about following codeboxes: Parameters inside `[]`s are optional. Parameters grouped in `()`s are mutually exclusive. Parameters beginning with `@` allow appSettings substitution. The first line of parameters are common to all builders and optional. Their meaning and use are [documented above](#keyvalue-config-builders) and they are grouped on one line for brevity. Because different builders have a different default value for `optional`, this default is also specified in this first line summary of common attributes.*
 
 ### EnvironmentConfigBuilder
 ```xml
@@ -154,7 +154,7 @@ builder, the json format for Core secrets is technically an implementation detai
 There are three additional configuration attributes for this config builder:
   * `userSecretsId` - This is the preferred method for identifying an xml secrets file. It works similar to .Net Core, which uses a 'UserSecretsId' project
   property to store this identifier. (The string does not have to be a Guid. Just unique. The VS "Manage User Secrets" experience produces a Guid.) With this
-  attribute, the `UserSecretsConfigBuilder` will look in a well-known local location (%APPDATA%\Microsoft\UserSecrets\&lt;userSecretsId&gt;\secrets.xml in
+  attribute, the `UserSecretsConfigBuilder` will look in a well-known local location (%APPDATA%\Microsoft\UserSecrets\\&lt;userSecretsId&gt;\secrets.xml in
   Windows environments) for a secrets file belonging to this identifier.
   * `userSecretsFile` - An optional attribute specifying the file containing the secrets. The '~' character can be used at the start to reference the app root.
   One of this attribute or the 'userSecretsId' attribute is required. If both are specified, 'userSecretsFile' takes precedence.
@@ -180,7 +180,7 @@ and currently exposes the format of the file which, as mentioned above, should b
     [@keyFilter="string"]
     [@labelFilter="label"]
     [@acceptDateTime="DateTimeOffset"]
-	[@useAzureKeyVault="bool"]
+    [@useAzureKeyVault="bool"]
     type="Microsoft.Configuration.ConfigurationBuilders.AzureAppConfigurationBuilder, Microsoft.Configuration.ConfigurationBuilders.AzureAppConfig" />
 ```
 [AppConfiguration](https://docs.microsoft.com/en-us/azure/azure-app-configuration/overview) is a new offering from Azure, currently in preview. If you
@@ -196,7 +196,8 @@ from the Azure.Identity package to handle credentials for connecting to the serv
   to retrieve configuration values from a past state.
   * `useAzureKeyVault` - Enable this feature to allow AzureAppConfigurationBuilder to connect to and retrieve secrets from Azure Key Vault for
   config values that are stored in Key Vault. The same managed service identity that is used for connecting to the AppConfiguration service will
-  be used to connect to Key Vault. Default is `false`.
+  be used to connect to Key Vault. The Key Vault uri is retrieved as part of the data from AppConfiguration and does not need to be specified here.
+  Default is `false`.
 
 ### AzureKeyVaultConfigBuilder
 ```xml
@@ -208,7 +209,7 @@ from the Azure.Identity package to handle credentials for connecting to the serv
     type="Microsoft.Configuration.ConfigurationBuilders.AzureKeyVaultConfigBuilder, Microsoft.Configuration.ConfigurationBuilders.Azure" />
 ```
 If your secrets are kept in Azure Key Vault, then this config builder is for you. There are three additional attributes for this config builder. The `vaultName`
-(or `uri`) is required. Previous iterations of this config builder allowed for a `connectionString` as a way to supply credential information for connecting to
+attribute (or `uri`) is required. Previous iterations of this config builder allowed for a `connectionString` as a way to supply credential information for connecting to
 Azure Key Vault. This method is no longer allowed as it is not a supported scenario for the current `Azure.Identity` SDK which is used for connecting
 to Azure services. Instead, this iteration of the config builder exclusively uses [DefaultAzureCredential](https://docs.microsoft.com/en-us/dotnet/api/azure.identity.defaultazurecredential)
 from the `Azure.Identity` package to handle credentials for connecting to Azure Key Vault.
@@ -218,7 +219,8 @@ from the `Azure.Identity` package to handle credentials for connecting to Azure 
   * `preloadSecretNames` - By default, this builder will query __all__ the key names in the key vault when it is initialized to improve performance. If this is
   a concern, set this attribute to 'false', and secrets will be retrieved one at a time. This could also be useful if the vault allows "Get" access but not
   "List" access. (NOTE: Disabling preload is incompatible with Greedy mode.)
-Tip: Azure Key Vault uses random per-secret Guid assignments for versioning, which makes specifying a secret `version` tag on this builder rather
+
+__Tip:__ Azure Key Vault uses random per-secret Guid assignments for versioning, which makes specifying a secret `version` tag on this builder rather
 limiting, as it will only ever update one config value. To make version handling more useful, V2 of this builder takes advantage of the new key-updating
 feature to allow users to specify version tags in key names rather than on the config builder declaration. That way, the same builder can handle multiple
 keys with specific versions instead of needing to redefine multiple builders.
@@ -239,7 +241,7 @@ entries: `item1` and `item2`.
 ```xml
 <add name="KeyPerFile"
     [mode|@prefix|@stripPrefix|tokenPattern|@escapeExpandedValues|@optional=false]
-	(@directoryPath="PathToSourceDirectory")
+    @directoryPath="PathToSourceDirectory"
     [@ignorePrefix="ignore."]
     [keyDelimiter=":"]
     type="Microsoft.Configuration.ConfigurationBuilders.KeyPerFileConfigBuilder, Microsoft.Configuration.ConfigurationBuilders.KeyPerFile" />
@@ -298,7 +300,7 @@ public class MySpecialSectionHandler : SectionHandler<MySpecialSection>
 {
     // T ConfigSection;
     // public override void Initialize(string name, NameValueCollection config) {}
-	// public override string TryGetOriginalCase(string requestedKey) {}
+    // public override string TryGetOriginalCase(string requestedKey) {}
 
     public override IEnumerator<KeyValuePair<string, object>> GetEnumerator() {}
 
@@ -319,8 +321,8 @@ New section handlers can be introduced to the config system... via config. Secti
 provider model introduced in .Net 2.0, so they require `name` and `type` attributes, but can additionally support any other
 attribute needed by passing them in a `NameValueCollection` to the `Initialize(name, config)` method.
 
-Section handlers also have an optional override method `TryGetOriginalCase` that attempts to preserve casing in config files
-when executing in `Greedy` mode. When operating in `Strict` mode, config builders in this repo always preserved the case of the
+Section handlers also have an optional virtual method `TryGetOriginalCase(string)` that attempts to preserve casing in config files
+when executing in `Greedy` mode. When operating in `Strict` mode, config builders in this repo have always preserved the case of the
 key when updating the value. This was easy because the original key was already at hand during lookup and replacement. In `Greedy`
 mode however, the original key from the config file was not used since it was not needed for a one-item lookup. Thus any greedy substitutions
 had their keys replaced with the keys from the external config source. Functionally they should be the same, since key/value config
