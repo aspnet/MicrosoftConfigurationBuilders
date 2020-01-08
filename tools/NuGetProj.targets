@@ -269,7 +269,7 @@ NuGetPack: Creates a nuget package.
     <PropertyGroup>
       <NuSpecProperties>@(NuSpecProperties)</NuSpecProperties>
       <NuGetPackOptions Condition="'$(NuGetPackOptions)' == '' AND '$(NuGetPackSymbols)' != 'true'">-NoPackageAnalysis</NuGetPackOptions>
-      <NuGetPackOptions Condition="'$(NuGetPackOptions)' == '' AND '$(NuGetPackSymbols)' == 'true'">-NoPackageAnalysis -NoDefaultExcludes -symbols</NuGetPackOptions>
+      <NuGetPackOptions Condition="'$(NuGetPackOptions)' == '' AND '$(NuGetPackSymbols)' == 'true'">-NoPackageAnalysis -NoDefaultExcludes -Symbols -SymbolPackageFormat snupkg</NuGetPackOptions>
       <!-- BuildCommand is defined in nuget.targets file -->
       <BuildCommand>$(BuildCommand.Replace('-symbols', ''))</BuildCommand>
       <BuildCommand>$(BuildCommand.Replace('/symbols', ''))</BuildCommand>
