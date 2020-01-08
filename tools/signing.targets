@@ -4,7 +4,7 @@
   <Target Name="GetAssemblyFilesToSign" BeforeTargets="SignFiles" Condition="'$(MSBuildProjectExtension)' != '.nuproj' And '$(SignAssembly)' == 'true'">
     <ItemGroup>
       <FilesToSign Include="$(TargetPath)">
-        <Authenticode>Microsoft</Authenticode>
+        <Authenticode>Microsoft400</Authenticode>
         <StrongName>MsSharedLib72</StrongName>
       </FilesToSign>
     </ItemGroup>
