@@ -120,6 +120,40 @@ is enabled - __but__ it can only draw on values that were hard-coded, or inserte
 Although most initialization parameters can take advantage of this flexibility, it might not always make sense to apply this technique to all parameters. Of the
 base parameters defined for all key/value config builders, `mode` and `tokenPrefix` stand out as the two that *do not allow* reading from `appSettings`. 
 
+## Strict vs Greedy vs Expand
+Be aware that ConfigurationBuilders in the framework are a two-phase extension point. The first phase gets called when the config system reads the raw xml of
+a config section in an individual file. This phase works directly on the raw string xml contents of the config section as it exists in the config
+file containting the `configBuilders` tag for the section. Meaning if you tagged 'appSettings' with your config builder in you app.exe.config, then phase one
+only sees the settings you have in app.exe.config. Nothing from machine.config or any other config file in the processing hierarchy is visible.
+
+The second phase gets called after the config system has taken that raw xml input and turned it into a `ConfigurationSection` object - complete with inherited
+values from config files higher up the chain. Using the 'appSettings' in app.exe.config example again, this means that when a config builder is tagged in
+app.exe.config, it will operate on a `ConfigurationSection` object that contains settings contained in app.exe.config _in addition to_ the settings that were
+defined in higher config levels like machine.config.
+
+If your key/value config builder is set in `Strict` or `Greedy` mode, then it will operate in phase 2.
+
+If your key/value config builder is set in `Expand` mode, then it will operate in phase 1 on the raw xml __string__. So, if you had a custom section like this:
+```xml
+<MyCustomSection configBuilders="environment">
+    <add key="custom_key" value="${custom_value}" />
+    ${full_add_remove_element}
+</MyCustomSection>
+```
+
+The `environment` config builder would look for environment variables named 'custom_value' and 'full_add_remove_element' and directly replace the tokens in that xml string with the environment variable values. (Or leave the token as is if there is no matching environment variable.) Assuming your environment has
+```
+custom_value=42
+full_add_remove_element=<remove key="custom_key"/>
+```
+then the resulting xml that gets used to build the config object would look like this:
+```xml
+<MyCustomSection configBuilders="environment">
+    <add key="custom_key" value="42" />
+    <remove key="custom_key"/>
+</MyCustomSection>
+```
+
 ## Config Builders In This Project
 *Note about following codeboxes: Parameters inside `[]`s are optional. Parameters grouped in `()`s are mutually exclusive. Parameters beginning with `@` allow appSettings substitution. The first line of parameters are common to all builders and optional. Their meaning and use are [documented above](#keyvalue-config-builders) and they are grouped on one line for brevity. Because different builders have a different default value for `optional`, this default is also specified in this first line summary of common attributes.*
 
