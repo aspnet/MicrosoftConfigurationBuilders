@@ -210,7 +210,7 @@ and currently exposes the format of the file which, as mentioned above, should b
 ```xml
 <add name="AzureAppConfig"
     [mode|@prefix|@stripPrefix|tokenPattern|@escapeExpandedValues|@optional=false]
-    @endpoint="https://your-appconfig-store.azconfig.io"
+    (@endpoint="https://your-appconfig-store.azconfig.io" | @connectionString="Endpoint=https://your-appconfig-store.azconfig.io;Id=XXXXXXXXXX;Secret=XXXXXXXXXX")
     [@keyFilter="string"]
     [@labelFilter="label"]
     [@acceptDateTime="DateTimeOffset"]
@@ -218,12 +218,11 @@ and currently exposes the format of the file which, as mentioned above, should b
     type="Microsoft.Configuration.ConfigurationBuilders.AzureAppConfigurationBuilder, Microsoft.Configuration.ConfigurationBuilders.AzureAppConfig" />
 ```
 [AppConfiguration](https://docs.microsoft.com/en-us/azure/azure-app-configuration/overview) is a new offering from Azure, currently in preview. If you
-wish to use this new service for managing your configuration, then use this AzureAppConfigurationBuilder. `endpoint` is
-required, but all other attributes are optional.
-Previous iterations of this config builder allowed for a `connectionString` to connect to the
-App Configuration service. This method is no longer allowed, and this config builder now exclusively uses [DefaultAzureCredential](https://docs.microsoft.com/en-us/dotnet/api/azure.identity.defaultazurecredential)
-from the Azure.Identity package to handle credentials for connecting to the service.
+wish to use this new service for managing your configuration, then use this AzureAppConfigurationBuilder. Either `endpoint` or `connectionString` are
+required, but all other attributes are optional. If both `endpoint` and `connectionString` are used, then preference is given to the connection string.
   * `endpoint` - This specifies the AppConfiguration store to connect to.
+  * `connectionString` - This specifies the AppConfiguration store to connect to, along with the Id and Secret necessary to access the service. Be careful
+	not to expose any secrets in your code, repos, or App Configuration stores if you use this method for connecting.
   * `keyFilter` - Use this to select a set of configuration values matching a certain key pattern.
   * `labelFilter` - Only retrieve configuration values that match a certain label.
   * `acceptDateTime` - Instead of versioning ala Azure Key Vault, AppConfiguration uses timestamps. Use this attribute to go back in time
