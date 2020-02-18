@@ -4,7 +4,7 @@
 ##                                                                                                                    ##
 ########################################################################################################################
 
-WARNING: Double check config builder attributes in your configuraiton files. Some attributes may have been changed
+WARNING: Double check config builder attributes in your configuration files. Some attributes may have been changed
          when upgrading this package.
 
 If this is the first time you are installing this configuration builder into your
