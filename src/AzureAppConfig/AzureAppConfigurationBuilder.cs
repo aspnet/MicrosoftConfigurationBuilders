@@ -28,7 +28,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
         #pragma warning disable CS1591 // No xml comments for tag literals.
         public const string endpointTag = "endpoint";
-        public const string connectionStringTag = "connectionString";   // obsolete
+        public const string connectionStringTag = "connectionString";
         public const string keyFilterTag = "keyFilter";
         public const string labelFilterTag = "labelFilter";
         public const string dateTimeFilterTag = "acceptDateTime";
@@ -36,6 +36,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         #pragma warning restore CS1591 // No xml comments for tag literals.
 
         private Uri _endpoint;
+        private string _connectionString;
         private string _keyFilter;
         private string _labelFilter;
         private DateTimeOffset _dateTimeFilter;
@@ -82,33 +83,45 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             if (_useKeyVault)
                 _kvClientCache = new ConcurrentDictionary<Uri, SecretClient>(EqualityComparer<Uri>.Default);
 
-            // Config Store Endpoint
-            string uri = UpdateConfigSettingWithAppSettings(endpointTag);
-            if (!String.IsNullOrWhiteSpace(uri))
+
+            // Always allow 'connectionString' to override black magic. But we expect this to be null most of the time.
+            _connectionString = UpdateConfigSettingWithAppSettings(connectionStringTag);
+            if (String.IsNullOrWhiteSpace(_connectionString))
             {
+                _connectionString = null;
+
+                // Use Endpoint instead
+                string uri = UpdateConfigSettingWithAppSettings(endpointTag);
+                if (!String.IsNullOrWhiteSpace(uri))
+                {
+                    try
+                    {
+                        _endpoint = new Uri(uri);
+                        _client = new ConfigurationClient(_endpoint, new DefaultAzureCredential());
+                    }
+                    catch (Exception ex)
+                    {
+                        if (!Optional)
+                            throw new ArgumentException($"Exception encountered while creating connection to Azure App Configuration store.", ex);
+                    }
+                }
+                else
+                {
+                    throw new ArgumentException($"An endpoint URI or connection string must be provided for connecting to Azure App Configuration service via the '{endpointTag}' or '{connectionStringTag}' attribute.");
+                }
+            }
+            else
+            {
+                // If we get here, then we should try to connect with a connection string.
                 try
                 {
-                    _endpoint = new Uri(uri);
-                    _client = new ConfigurationClient(_endpoint, new DefaultAzureCredential());
+                    _client = new ConfigurationClient(_connectionString);
                 }
                 catch (Exception ex)
                 {
                     if (!Optional)
                         throw new ArgumentException($"Exception encountered while creating connection to Azure App Configuration store.", ex);
                 }
-            }
-            else
-            {
-                throw new ArgumentException($"An endpoint URI must be provided for connecting to Azure App Configuration service via the '{endpointTag}' attribute.");
-            }
-
-            if (config[connectionStringTag] != null)
-            {
-                // A connection string was given. Connection strings are no longer supported. Azure.Identity is the preferred way to
-                // authenticate, and that library has various mechanisms other than a plain text connection string in config to obtain
-                // the necessary client credentials for connecting to Azure.
-                // Be noisy about this even if optional, as it is a fundamental misconfiguration going forward.
-                throw new ArgumentException("AzureAppConfigurationBuilder no longer supports connection strings.", connectionStringTag);
             }
 
             // At this point we've got all our ducks in a row and are ready to go. And we know that
