@@ -62,7 +62,7 @@
 
   <Target Name="RebuildPackages" DependsOnTargets="CleanPackages;BuildPackages" />
 
-  <Target Name="RestorePackages">
+  <Target Name="RestorePackages" Condition="'$(SkipPackageRestore)' != 'true'">
     <Exec Command=".nuget\NuGet.exe restore" />
   </Target>
 
