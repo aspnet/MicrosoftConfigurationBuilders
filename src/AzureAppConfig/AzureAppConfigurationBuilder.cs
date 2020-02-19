@@ -204,13 +204,19 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             if (_client == null)
                 return null;
 
-            SettingSelector selector = new SettingSelector(key, _labelFilter);
-            // TODO: Reduce bandwidth by limiting the fields we retrieve.
-            //selector.Fields = SettingFields.Key | SettingFields.Value | SettingFields.ContentType;
+            SettingSelector selector = new SettingSelector();
+            selector.KeyFilter = key;
+            if (_labelFilter != null)
+            {
+                selector.LabelFilter = _labelFilter;
+            }
             if (_dateTimeFilter > DateTimeOffset.MinValue)
             {
                 selector.AcceptDateTime = _dateTimeFilter;
             }
+            // TODO: Reduce bandwidth by limiting the fields we retrieve.
+            // Currently, content type doesn't get delivered, even if we add it to the selection. This prevents KeyVault recognition.
+            //selector.Fields = SettingFields.Key | SettingFields.Value | SettingFields.ContentType;
 
             try
             {
@@ -260,13 +266,22 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             if (_client == null)
                 return data;
 
-            SettingSelector selector = new SettingSelector(_keyFilter, _labelFilter);
-            // TODO: Reduce bandwidth by limiting the fields we retrieve.
-            //selector.Fields = SettingFields.Key | SettingFields.Value | SettingFields.ContentType;
+            SettingSelector selector = new SettingSelector();
+            if (_keyFilter != null)
+            {
+                selector.KeyFilter = _keyFilter;
+            }
+            if (_labelFilter != null)
+            {
+                selector.LabelFilter = _labelFilter;
+            }
             if (_dateTimeFilter > DateTimeOffset.MinValue)
             {
                 selector.AcceptDateTime = _dateTimeFilter;
             }
+            // TODO: Reduce bandwidth by limiting the fields we retrieve.
+            // Currently, content type doesn't get delivered, even if we add it to the selection. This prevents KeyVault recognition.
+            //selector.Fields = SettingFields.Key | SettingFields.Value | SettingFields.ContentType;
 
             // We don't make any guarantees about which kv get precendence when there are multiple of the same key...
             // But the config service does seem to return kvs in a preferred order - no label first, then alphabetical by label.
