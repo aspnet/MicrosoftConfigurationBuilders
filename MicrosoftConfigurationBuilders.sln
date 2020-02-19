@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.27130.2036
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29020.237
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Azure", "src\Azure\Azure.csproj", "{345C5437-4990-45DC-BE34-6E37AA05D8D2}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -60,6 +60,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleWebApp", "samples\Sam
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AzureAppConfig", "src\AzureAppConfig\AzureAppConfig.csproj", "{3F1BB24A-355F-49E7-B396-6AA2EB5DDA0E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WorkerRoleServiceConfiguration", "WorkerRoleServiceConfiguration\WorkerRoleServiceConfiguration.csproj", "{F5D796AA-D698-43B5-9F78-5BEF68BE2C8E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -106,6 +108,10 @@ Global
 		{3F1BB24A-355F-49E7-B396-6AA2EB5DDA0E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3F1BB24A-355F-49E7-B396-6AA2EB5DDA0E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3F1BB24A-355F-49E7-B396-6AA2EB5DDA0E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F5D796AA-D698-43B5-9F78-5BEF68BE2C8E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F5D796AA-D698-43B5-9F78-5BEF68BE2C8E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F5D796AA-D698-43B5-9F78-5BEF68BE2C8E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F5D796AA-D698-43B5-9F78-5BEF68BE2C8E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
