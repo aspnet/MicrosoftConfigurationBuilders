@@ -2,11 +2,12 @@
 
   <ItemGroup>
     <AssemblyProject Include="src\Base\Base.csproj" />
-    <AssemblyProject Include="src\Environment\Environment.csproj" />
-    <AssemblyProject Include="src\UserSecrets\UserSecrets.csproj" />
-    <AssemblyProject Include="src\Azure\Azure.csproj" />
-    <AssemblyProject Include="src\Json\Json.csproj" />
-    <AssemblyProject Include="src\AzureAppConfig\AzureAppConfig.csproj" />
+    <AssemblyProject Include="src\Environment\Environment.csproj" Condition="'$(SkipEnvironmentProj)' != 'true'" />
+    <AssemblyProject Include="src\UserSecrets\UserSecrets.csproj" Condition="'$(SkipUserSecretsProj)' != 'true'" />
+    <AssemblyProject Include="src\KeyPerFile\KeyPerFile.csproj" Condition="'$(SkipKeyPerFileProj)' != 'true'" />
+    <AssemblyProject Include="src\Azure\Azure.csproj" Condition="'$(SkipAzureProj)' != 'true'" />
+    <AssemblyProject Include="src\Json\Json.csproj" Condition="'$(SkipJsonProj)' != 'true'" />
+    <AssemblyProject Include="src\AzureAppConfig\AzureAppConfig.csproj" Condition="'$(SkipAzureAppConfigProj)' != 'true'" />
   </ItemGroup>
 
   <ItemGroup>
