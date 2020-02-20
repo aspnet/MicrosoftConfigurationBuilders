@@ -45,12 +45,12 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CommonBuilderTests.cs" />
-    <Compile Include="UserSecretsTests.cs" />
-    <Compile Include="KeyPerFileTests.cs" />
-    <Compile Include="SimpleJsonTests.cs" />
+    <Compile Include="UserSecretsTests.cs" Condition="'$(SkipUserSecretsProj)' != 'true'" />
+    <Compile Include="KeyPerFileTests.cs" Condition="'$(SkipKeyPerFileProj)' != 'true'" />
+    <Compile Include="SimpleJsonTests.cs" Condition="'$(SkipJsonProj)' != 'true'" />
     <Compile Include="UtilsTests.cs" />
     <Compile Include="BaseTests.cs" />
-    <Compile Include="EnvironmentTests.cs" />
+    <Compile Include="EnvironmentTests.cs" Condition="'$(SkipEnvironmentProj)' != 'true'" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -58,19 +58,19 @@
       <Project>{f382fbf8-146d-4968-a199-90d37f9ef9a7}</Project>
       <Name>Base</Name>
     </ProjectReference>
-    <ProjectReference Include="..\..\src\Environment\Environment.csproj">
+    <ProjectReference Include="..\..\src\Environment\Environment.csproj"  Condition="'$(SkipEnvironmentProj)' != 'true'">
       <Project>{c6530e81-d8d8-47a8-912e-d2939f801835}</Project>
       <Name>Environment</Name>
     </ProjectReference>
-    <ProjectReference Include="..\..\src\Json\Json.csproj">
+    <ProjectReference Include="..\..\src\Json\Json.csproj" Condition="'$(SkipJsonProj)' != 'true'">
       <Project>{84e0ce5d-4af2-414f-a940-22b3f93fc727}</Project>
       <Name>Json</Name>
     </ProjectReference>
-    <ProjectReference Include="..\..\src\UserSecrets\UserSecrets.csproj">
+    <ProjectReference Include="..\..\src\UserSecrets\UserSecrets.csproj" Condition="'$(SkipUserSecretsProj)' != 'true'">
       <Project>{c60d6cbb-d513-4692-81a6-0be5d45e4702}</Project>
       <Name>UserSecrets</Name>
     </ProjectReference>
-    <ProjectReference Include="..\..\src\KeyPerFile\KeyPerFile.csproj">
+    <ProjectReference Include="..\..\src\KeyPerFile\KeyPerFile.csproj" Condition="'$(SkipKeyPerFileProj)' != 'true'">
       <Project>{60c31149-44ed-4789-b5c3-aaa5d3b2fcf1}</Project>
       <Name>KeyPerFile</Name>
     </ProjectReference>

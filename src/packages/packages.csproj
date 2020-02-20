@@ -24,12 +24,12 @@
   </PropertyGroup>
   <ItemGroup Label="Nuget Project Build Order">
     <NuGetProject Include="ConfigurationBuilders.Base.nupkg\Microsoft.Configuration.ConfigurationBuilders.Base.nuproj" />
-    <NuGetProject Include="ConfigurationBuilders.Environment.nupkg\Microsoft.Configuration.ConfigurationBuilders.Environment.nuproj" />
-    <NuGetProject Include="ConfigurationBuilders.UserSecrets.nupkg\Microsoft.Configuration.ConfigurationBuilders.UserSecrets.nuproj" />
-    <NuGetProject Include="ConfigurationBuilders.KeyPerFile.nupkg\Microsoft.Configuration.ConfigurationBuilders.KeyPerFile.nuproj" />
-    <NuGetProject Include="ConfigurationBuilders.Azure.nupkg\Microsoft.Configuration.ConfigurationBuilders.Azure.nuproj" />
-    <NuGetProject Include="ConfigurationBuilders.Json.nupkg\Microsoft.Configuration.ConfigurationBuilders.Json.nuproj" />
-    <NuGetProject Include="ConfigurationBuilders.AzureAppConfiguration.nupkg\Microsoft.Configuration.ConfigurationBuilders.AzureAppConfiguration.nuproj" />
+    <NuGetProject Include="ConfigurationBuilders.Environment.nupkg\Microsoft.Configuration.ConfigurationBuilders.Environment.nuproj" Condition="'$(SkipEnvironmentProj)' != 'true'" />
+    <NuGetProject Include="ConfigurationBuilders.UserSecrets.nupkg\Microsoft.Configuration.ConfigurationBuilders.UserSecrets.nuproj" Condition="'$(SkipUserSecretsProj)' != 'true'" />
+    <NuGetProject Include="ConfigurationBuilders.KeyPerFile.nupkg\Microsoft.Configuration.ConfigurationBuilders.KeyPerFile.nuproj" Condition="'$(SkipKeyPerFileProj)' != 'true'" />
+    <NuGetProject Include="ConfigurationBuilders.Azure.nupkg\Microsoft.Configuration.ConfigurationBuilders.Azure.nuproj" Condition="'$(SkipAzureProj)' != 'true'" />
+    <NuGetProject Include="ConfigurationBuilders.Json.nupkg\Microsoft.Configuration.ConfigurationBuilders.Json.nuproj" Condition="'$(SkipJsonProj)' != 'true'" />
+    <NuGetProject Include="ConfigurationBuilders.AzureAppConfiguration.nupkg\Microsoft.Configuration.ConfigurationBuilders.AzureAppConfiguration.nuproj" Condition="'$(SkipAzureAppConfigProj)' != 'true'" />
   </ItemGroup>
   <ItemGroup Label="Base">
     <None Include="ConfigurationBuilders.Base.nupkg\Microsoft.Configuration.ConfigurationBuilders.Base.nuspec" />
