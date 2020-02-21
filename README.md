@@ -221,7 +221,7 @@ and currently exposes the format of the file which, as mentioned above, should b
 >
 >When connecting to an Azure App Configuration store, the identity that is being used must be assigned either the `Azure App Configuration Data Reader` role or the `Azure App Configuration Data Owner` role. Otherwise the config builder will encounter a "403 Forbidden" response from Azure and throw an exception if not `optional`.
 
-[AppConfiguration](https://docs.microsoft.com/en-us/azure/azure-app-configuration/overview) is a new offering from Azure, currently in preview. If you
+[AppConfiguration](https://docs.microsoft.com/en-us/azure/azure-app-configuration/overview) is a new offering from Azure. If you
 wish to use this new service for managing your configuration, then use this AzureAppConfigurationBuilder. Either `endpoint` or `connectionString` are
 required, but all other attributes are optional. If both `endpoint` and `connectionString` are used, then preference is given to the connection string.
   * `endpoint` - This specifies the AppConfiguration store to connect to.
