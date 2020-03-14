@@ -235,7 +235,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// <summary>
         /// Gets an <see cref="IEnumerator{T}"/> that iterates over the key/value pairs contained in the assigned <see cref="SectionHandler{T}.ConfigSection"/>. />
         /// </summary>
-        /// <returns>An enumerator over pairs where the key is the existing name for each setting in the serviceModel.client section, and the value
+        /// <returns>An enumerator over pairs where the key is the existing name for each setting in the system.serviceModel/client section, and the value
         /// is a reference to the <see cref="ChannelEndpointElement"/> object referred to by that name.</returns>
         public override IEnumerator<KeyValuePair<string, object>> GetEnumerator()
         {
