@@ -215,7 +215,7 @@ and currently exposes the format of the file which, as mentioned above, should b
     [@labelFilter="label"]
     [@acceptDateTime="DateTimeOffset"]
     [@useAzureKeyVault="bool"]
-    type="Microsoft.Configuration.ConfigurationBuilders.AzureAppConfigurationBuilder, Microsoft.Configuration.ConfigurationBuilders.AzureAppConfig" />
+    type="Microsoft.Configuration.ConfigurationBuilders.AzureAppConfigurationBuilder, Microsoft.Configuration.ConfigurationBuilders.AzureAppConfiguration" />
 ```
 >:information_source: [NOTE]
 >
