@@ -4,6 +4,23 @@ Configuration Builders are a new feature of the full .Net Framework, introduced 
 With this project, Microsoft is providing a basic set of Configuration Builders that should make it easy for developers to leverage this feature in their apps. They
 are also intended to address some of the basic dynamic/non-local configuration needs of applications as they move into a container and cloud focused environment.
 
+This ReadMe has gotten quite long, so here is a quick table of contents:
+  * [Updates](#updates)
+  * [Introduction to Key/Value Config Builders](#introduction-to-keyvalue-config-builders)
+  * [ConfigurationBuilders Order of Execution](#configurationbuilders-order-of-execution)
+  * [Strict vs Greedy vs Expand](#strict-vs-greedy-vs-expand)
+  * [Config Builders In This Project](#config-builders-in-this-project)
+    * [EnvironmentConfigBuilder](#environmentconfigbuilder)
+    * [UserSecretsConfigBuilder](#usersecretsconfigbuilder)
+    * [AzureAppConfigurationBuilder](#azureappconfigurationbuilder)
+    * [AzureKeyVaultConfigBuilder](#azurekeyvaultconfigbuilder)
+    * [KeyPerFileConfigBuilder](#keyperfileconfigbuilder)
+    * [SimpleJsonConfigBuilder](#simplejsonconfigbuilder)
+  * [Section Handlers](#section-handlers)
+  * [Implementing More Key/Value Config Builders](#implementing-more-keyvalue-config-builders)
+
+
+<a name="updates"></a>
 ### V2 Update:
 Version 2 is here with some new features:
   * Azure App Configuration Support - There is a [new builder](#azureappconfigurationbuilder) for drawing values from the new Azure App Configuration service.
@@ -22,7 +39,8 @@ Version 2 is here with some new features:
   * Section Handlers - This feature allows users to develop extensions that will apply key/value config to sections other than `appSettings` and `connectionStrings`
 		if desired. Read more about this feature in the [Section Handlers](#section-handlers) segment below.
 
-## Key/Value Config Builders
+<a name="intro"></a>
+## Introduction to Key/Value Config Builders
 
 If you read the blog post linked above, you probably recognize that Configuration Builders can be quite flexible. Applications can use the Configuration Builder
 concept to construct incredibly complex configuration on the fly. But for the most common usage scenarios, a basic key/value replacement mechanism is all that
@@ -119,6 +137,107 @@ is enabled - __but__ it can only draw on values that were hard-coded, or inserte
 
 Although most initialization parameters can take advantage of this flexibility, it might not always make sense to apply this technique to all parameters. Of the
 base parameters defined for all key/value config builders, `mode` and `tokenPrefix` stand out as the two that *do not allow* reading from `appSettings`. 
+
+## ConfigurationBuilders Order of Execution
+This section is not really about the config builders in this project. Rather, it is about how the .Net Framework uses `ConfigurationBuilder`s to build configuration
+sections for app consumption. The mechanics of how this all works affects the order in which config builders are applied and what sources of information they have
+to draw on as well as the look of the underlying config section they are modifying. Indeed, even in this project, features like drawing builder parameters from
+`AppSettings` are potentially constrained by the way the .Net config system works.
+
+Its very easy to think of the .Net configuration system as simply reading the `.config` file that comes with your application. But there is much more involved
+in this task. To start with, the .Net Framework uses a multi-layered configuration system. Whenever code asks for a `ConfigurationSection`, wether it is directly
+via `GetSection()` or indirectly through `ConfigurationManager`, the .Net Framework starts by reading the machine-wide configuration in the machine.config
+file installed in `%WINDIR%\Microsoft.NET\Framework[64]\v4.0.30319\Config`. The process then moves to the next level config file and modifies what it
+read from machine.config with updates from that next level. And so on and so forth. The process iterates through a well-known chain of config files before
+returning the resulting accumulation of configuration values from all levels. (There are actually *two* configuration systems in one within the .Net Framework.
+They are roughly the same with the most noticeable difference being the layers of config files being stacked together. The client configuration system consults
+user config files and app.exe.config files, while the web configuration system follows a chain of web.config files.) The following diagram demonstrates the
+high level concept for an ASP.Net application serving a page from a sub-directory.
+
+```
+GetSection()      +----------------+            +------------+            +------------+            +------------+
+     |            |                |            |            |            |            |            |            |
+     | {No CSO*}  |                |   {CSO*}   |   (root)   |   {CSO*}   |   (app)    |   {CSO*}   |  (subdir)  |
+     +----------->| machine.config |----------->| web.config |----------->| web.config |----------->| web.config |---> { ConfigurationSection Object* }
+                  |                |            |            |            |            |            |            |
+                  +----------------+            +------------+            +------------+            +------------+
+```
+
+That is a simple explanation of layered config. Even from this simple concept you can see how each layer builds on previous layers... but does not directly
+influence other layers. Which brings us to the first point wrt config builder execution order. <u>***ConfigurationBuilders execute only in the layer in which they
+are applied.***</u> This refers to the execution of a config builder. The definition of a config builder will carry forward to every layer beyond the one in which
+it was defined, just like applicationSettings and connectionStrings carry forward to the next layer. But the `configBuilders` tag that is used to apply a config
+builder is not carried forward. It is executed at each level and then forgotten. The results of the config builder execution are carried forward in the config
+object passed to the next level.
+
+There is of course more detail within each layer. Let's take a look at what happens in the `(app) web.config` layer in the diagram above:
+
+```
+   {ConfigSection}
+  (from prev layer)    +------------+  [XML]                 [XML]                 [XML]               
+          |            |         B: |---------> {Builder1} ---------> {Builder2} ---------> {Builder3}---+
+          |            |            |                                                                    |
+          +----------->|   (app)    |<-------------------------------------------------------------------+
+                       | web.config |
+          +----------->|            |  {CSO*}                {CSO*}                {CSO*}              
+          |        A:  |         C: |---------> {Builder1} ---------> {Builder2} ---------> {Builder3}---+
+          |            |            |                                                                    |
+          |            |     D:     |<-------------------------------------------------------------------+
+   Raw XML fragment    +------------+
+     only from               |
+    (app) web.config         +------------> { ConfigurationSection Object* }
+```
+
+The first thing to notice is that this layer takes a `ConfigurationSection` object from the previous layer as input. All *.config* files and config builder output
+from previous layers are reflected in this object. From here, the first step (A:) taken at this layer is to *read and process* the raw xml for the requested configuration
+section. If the section is encrypted, it is decrypted here. If the section resides in a different file via the `configSource` attribute, then the raw xml is read from
+that source. The *last* step of retrieving/processing the raw xml content is passing it through the configuration builder chain. <u>***The builder chain executes in
+the order that builders appear in the `configBuilders` tag for the section.***</u> The processed xml then returns into the config system where it works it magic to
+combine it with the `ConfigurationSection` object from the previous layer to produce a new `ConfigurationSection` object that reflects the merged settings.
+Lastly, this `ConfigurationSection` object is passed through the config builder chain, which executes in the same order as before. The resulting object gets passed
+on to the next layer if it exists.
+
+One aspect to note is that config builders are instantiated once per appearance in a `configBuilders` tag. This means that if you apply the "same" config builder to
+both your `<appSettings/>` and `<connectionStrings/>` sections, each section will use a separate instance for processing since each section was tagged
+with the builder separately. Similarly, if you define an 'Environment' config builder in machine.config and apply it to `<appSettings/>` both there and
+again in app.exe.config... two separate instances will be created to process configuration at each layer. However, the same instance is used for processing both
+the raw xml as well as the `ConfigurationSection` object.
+
+The final twist is that this method of building config objects happens one ***section*** at a time. Normally this is not something anyone needs to think about, as
+configuration sections are generally conceptually siloed. Meaning there are not many concerns that cut across sections, so grabbing one section at a time works as
+expected without complication. Traditionally, folks that produce/register configuration sections in their app are encouraged to not use configuration while defining
+and creating thier own config section to avoid cross-section loading. Crossing the streams is bad. But the feature in this project where builders can draw their
+parameters from `<appSettings/>` does just that. We also encourage folks who extend this package to use the coding skills they know to bring in information from
+external sources - and the classes/methods for doing so could also indirectly load another configuration section... or maybe even try to reload the section
+that is currently being loaded. The potential for deadlock and/or stack overflow is there if developers are not careful about what their config builders
+are doing.
+
+Here is a brief pseudo-config example to demonstrate the order of execution:
+
+| machine.config | root web.config | app web.config |
+| -------------- | --------------- | -------------- |
+| check 1 | check 2 | bananas |
+| <pre>&lt;configBuilders&gt;<br/>&nbsp;&nbsp;&lt;add name="machine1" type=MachineA,..." /&gt;<br/>&nbsp;&nbsp;&lt;add name="machine2" type=MachineB,..." /&gt;<br/>&lt;/configBuilders&gt;<br/><br/>&lt;appSettings<br/>&nbsp;&nbsp;&nbsp;configBuilders="machine2, machine1" /&gt;</pre> | <pre>&lt;configBuilders&gt;<br/>&nbsp;&nbsp;&lt;remove name="machine2" /&gt;<br/>&nbsp;&nbsp;&lt;add name="machine2" type=WebTwo,..." /&gt;<br/>&nbsp;&nbsp;&lt;add name="web1" type=WebOne,..." /&gt;<br/>&lt;/configBuilders&gt;<br/><br/>&lt;appSettings<br/>&nbsp;&nbsp;&nbsp;configBuilders="web1" /&gt;</pre> | <pre>&lt;configBuilders&gt;<br/>&nbsp;&nbsp;&lt;add name="web3" type=WebThree,..." /&gt;<br/>&lt;/configBuilders&gt;<br/><br/>&lt;appSettings<br/>&nbsp;&nbsp;&nbsp;configBuilders="web3,machine2,web1" /&gt;</pre> |
+
+With the config layers above, loading the application settings for your web app would result in config builders executing in the following order. (InstanceId is a made
+up Id just for this table to demonstrate when instances are reused.)
+
+| Row# | BuilderName | Type | InstanceId | Data Format | Data Source |
+| ---: | ----------- | ---- | ---------: | ----------: | ----------- |
+| 1 | machine1 | MachineA | 1 | xml | machine.config |
+| 2 | machine2 | MachineB | 2 | xml | xml from row 1 |
+| 3 | machine1 | MachineA | 1 | CSO | class defaults<br/>modified by<br/>xml from row 2 |
+| 4 | machine2 | MachineB | 2 | CSO | CSO from row 3 |
+| 5 | web1 | WebOne | 3 | xml | root web.config |
+| 6 | web1 | WebOne | 3 | CSO | CSO from row 4<br/>modified by<br/>xml from row 5 |
+| 7 | web3 | WebThree | 4 | xml | app web.config |
+| 8 | machine2 | WebTwo | 5 | xml | xml from row 7 |
+| 9 | web1 | WebOne | 6 | xml | xml from row 8 |
+| 10 | web3 | WebThree | 4 | CSO | CSO from row 6<br/>modified by<br/>xml from row 9 |
+| 11 | machine2 | WebTwo | 5 | CSO | CSO from row 10 |
+| 12 | web1 | WebOne | 6 | CSO | CSO from row 11 |
+
+The `ConfigurationSection` object that returns from row 12 is the end result of config building.
 
 ## Strict vs Greedy vs Expand
 Be aware that ConfigurationBuilders in the framework are a two-phase extension point. The first phase gets called when the config system reads the raw xml of
