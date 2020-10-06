@@ -10,6 +10,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 using Azure;
+using Azure.Core;
 using Azure.Identity;
 using Azure.Security.KeyVault.Secrets;
 
@@ -90,7 +91,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             // Connect to KeyVault
             try
             {
-                _kvClient = new SecretClient(new Uri(_uri), new DefaultAzureCredential());
+                _kvClient = new SecretClient(new Uri(_uri), GetCredential());
             }
             catch (Exception)
             {
@@ -118,6 +119,12 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             // to avoid potential deadlocks.
             return Task.Run(async () => { return await GetValueAsync(key); }).Result?.Value;
         }
+
+        /// <summary>
+        /// Gets a <see cref="TokenCredential"/> to authenticate with KeyVault. This defaults to <see cref="DefaultAzureCredential"/>.
+        /// </summary>
+        /// <returns>A token credential.</returns>
+        protected virtual TokenCredential GetCredential() => new DefaultAzureCredential();
 
         /// <summary>
         /// Retrieves all known key/value pairs from the Key Vault where the key begins with with <paramref name="prefix"/>.
