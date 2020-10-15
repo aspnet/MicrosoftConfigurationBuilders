@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See the License.txt file in the project root for full license information.
 
 using System;
+using System.Collections.Concurrent;
 using System.Configuration;
 using System.Collections.Generic;
 using System.Collections.Specialized;
@@ -134,7 +135,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             _optional = (UpdateConfigSettingWithAppSettings(optionalTag) != null) ? Boolean.Parse(config[optionalTag]) : _optional;
             _escapeValues = (UpdateConfigSettingWithAppSettings(escapeTag) != null) ? Boolean.Parse(config[escapeTag]) : _escapeValues;
 
-            _cachedValues = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            _cachedValues = new ConcurrentDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             _lazyInitialized = true;
         }
 
