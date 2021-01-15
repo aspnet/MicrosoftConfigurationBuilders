@@ -15,7 +15,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
     {
         #pragma warning disable CS1591 // No xml comments for tag literals.
         public const string mapHierarchySeparatorTag = "mapHierarchySeparator";
-#pragma warning restore CS1591 // No xml comments for tag literals.
+        #pragma warning restore CS1591 // No xml comments for tag literals.
 
         private bool _mapHierarchySeparator;
 
