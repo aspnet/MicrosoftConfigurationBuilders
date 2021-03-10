@@ -135,7 +135,6 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             _escapeValues = (UpdateConfigSettingWithAppSettings(escapeTag) != null) ? Boolean.Parse(config[escapeTag]) : _escapeValues;
 
             _cachedValues = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            _lazyInitialized = true;
         }
 
         /// <summary>
@@ -289,6 +288,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                     if (!_lazyInitialized)
                     {
                         LazyInitialize(Name, _config);
+                        _lazyInitialized = true;
                     }
                 }
             }
