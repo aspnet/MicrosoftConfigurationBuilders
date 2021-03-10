@@ -12,6 +12,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 using Azure;
+using Azure.Core;
 using Azure.Data.AppConfiguration;
 using Azure.Identity;
 using Azure.Security.KeyVault.Secrets;
@@ -97,7 +98,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                     try
                     {
                         _endpoint = new Uri(uri);
-                        _client = new ConfigurationClient(_endpoint, new DefaultAzureCredential());
+                        _client = new ConfigurationClient(_endpoint, GetCredential());
                     }
                     catch (Exception ex)
                     {
@@ -198,6 +199,12 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             // again to avoid potential deadlocks.
             return Task.Run(async () => { return await GetAllValuesAsync(prefix); }).Result;
         }
+
+        /// <summary>
+        /// Gets a <see cref="TokenCredential"/> to authenticate with App Configuration. This defaults to <see cref="DefaultAzureCredential"/>.
+        /// </summary>
+        /// <returns>A token credential.</returns>
+        protected virtual TokenCredential GetCredential() => new DefaultAzureCredential();
 
         private async Task<string> GetValueAsync(string key)
         {
