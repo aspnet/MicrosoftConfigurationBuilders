@@ -77,7 +77,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                 }
             }
 
-            throw new Exception($"Error in Configuration: Cannot find ISectionHandler for '{configSection.SectionInformation.Name}' section.");
+            return null;
         }
     }
 }
