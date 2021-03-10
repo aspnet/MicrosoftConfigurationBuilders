@@ -165,6 +165,9 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             // most common case here.
             key = key.Replace(':', '-');
             key = key.Replace('_', '-');
+
+            // VB.net App Settings usually use the namespace format (with dots), but not allowed in key vault key names.
+            key = key.Replace('.', '-');
             return key;
         }
 
