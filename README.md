@@ -280,14 +280,20 @@ then the resulting xml that gets used to build the config object would look like
 ```xml
 <add name="Environment"
     [mode|@prefix|@stripPrefix|tokenPattern|@escapeExpandedValues|@optional=true]
+    [@mapHierarchySeperator="false"]
     type="Microsoft.Configuration.ConfigurationBuilders.EnvironmentConfigBuilder, Microsoft.Configuration.ConfigurationBuilders.Environment" />
 ```
-This is the most basic of the config builders. It draws its values from Environment, and it does not have any additional configuration options.
+This is the most basic of the config builders. It draws its values from Environment.
   * __NOTE:__ In a Windows container environment, variables set at run time are only injected into the EntryPoint process environment. 
   Applications that run as a service or a non-EntryPoint process will not pick up these variables unless they are otherwise injected through
   some mechanism in the container. For [IIS](https://github.com/Microsoft/iis-docker/pull/41)/[ASP.Net](https://github.com/Microsoft/aspnet-docker)-based
   containers, the current version of [ServiceMonitor.exe](https://github.com/Microsoft/iis-docker/pull/41) handles this in the *DefaultAppPool*
   only. Other Windows-based container variants may need to develop their own injection mechanism for non-EntryPoint processes.
+
+There is one additional configuration attribute for this config builder:
+  * `mapHierarchySeparator` - The : separator doesn't work with environment variable hierarchical keys on all platforms. __, the double underscore, is.
+  If this attribute is set to `true` this config builder will lookup environment variables using keys with colons replaced with double underscores.
+  Default is `false`.
 
 ### UserSecretsConfigBuilder
 ```xml
