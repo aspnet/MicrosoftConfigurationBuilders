@@ -7,9 +7,7 @@ using System.Collections.Specialized;
 using System.Configuration;
 using System.IO;
 using System.Linq;
-
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+using System.Text.Json;
 using System.Xml;
 
 namespace Microsoft.Configuration.ConfigurationBuilders
@@ -19,11 +17,11 @@ namespace Microsoft.Configuration.ConfigurationBuilders
     /// </summary>
     public class SimpleJsonConfigBuilder : KeyValueConfigBuilder
     {
-        #pragma warning disable CS1591 // No xml comments for tag literals.
+#pragma warning disable CS1591 // No xml comments for tag literals.
         public const string jsonFileTag = "jsonFile";
         public const string jsonModeTag = "jsonMode";
         public const string keyDelimiter = ":";
-        #pragma warning restore CS1591 // No xml comments for tag literals.
+#pragma warning restore CS1591 // No xml comments for tag literals.
 
         private string _currentSection;
         private Dictionary<string, Dictionary<string, string>> _allSettings;
@@ -76,33 +74,38 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
 
             // Now load up all the data for easy referencing later
-            JObject root;
-            using (JsonTextReader jtr = new JsonTextReader(new StreamReader(JsonFile))) {
-                root = JObject.Load(jtr);
+            JsonDocument document;
+            using (var stream = File.OpenRead(JsonFile))
+            {
+                document = JsonDocument.Parse(stream);
             }
+
+            var root = document.RootElement;
 
             if (JsonMode == SimpleJsonConfigBuilderMode.Flat)
             {
-                _allSettings[""] = LoadDictionaryFromJObject(root);
+                _allSettings[""] = LoadDictionaryFromJObject(root, true);
             }
             else
             {
                 // Non-"sections" get dumped into the default top level dictionary
                 _allSettings[""] = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-                ProcessJson(root, _allSettings[""], "", true);
+                ProcessJson(root, _allSettings[""], "", true, true);
 
                 // Get separate dictionaries for each "section"
-                foreach (JProperty p in root.Properties())
+                var objects = root.EnumerateObject();
+                while (objects.MoveNext())
                 {
-                    if (p.Value.Type == JTokenType.Object)
+                    var current = objects.Current;
+                    if (current.Value.ValueKind == JsonValueKind.Object)
                     {
-                        _allSettings[p.Name] = LoadDictionaryFromJObject(p.Value.Value<JObject>());
+                        _allSettings[current.Name] = LoadDictionaryFromJObject(current.Value, false);
                     }
                 }
             }
         }
 
-        #pragma warning disable CS1591 // No xml comments for overrides that should not be called directly.
+#pragma warning disable CS1591 // No xml comments for overrides that should not be called directly.
         public override XmlNode ProcessRawXml(XmlNode rawXml)
         {
             if (rawXml != null)
@@ -115,7 +118,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             _currentSection = configSection.SectionInformation.Name;
             return base.ProcessConfigurationSection(configSection);
         }
-        #pragma warning restore CS1591 // No xml comments for overrides that should not be called directly.
+#pragma warning restore CS1591 // No xml comments for overrides that should not be called directly.
 
         /// <summary>
         /// Looks up a single 'value' for the given 'key.'
@@ -149,52 +152,56 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             return _allSettings[""];
         }
 
-        private Dictionary<string, string> LoadDictionaryFromJObject(JObject root)
+        private Dictionary<string, string> LoadDictionaryFromJObject(JsonElement element, bool isRootElement)
         {
             Dictionary<string, string> d = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            ProcessJson(root, d, "");
+            ProcessJson(element, d, "", isRootElement, false);
             return d;
         }
 
-        private void ProcessJson(JToken token, Dictionary<string, string> d, string prefix, bool excludeObjects = false)
+        private void ProcessJson(JsonElement jsonElement, Dictionary<string, string> d, string prefix, bool isRootElement, bool excludeObjects)
         {
-            switch (token.Type)
+            switch (jsonElement.ValueKind)
             {
                 // Objects get flattened
-                case JTokenType.Object:
-                    if (!excludeObjects)
+                case JsonValueKind.Object:
+                    if (isRootElement || !excludeObjects)
                     {
-                        foreach (JProperty p in token.Value<JObject>().Properties())
-                            ProcessJson(p.Value, d, BuildPrefix(prefix, p.Name), excludeObjects);
+                        var objects = jsonElement.EnumerateObject();
+                        while (objects.MoveNext())
+                        {
+                            var current = objects.Current;
+                            ProcessJson(current.Value, d, BuildPrefix(prefix, current.Name), false, excludeObjects);
+                        }
                     }
                     break;
 
                 // Arrays get expando-flattened
-                case JTokenType.Array:
-                    JArray array = token.Value<JArray>();
-                    for (int i = 0; i < array.Count; i++)
+                case JsonValueKind.Array:
+                    var array = jsonElement.EnumerateArray();
+                    int indexArray = 0;
+                    while (array.MoveNext())
                     {
-                        ProcessJson(array[i], d, BuildPrefix(prefix, i.ToString()), excludeObjects);
+                        var current = array.Current;
+                        ProcessJson(current, d, BuildPrefix(prefix, indexArray++.ToString()), false, excludeObjects);
                     }
                     break;
 
                 // Primatives get stuck in the default section
-                case JTokenType.Integer:
-                case JTokenType.Float:
-                case JTokenType.String:
-                case JTokenType.Boolean:
-                case JTokenType.Bytes:
-                case JTokenType.Raw:
-                case JTokenType.Null:
+                case JsonValueKind.Undefined:
+                case JsonValueKind.Number:
+                case JsonValueKind.True:
+                case JsonValueKind.False:
+                case JsonValueKind.Null:
                     // Core's json provider throws exceptions on duplicates. Let's use Add() and do the same.
-                    d.Add(prefix, token.Value<JValue>().ToString());
+                    d.Add(prefix, jsonElement.GetRawText());
                     break;
             }
         }
 
         private string BuildPrefix(string prefix, string ext)
         {
-            if (!String.IsNullOrWhiteSpace(prefix))
+            if (!string.IsNullOrWhiteSpace(prefix))
                 return prefix + keyDelimiter + ext;
             return ext;
         }
