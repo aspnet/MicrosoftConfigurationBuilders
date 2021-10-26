@@ -45,6 +45,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CommonBuilderTests.cs" />
+    <Compile Include="ThreadSafeTests.cs" />
     <Compile Include="UserSecretsTests.cs" Condition="'$(SkipUserSecretsProj)' != 'true'" />
     <Compile Include="KeyPerFileTests.cs" Condition="'$(SkipKeyPerFileProj)' != 'true'" />
     <Compile Include="SimpleJsonTests.cs" Condition="'$(SkipJsonProj)' != 'true'" />
@@ -58,7 +59,7 @@
       <Project>{f382fbf8-146d-4968-a199-90d37f9ef9a7}</Project>
       <Name>Base</Name>
     </ProjectReference>
-    <ProjectReference Include="..\..\src\Environment\Environment.csproj"  Condition="'$(SkipEnvironmentProj)' != 'true'">
+    <ProjectReference Include="..\..\src\Environment\Environment.csproj" Condition="'$(SkipEnvironmentProj)' != 'true'">
       <Project>{c6530e81-d8d8-47a8-912e-d2939f801835}</Project>
       <Name>Environment</Name>
     </ProjectReference>
