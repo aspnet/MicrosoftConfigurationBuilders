@@ -31,6 +31,14 @@ GitHub supports [markdown](https://help.github.com/articles/github-flavored-mark
 
 If you are an outside contributer, please fork the repository. See the GitHub documentation for [forking a repo](https://help.github.com/articles/fork-a-repo/) if you have any questions about this. 
 
+**Building the source code**
+
+To build the project and run tests, you need to register the public key token for verification skip:
+
+1. Open a Visual Studio developer prompt as administrator.
+2. Run `sn -Vr *,31bf3856ad364e35
+3. Run `build.cmd` to restore NuGet packages, build the solution, and run tests.
+
 **Submitting a pull request**
 
 You will need to sign a [Contributor License Agreement](https://cla.opensource.microsoft.com//) when submitting your pull request. To complete the Contributor License Agreement (CLA), you will need to follow the instructions provided by the CLA bot when you send the pull request. This needs to only be done once for any Microsoft OSS project.
