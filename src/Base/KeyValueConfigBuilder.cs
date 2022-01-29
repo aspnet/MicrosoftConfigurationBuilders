@@ -127,7 +127,6 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         protected virtual void LazyInitialize(string name, NameValueCollection config)
         {
             // Use pre-assigned defaults if not specified. Non-freeform options should throw on unrecognized values.
-            _lazyInitializeStarted = true;
             _tokenPattern = config[tokenPatternTag] ?? _tokenPattern;
             _keyPrefix = UpdateConfigSettingWithAppSettings(prefixTag) ?? _keyPrefix;
             _stripPrefix = (UpdateConfigSettingWithAppSettings(stripPrefixTag) != null) ? Boolean.Parse(config[stripPrefixTag]) : _stripPrefix;
@@ -285,8 +284,9 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             {
                 lock (this)
                 {
-                    if (!_lazyInitialized)
+                    if (!_lazyInitialized && !_lazyInitializeStarted)
                     {
+                        _lazyInitializeStarted = true;
                         LazyInitialize(Name, _config);
                         _lazyInitialized = true;
                     }
