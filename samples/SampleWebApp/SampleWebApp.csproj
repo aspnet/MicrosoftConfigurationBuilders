@@ -3,8 +3,6 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProductVersion>
-    </ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{590892DD-F842-4E7C-9400-4C6451C16B1A}</ProjectGuid>
     <ProjectTypeGuids>{349c5851-65df-11da-9384-00065b846f21};{fae04ec0-301f-11d3-bf4b-00c04f79efbc}</ProjectTypeGuids>
@@ -13,6 +11,16 @@
     <RootNamespace>SampleWebApp</RootNamespace>
     <AssemblyName>SampleWebApp</AssemblyName>
     <TargetFrameworkVersion>v4.7.1</TargetFrameworkVersion>
+    <ProductVersion />
+    <NuGetPackageImportStamp />
+  </PropertyGroup>
+  <PropertyGroup>
+    <RestoreProjectStyle>PackageReference</RestoreProjectStyle>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
+    <UpdateBindingRedirectsAfterBuild>false</UpdateBindingRedirectsAfterBuild>
+  </PropertyGroup>
+  <PropertyGroup>
     <UseIISExpress>true</UseIISExpress>
     <Use64BitIISExpress />
     <IISExpressSSLPort />
@@ -20,8 +28,6 @@
     <IISExpressWindowsAuthentication />
     <IISExpressUseClassicPipelineMode />
     <UseGlobalApplicationHostFile />
-    <NuGetPackageImportStamp>
-    </NuGetPackageImportStamp>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -42,6 +48,16 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Content Include="App_Data\settings.json" />
+    <Content Include="App_Data\expandTest.json" />
+    <Content Include="App_Data\secrets.xml" />
+    <Content Include="default.aspx" />
+    <Content Include="Web.config">
+      <SubType>Designer</SubType>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Web" />
     <Reference Include="System.Configuration" />
@@ -50,67 +66,37 @@
     <PackageReference Include="Microsoft.CodeDom.Providers.DotNetCompilerPlatform">
       <Version>2.0.1</Version>
     </PackageReference>
-    <PackageReference Include="Azure.Data.AppConfiguration">
-      <Version>1.0.0</Version>
-    </PackageReference>
-    <PackageReference Include="Azure.Identity">
-      <Version>1.1.1</Version>
-    </PackageReference>
-    <PackageReference Include="Azure.Security.KeyVault.Secrets">
-      <Version>4.0.0</Version>
-    </PackageReference>
-    <PackageReference Include="Newtonsoft.Json">
-      <Version>11.0.1</Version>
-    </PackageReference>
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="App_Data\settings.json" />
-    <Content Include="App_Data\expandTest.json" />
-    <None Include="Web.Debug.config">
-      <DependentUpon>Web.config</DependentUpon>
-    </None>
-    <None Include="Web.Release.config">
-      <DependentUpon>Web.config</DependentUpon>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="App_Data\secrets.xml" />
-    <Content Include="default.aspx" />
-    <Content Include="Web.config">
-      <SubType>Designer</SubType>
-    </Content>
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\AzureAppConfig\AzureAppConfig.csproj">
       <Project>{3f1bb24a-355f-49e7-b396-6aa2eb5dda0e}</Project>
       <Name>AzureAppConfig</Name>
+      <PrivateAssets>All</PrivateAssets>
     </ProjectReference>
     <ProjectReference Include="..\..\src\Azure\Azure.csproj">
       <Project>{345c5437-4990-45dc-be34-6e37aa05d8d2}</Project>
       <Name>Azure</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\src\Base\Base.csproj">
-      <Project>{f382fbf8-146d-4968-a199-90d37f9ef9a7}</Project>
-      <Name>Base</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\src\Environment\Environment.csproj">
-      <Project>{c6530e81-d8d8-47a8-912e-d2939f801835}</Project>
-      <Name>Environment</Name>
+      <PrivateAssets>All</PrivateAssets>
     </ProjectReference>
     <ProjectReference Include="..\..\src\Json\Json.csproj">
       <Project>{84e0ce5d-4af2-414f-a940-22b3f93fc727}</Project>
       <Name>Json</Name>
+      <PrivateAssets>All</PrivateAssets>
+    </ProjectReference>
+    <ProjectReference Include="..\..\src\Environment\Environment.csproj">
+      <Project>{c6530e81-d8d8-47a8-912e-d2939f801835}</Project>
+      <Name>Environment</Name>
+      <PrivateAssets>All</PrivateAssets>
     </ProjectReference>
     <ProjectReference Include="..\..\src\KeyPerFile\KeyPerFile.csproj">
       <Project>{60c31149-44ed-4789-b5c3-aaa5d3b2fcf1}</Project>
       <Name>KeyPerFile</Name>
+      <PrivateAssets>All</PrivateAssets>
     </ProjectReference>
     <ProjectReference Include="..\..\src\UserSecrets\UserSecrets.csproj">
       <Project>{c60d6cbb-d513-4692-81a6-0be5d45e4702}</Project>
       <Name>UserSecrets</Name>
+      <PrivateAssets>All</PrivateAssets>
     </ProjectReference>
   </ItemGroup>
   <PropertyGroup>
@@ -138,6 +124,11 @@
       </FlavorProperties>
     </VisualStudio>
   </ProjectExtensions>
+
+  <Target Name="UpdateBindingRedirects" AfterTargets="AfterBuild" Condition="$(UpdateBindingRedirectsAfterBuild)=='true'">
+    <Copy SourceFiles="$(OutDir)$(AssemblyName).dll.config" DestinationFiles="web.config" />
+  </Target>
+  
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

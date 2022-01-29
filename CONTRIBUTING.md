@@ -39,6 +39,18 @@ To build the project and run tests, you need to register the public key token fo
 2. Run `sn -Vr *,31bf3856ad364e35
 3. Run `build.cmd` to restore NuGet packages, build the solution, and run tests.
 
+**MSB3276 -or- Updating binding redirects in SampleWebApp**
+
+These projects are not SDK-style projects. The sample web application will not be able to load all the dependent assemblies for it's project references without a
+complete set of binding redirects, and you might see a 'MSB3276' warning in the build output. Visual Studio can generate this list automatically, but it has no affect
+when running the sample site because the bindings are placed in a *.dll.config file instead of web.config.
+
+To update the bindings in web.config, set the `UpdateBindingRedirectsAfterBuild` property in the
+[SampleWebApp.csproj](https://github.com/aspnet/MicrosoftConfigurationBuilders/blob/main/samples/SampleWebApp/SampleWebApp.csproj#L21)
+file to `'true'`, then rebuild the web site. You will still see the build warning when you first build because the bindings are not updated until after the build.
+Subsequent builds should no longer see the warning. This step only needs to be done once after updating any dependencies, so don't forget to unset the
+`UpdateBindingRedirectsAfterBuild` property when you're done.
+
 **Submitting a pull request**
 
 You will need to sign a [Contributor License Agreement](https://cla.opensource.microsoft.com//) when submitting your pull request. To complete the Contributor License Agreement (CLA), you will need to follow the instructions provided by the CLA bot when you send the pull request. This needs to only be done once for any Microsoft OSS project.
