@@ -427,15 +427,18 @@ their orchestrated windows containers in this key-per-file manner.
 ```
 Because .Net Core projects can rely heavily on json files for configuration, it makes some sense to allow those same files to be used in full-framework
 configuration as well. You can imagine that the heirarchical nature of json might enable some fantastic capabilities for building complex configuration sections.
-But this config builders is meant to be a simple mapping from a flat key/value source into specific key/value areas of full-framework configuration. Thus its name
-begins with 'Simple.' Think of the backing json file as a basic dictionary, rather than a comlex heirarchical object.
+But this config builder is meant to be just a simple mapping from a flat key/value source into specific key/value areas of full-framework configuration. Thus its name
+begins with 'Simple.' Think of the backing json file as a basic dictionary, rather than a complex heirarchical object.
 
 (A multi-level heirarchical file can be used. This provider will simply 'flatten' the depth by appending the property name at each level using ':' as a delimiter.)
 
 There are three additional attributes that can be used to configure this builder:
   * `jsonFile` - A required attribute specifying the json file to draw from. The '~' character can be used at the start to reference the app root.
   * `jsonMode` - `[Flat|Sectional]`. 'Flat' is the default.
-    - This attribute requires a little more explanation. It says above to think of the json file as a single flat key/value source. This is the usual that applies to other key/value config builders like `EnvironmentConfigBuilder` and `AzureKeyVaultConfigBuilder` because those sources provide no other option. If the `SimpleJsonConfigBuilder` is configured in 'Sectional' mode, then the json file is conceptually divided just at the top level into multiple simple dictionaries. Each one of those dictionaries will only be applied to the config section that matches the top-level property name attached to them. For example:
+    - This attribute requires a little more explanation. It says above to think of the json file as a single flat key/value source. This is the usual that applies to
+    other key/value config builders like `EnvironmentConfigBuilder` and `AzureKeyVaultConfigBuilder` because those sources provide no other option. If the
+    `SimpleJsonConfigBuilder` is configured in 'Sectional' mode, then the json file is conceptually divided - at the top level only - into multiple simple dictionaries.
+    Each one of those dictionaries will only be applied to the config section that matches the top-level property name attached to them. For example:
 ```json
     {
         "appSettings" : {

@@ -32,10 +32,9 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         private string _uri;
         private string _version;
         private bool _preload;
-        private bool _preloadFailed;
 
         private SecretClient _kvClient;
-        private List<string> _allKeys;
+        private Lazy<List<string>> _allKeys;
 
         /// <summary>
         /// Initializes the configuration builder lazily.
@@ -99,10 +98,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                 _kvClient = null;
             }
 
-            if (_preload)
-            {
-                _allKeys = GetAllKeys();
-            }
+            _allKeys = new Lazy<List<string>>(() => GetAllKeys(), System.Threading.LazyThreadSafetyMode.ExecutionAndPublication);
         }
 
         /// <summary>
@@ -129,7 +125,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             ConcurrentDictionary<string, string> d = new ConcurrentDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             List<Task> tasks = new List<Task>();
 
-            foreach (string key in _allKeys)
+            foreach (string key in _allKeys.Value)
             {
                 if (key.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
                     tasks.Add(Task.Run(() => GetValueAsync(key).ContinueWith(t =>
@@ -197,8 +193,8 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
             VersionedKey vKey = new VersionedKey(key);
 
-            // If we successfully preloaded key names, see if the requested key is valid before making network request.
-            if (!_preload || _preloadFailed || _allKeys.Contains(vKey.Key, StringComparer.OrdinalIgnoreCase))
+            // If we preloaded key names, check to see if the requested key is valid before making network request.
+            if (!_preload || _allKeys.Value.Contains(vKey.Key, StringComparer.OrdinalIgnoreCase))
             {
                 try
                 {
@@ -240,7 +236,8 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         {
             List<string> keys = new List<string>(); // KeyVault keys are case-insensitive. There won't be case-duplicates. List<> should be fine.
 
-            if (_kvClient == null)
+            // Don't go loading all the keys if we can't, or if we were told not to
+            if (_kvClient == null || !_preload)
                 return keys;
 
             try
@@ -256,8 +253,6 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             }
             catch (RequestFailedException rfex)
             {
-                _preloadFailed = true;
-
                 // If List Permission on Secrets in not available return empty list of keys
                 if (rfex.ErrorCode == "Forbidden")
                     return keys;
