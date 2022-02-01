@@ -25,6 +25,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         public const string tokenPatternTag = "tokenPattern";
         public const string optionalTag = "optional";
         public const string escapeTag = "escapeExpandedValues";
+        public const string charMapTag = "charMap";
 #pragma warning restore CS1591 // No xml comments for tag literals.
 
         private NameValueCollection _config = null;
@@ -66,10 +67,15 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         //private string _tokenPattern = @"\$\{(\w+)\}";
         private string _tokenPattern = @"\$\{(\w[\w-_$@#+,.:~]*)\}";    // Updated to be more reasonable for V2
 
+        /// Gets or sets a string-represented mapping of characters to apply when mapping keys. Ex ":=_,;=__" or "{>|}:>_|;>__"
+        /// </summary>
+        public Dictionary<string, string> CharacterMap { get { EnsureInitialized(); return _characterMap; } protected set { _characterMap = value; } }
+        private Dictionary<string, string> _characterMap = new Dictionary<string, string>();
+
         /// <summary>
         /// Gets the ConfigurationSection object that is currently being processed by this builder.
         /// </summary>
-        protected ConfigurationSection CurrentSection { get { return _currentSection;} }
+        protected ConfigurationSection CurrentSection { get { return _currentSection; } }
         private ConfigurationSection _currentSection = null;
 
         /// <summary>
@@ -91,7 +97,17 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// </summary>
         /// <param name="key">The string to be mapped.</param>
         /// <returns>The key string to be used while looking up config values..</returns>
-        public virtual string MapKey(string key) { return key; }
+        public virtual string MapKey(string key)
+        {
+            if (String.IsNullOrEmpty(key))
+                return key;
+
+            foreach (var mapping in CharacterMap)
+                key = key.Replace(mapping.Key, mapping.Value);
+
+            return key;
+        }
+
         /// <summary>
         /// Makes a determination about whether the input key is valid for this builder and backing store.
         /// </summary>
@@ -138,6 +154,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             _stripPrefix = (UpdateConfigSettingWithAppSettings(stripPrefixTag) != null) ? Boolean.Parse(config[stripPrefixTag]) : _stripPrefix;
             _optional = (UpdateConfigSettingWithAppSettings(optionalTag) != null) ? Boolean.Parse(config[optionalTag]) : _optional;
             _escapeValues = (UpdateConfigSettingWithAppSettings(escapeTag) != null) ? Boolean.Parse(config[escapeTag]) : _escapeValues;
+            _characterMap = (UpdateConfigSettingWithAppSettings(charMapTag) != null) ? ParseCharacterMap(config[charMapTag]) : _characterMap;
 
             _cachedValues = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         }
@@ -366,6 +383,41 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         private string EscapeValue(string original)
         {
             return (_escapeValues && original != null) ? SecurityElement.Escape(original) : original;
+        }
+
+        private Dictionary<string, string> ParseCharacterMap(string stringMap)
+        {
+            // The format here is string=string,string=string
+            // To use separators other than , and =... prefix the string with {AB} where
+            //      A is used to create pairs and
+            //      B is used to delimit the pairs
+
+            Dictionary<string, string> charmap = new Dictionary<string, string>();
+            char[] coupler = { '=' };
+            char[] delimiter = { ',' };
+
+            try
+            {
+
+                if (stringMap.Length > 3 && stringMap[0] == '{' && stringMap[3] == '}')
+                {
+                    coupler = new char[] { stringMap[1] };
+                    delimiter = new char[] { stringMap[2] };
+                    stringMap = stringMap.Substring(4);
+                }
+
+                foreach (var pairing in stringMap.Split(delimiter))
+                {
+                    string[] mappedValues = pairing.Split(coupler, 2);
+                    charmap.Add(mappedValues[0], mappedValues[1]);
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error in Configuration Builder '{Name}' while parsing '{charMapTag}'", ex);
+            }
+
+            return charmap;
         }
 
         #endregion
