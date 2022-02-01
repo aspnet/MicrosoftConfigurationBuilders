@@ -39,8 +39,8 @@ $keyValueCommonParameters = @(
 function CommonInstall($builderDescription) {
 	##### Update/Rehydrate config declarations #####
 	$config = ReadConfigFile
-	$rehydratedCount = RehydrateOldDeclarations $config $builderDescription
-	$updatedCount = UpdateDeclarations $config $builderDescription
+	$rehydratedCount = RehydrateOldDeclarations $config $builderDescription | Out-Null
+	$updatedCount = UpdateDeclarations $config $builderDescription | Out-Null
 	if ($updatedCount -le 0) { AddDefaultDeclaration $config $builderDescription }
 	SaveConfigFile $config
 }
@@ -48,7 +48,7 @@ function CommonInstall($builderDescription) {
 function CommonUninstall($builderType) {
 	##### Dehydrate config declarations #####
 	$config = ReadConfigFile
-	DehydrateDeclarations $config $builderType
+	DehydrateDeclarations $config $builderType | Out-Null
 	SaveConfigFile $config
 }
 
@@ -84,12 +84,12 @@ function DehydrateDeclarations($config, $typeName) {
 	} else {
 		$xml = New-Object System.Xml.XmlDocument
 		$xml.PreserveWhitespace = $true
-		$xml.AppendChild($xml.CreateElement("driedDeclarations"))
+		$xml.AppendChild($xml.CreateElement("driedDeclarations")) | Out-Null
 	}
 
 	foreach ($rec in $config.xml.configuration.configBuilders.builders.add  | where { IsSameType $_.type $typeName }) {
 		# Remove records from config.
-		$config.xml.configuration.configBuilders.builders.RemoveChild($rec)
+		$config.xml.configuration.configBuilders.builders.RemoveChild($rec) | Out-Null
 
 		# Add the record to the temp stash. Don't worry about duplicates.
 		AppendBuilderNode $xml.ImportNode($rec, $true) $xml.DocumentElement
@@ -98,8 +98,8 @@ function DehydrateDeclarations($config, $typeName) {
 
 	# Save the dehydrated declarations
 	$tmpFolder = Split-Path $tempFile
-	md -Force $tmpFolder
-	$xml.Save($tempFile)
+	md -Force $tmpFolder | Out-Null
+	$xml.Save($tempFile) | Out-Null
 	return $count
 }
 
@@ -113,7 +113,7 @@ function RehydrateOldDeclarations($config, $builderDescription) {
 
 	foreach($rec in $xml.driedDeclarations.add | where { IsSameType $_.type ($builderDescription.TypeName + "," + $builderDescription.Assembly) }) {
 		# Remove records that match type, even if we don't end up rehydrating them.
-		$xml.driedDeclarations.RemoveChild($rec)
+		$xml.driedDeclarations.RemoveChild($rec) | Out-Null
 
 		# Skip if an existing record of the same name already exists.
 		$existingRecord = $config.xml.configuration.configBuilders.builders.add | where { $_.name -eq $rec.name }
@@ -125,7 +125,7 @@ function RehydrateOldDeclarations($config, $builderDescription) {
 	}
 
 	# Make dried record removal permanent
-	$xml.Save($tempFile)
+	$xml.Save($tempFile) | Out-Null
 
 	return $count
 }
@@ -187,15 +187,28 @@ function AddDefaultDeclaration($config, $builderDescription) {
 	AppendBuilderNode $dd $config.xml.configuration.configBuilders.builders
 }
 
-function AppendBuilderNode($builder, $parent) {
+function AppendBuilderNode($builder, $parent, $indentLevel = 3) {
 	$lastSibling = $parent.ChildNodes | where { $_ -isnot [System.Xml.XmlWhitespace] } | select -Last 1
 	if ($lastSibling -ne $null) {
-		$wsBefore = $lastSibling.PreviousSibling | where { $_ -is [System.Xml.XmlWhitespace] }
-		$parent.InsertAfter($builder, $lastSibling)
-		if ($wsBefore -ne $null) { $parent.InsertAfter($wsBefore.Clone(), $lastSibling) | Out-Null }
+		# If not the first child, then copy the whitespace convention of the existing child
+		$ws = "";
+		$prev = $lastSibling.PreviousSibling | where { $_ -is [System.Xml.XmlWhitespace] }
+		while ($prev -ne $null) {
+			$ws = $prev.data + $ws
+			$prev = $prev.PreviousSibling | where { $_ -is [System.Xml.XmlWhitespace] }
+		}
+		$parent.InsertAfter($builder, $lastSibling) | Out-Null
+		if ($ws.length -gt 0) { $parent.InsertAfter($parent.OwnerDocument.CreateWhitespace($ws), $lastSibling) | Out-Null }
 		return
 	}
-	$parent.AppendChild($builder)
+
+	# Add on a new line with indents. Make sure there is no existing whitespace mucking this up.
+	foreach ($exws in $parent.ChildNodes | where { $_ -is [System.Xml.XmlWhitespace] }) { $parent.RemoveChild($exws) }
+	$parent.AppendChild($parent.OwnerDocument.CreateWhitespace("`r`n")) | Out-Null
+	$parent.AppendChild($parent.OwnerDocument.CreateWhitespace("  " * $indentLevel)) | Out-Null
+	$parent.AppendChild($builder) | Out-Null
+	$parent.AppendChild($parent.OwnerDocument.CreateWhitespace("`r`n")) | Out-Null
+	$parent.AppendChild($parent.OwnerDocument.CreateWhitespace("  " * ($indentLevel - 1))) | Out-Null
 }
 
 function SaveConfigFile($config) {
