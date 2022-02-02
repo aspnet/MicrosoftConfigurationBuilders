@@ -51,8 +51,8 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// <param name="config">A collection of the name/value pairs representing builder-specific attributes specified in the configuration for this provider.</param>
         protected override void LazyInitialize(string name, NameValueCollection config)
         {
-            // Default 'Optional' to false. base.LazyInitialize() will override if specified in config.
-            Optional = false;
+            // Default to 'Enabled'. base.LazyInitialize() will override if specified in config.
+            Enabled = KeyValueEnabled.Enabled;
 
             base.LazyInitialize(name, config);
 
@@ -101,7 +101,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                     }
                     catch (Exception ex)
                     {
-                        if (!Optional)
+                        if (!IsOptional)
                             throw new ArgumentException($"Exception encountered while creating connection to Azure App Configuration store.", ex);
                     }
                 }
@@ -119,7 +119,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                 }
                 catch (Exception ex)
                 {
-                    if (!Optional)
+                    if (!IsOptional)
                         throw new ArgumentException($"Exception encountered while creating connection to Azure App Configuration store.", ex);
                 }
             }
@@ -242,7 +242,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                             // 'Optional' plays a double role with this provider. Being optional means it is
                             // ok for us to fail to resolve a keyvault reference. If we are not optional though,
                             // we want to make some noise when a reference fails to resolve.
-                            if (!Optional)
+                            if (!IsOptional)
                                 throw;
                         }
                     }
@@ -254,7 +254,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                     await enumerator.DisposeAsync();
                 }
             }
-            catch (Exception e) when (Optional && ((e.InnerException is System.Net.Http.HttpRequestException) || (e.InnerException is UnauthorizedAccessException))) { }
+            catch (Exception e) when (IsOptional && ((e.InnerException is System.Net.Http.HttpRequestException) || (e.InnerException is UnauthorizedAccessException))) { }
 
             return null;
         }
@@ -309,7 +309,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                                 // 'Optional' plays a double role with this provider. Being optional means it is
                                 // ok for us to fail to resolve a keyvault reference. If we are not optional though,
                                 // we want to make some noise when a reference fails to resolve.
-                                if (!Optional)
+                                if (!IsOptional)
                                     throw;
                             }
                         }
@@ -323,7 +323,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                     await enumerator.DisposeAsync();
                 }
             }
-            catch (Exception e) when (Optional && ((e.InnerException is System.Net.Http.HttpRequestException) || (e.InnerException is UnauthorizedAccessException))) { }
+            catch (Exception e) when (IsOptional && ((e.InnerException is System.Net.Http.HttpRequestException) || (e.InnerException is UnauthorizedAccessException))) { }
 
             return data;
         }
@@ -349,7 +349,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
             // TODO: Check to see if SecretClient can take the full uri instead of requiring us to parse out the secretID.
             SecretClient kvClient = GetSecretClient(vaultUri);
-            if (kvClient == null && !Optional)
+            if (kvClient == null && !IsOptional)
                 throw new RequestFailedException("Could not connect to Azure Key Vault while retrieving secret. Connection is not optional.");
 
             // Retrieve Value

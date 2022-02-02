@@ -55,7 +55,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             {
                 ReadUserSecrets(UserSecretsFile);
             }
-            else if (!Optional)
+            else if (!IsOptional)
             {
                 throw new ArgumentException($"Secrets file does not exist.");
             }

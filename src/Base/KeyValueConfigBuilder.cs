@@ -24,6 +24,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         public const string stripPrefixTag = "stripPrefix";
         public const string tokenPatternTag = "tokenPattern";
         public const string optionalTag = "optional";
+        public const string enabledTag = "enabled";
         public const string escapeTag = "escapeExpandedValues";
 #pragma warning restore CS1591 // No xml comments for tag literals.
 
@@ -47,11 +48,22 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
         private bool StripPrefix { get { EnsureInitialized(); return _stripPrefix; } }
         private bool _stripPrefix = false;  // Prefix-stripping is all handled in this base class; this is private so it doesn't confuse sub-classes.
+
         /// <summary>
         /// Specifies whether the config builder should cause errors if the backing source cannot be found.
         /// </summary>
-        public bool Optional { get { EnsureInitialized(); return _optional; } protected set { _optional = value; } }
-        private bool _optional = true;
+        [Obsolete("Please use the 'Enabled' flag instead to specify optional builders.")]
+        public bool Optional { get { return Enabled != KeyValueEnabled.Enabled; } protected set { _enabled = value ? KeyValueEnabled.Optional : KeyValueEnabled.Enabled; } }
+        /// <summary>
+        /// Specifies whether the config builder should cause errors if the backing source cannot be found.
+        /// </summary>
+        public bool IsOptional { get { return Enabled != KeyValueEnabled.Enabled; } }
+
+        /// <summary>
+        /// Specifies whether the config builder should cause errors if the backing source cannot be found, or even run at all.
+        /// </summary>
+        public KeyValueEnabled Enabled { get { EnsureInitialized(); return _enabled; } protected set { _enabled = value; } }
+        private KeyValueEnabled _enabled = KeyValueEnabled.Optional;
 
         /// <summary>
         /// Specifies whether the config builder should cause errors if the backing source cannot be found.
@@ -132,11 +144,25 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// <param name="config">A collection of the name/value pairs representing builder-specific attributes specified in the configuration for this provider.</param>
         protected virtual void LazyInitialize(string name, NameValueCollection config)
         {
-            // Use pre-assigned defaults if not specified. Non-freeform options should throw on unrecognized values.
+            // We need this first so we can look for tokens to replace with AppSettings
             _tokenPattern = config[tokenPatternTag] ?? _tokenPattern;
+
+            // 'optional' is obsolete, but we'll still honor it only if it is set explicitly and does not conflict
+            // with an explicit 'enabled' attribute.
+            _enabled = (UpdateConfigSettingWithAppSettings(enabledTag) != null) ? (KeyValueEnabled)Enum.Parse(typeof(KeyValueEnabled), config[enabledTag], true) : _enabled;
+            if (config[enabledTag] == null)
+            {
+                // There was no explicit 'enabled' attribute, but we have our default. Only change if we find an explicit 'optional'.
+                if (UpdateConfigSettingWithAppSettings(optionalTag) != null)
+                    _enabled = Boolean.Parse(config[optionalTag]) ? KeyValueEnabled.Optional : KeyValueEnabled.Enabled;
+            }
+
+            // At this point, we have our 'Enabled' choice. If we are disabled, we can stop right here.
+            if (Enabled == KeyValueEnabled.Disabled) return;
+
+            // Use pre-assigned defaults if not specified. Non-freeform options should throw on unrecognized values.
             _keyPrefix = UpdateConfigSettingWithAppSettings(prefixTag) ?? _keyPrefix;
             _stripPrefix = (UpdateConfigSettingWithAppSettings(stripPrefixTag) != null) ? Boolean.Parse(config[stripPrefixTag]) : _stripPrefix;
-            _optional = (UpdateConfigSettingWithAppSettings(optionalTag) != null) ? Boolean.Parse(config[optionalTag]) : _optional;
             _escapeValues = (UpdateConfigSettingWithAppSettings(escapeTag) != null) ? Boolean.Parse(config[escapeTag]) : _escapeValues;
 
             _cachedValues = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -230,7 +256,8 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         {
             _inAppSettings = (rawXml.Name == "appSettings");    // System.Configuration hard codes this, so we might as well too.
 
-            if (Mode == KeyValueMode.Expand)
+            // Checking Enabled will kick off LazyInit, so only do that if we are actually going to do work here.
+            if (Mode == KeyValueMode.Expand && Enabled != KeyValueEnabled.Disabled)
                 return ExpandTokens(rawXml);
 
             return rawXml;
@@ -248,6 +275,9 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                 return configSection;
 
             _currentSection = configSection;
+
+            // Don't do anything more if we are disabled.
+            if (Enabled == KeyValueEnabled.Disabled) return configSection;
 
             // Strict Mode. Only replace existing key/values.
             if (Mode == KeyValueMode.Strict)

@@ -25,7 +25,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             }
             catch (Exception)
             {
-                if (!Optional)
+                if (!IsOptional)
                     throw;
             }
 
@@ -52,7 +52,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             }
             catch (Exception)
             {
-                if (!Optional)
+                if (!IsOptional)
                     throw;
             }
 

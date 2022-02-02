@@ -55,7 +55,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             JsonFile = Utils.MapPath(jsonFile, CurrentSection);
             if (!File.Exists(JsonFile))
             {
-                if (Optional)
+                if (IsOptional)
                 {
                     // This empty dictionary allows us to effectively no-op any attempt to get values.
                     _allSettings[""] = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
