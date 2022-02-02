@@ -51,7 +51,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             base.LazyInitialize(name, config);
 
             string directoryPath = UpdateConfigSettingWithAppSettings(directoryPathTag);
-            DirectoryPath = Utils.MapPath(directoryPath);
+            DirectoryPath = Utils.MapPath(directoryPath, CurrentSection);
             if (!Optional && (String.IsNullOrEmpty(DirectoryPath) || !Directory.Exists(DirectoryPath)))
             {
                 throw new ArgumentException($"'directoryPath' does not exist.");

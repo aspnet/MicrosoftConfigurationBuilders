@@ -50,7 +50,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                 secretsFile = GetSecretsFileFromId(secretsId);
             }
 
-            UserSecretsFile = Utils.MapPath(secretsFile);
+            UserSecretsFile = Utils.MapPath(secretsFile, CurrentSection);
             if (File.Exists(UserSecretsFile))
             {
                 ReadUserSecrets(UserSecretsFile);
