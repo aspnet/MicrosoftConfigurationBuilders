@@ -54,7 +54,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             {
                 throw new ArgumentException($"Json file must be specified with the '{jsonFileTag}' attribute.");
             }
-            JsonFile = Utils.MapPath(jsonFile);
+            JsonFile = Utils.MapPath(jsonFile, CurrentSection);
             if (!File.Exists(JsonFile))
             {
                 if (Optional)

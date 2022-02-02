@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See the License.txt file in the project root for full license information.
 
 using System;
+using System.Configuration;
 using System.IO;
 using System.Reflection;
 
@@ -20,22 +21,33 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// </summary>
         /// <param name="path"></param>
         /// <returns></returns>
-        public static string MapPath(string path)
+        public static string MapPath(string path, ConfigurationSection configSection = null)
         {
             if (String.IsNullOrWhiteSpace(path))
                 return path;
 
-            // Use Server.MapPath in ASP.Net
+            // First try Server.MapPath in ASP.Net
             if (IsAspNet)
-                return ServerMapPath(path);
+            {
+                try
+                {
+                    return ServerMapPath(path);
+                }
+                catch (Exception) { }
+            }
 
-            // Special case a '~' at the start
+            // Use 'as is' if the path is rooted.
+            if (Path.IsPathRooted(path))
+                return path;
+
+            // Special case a '~' at the start should always use AppDomain.BaseDirectory
             if (path.StartsWith(@"~/") || path.StartsWith(@"~\"))
                 path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, path.Substring(2));
-            else
-                path = Path.GetFullPath(path);
 
-            return path;
+            // Otherwise, non "rooted" paths should try to be relative to the config file if possible
+            string configFile = configSection?.ElementInformation?.Source;
+            string root = (configFile != null) ? Path.GetDirectoryName(configFile) : AppDomain.CurrentDomain.BaseDirectory;
+            return Path.Combine(root, path);
         }
 
         private static bool IsAspNet
@@ -46,12 +58,10 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                     return (bool)s_isAspNet;
 
                 // Is System.Web already loaded? If not, we're not in Asp.Net.
-                Assembly mscorlib = Assembly.GetAssembly(typeof(string));
-                string systemWebName = mscorlib.FullName.Replace("mscorlib", "System.Web");
                 Assembly systemWeb = null;
                 foreach (Assembly a in AppDomain.CurrentDomain.GetAssemblies())
                 {
-                    if (a.FullName == systemWebName)
+                    if (a.FullName.StartsWith("System.Web,"))
                     {
                         systemWeb = a;
                         break;

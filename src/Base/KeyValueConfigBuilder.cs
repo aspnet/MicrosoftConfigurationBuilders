@@ -33,7 +33,6 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         private bool _lazyInitialized = false;
         private bool _greedyInitialized = false;
         private bool _inAppSettings = false;
-        private AppSettingsSection _appSettings = null;
 
         /// <summary>
         /// Gets or sets the substitution pattern to be used by the KeyValueConfigBuilder.
@@ -59,12 +58,19 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// </summary>
         public bool EscapeValues { get { EnsureInitialized(); return _escapeValues; } protected set { _escapeValues = value; } }
         private bool _escapeValues = false;
+
         /// <summary>
         /// Gets or sets a regular expression used for matching tokens in raw xml during Greedy substitution.
         /// </summary>
         public string TokenPattern { get { EnsureInitialized(); return _tokenPattern; } protected set { _tokenPattern = value; } }
         //private string _tokenPattern = @"\$\{(\w+)\}";
         private string _tokenPattern = @"\$\{(\w[\w-_$@#+,.:~]*)\}";    // Updated to be more reasonable for V2
+
+        /// <summary>
+        /// Gets the ConfigurationSection object that is currently being processed by this builder.
+        /// </summary>
+        protected ConfigurationSection CurrentSection { get { return _currentSection;} }
+        private ConfigurationSection _currentSection = null;
 
         /// <summary>
         /// Looks up a single 'value' for the given 'key.'
@@ -150,12 +156,12 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
             // If we are processing appSettings in ProcessConfigurationSection(), then we can use that. Other config builders in
             // the chain before us have already finished, so this is a relatively consistent and logical state to draw from.
-            if (_appSettings != null)
+            if (CurrentSection is AppSettingsSection appSettings && CurrentSection.SectionInformation?.SectionName == "appSettings")
             {
                 configValue = Regex.Replace(configValue, _tokenPattern, (m) =>
                 {
                     string settingName = m.Groups[1].Value;
-                    return (_appSettings.Settings[settingName]?.Value ?? m.Groups[0].Value);
+                    return (appSettings.Settings[settingName]?.Value ?? m.Groups[0].Value);
                 });
             }
 
@@ -241,8 +247,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             if (handler == null)
                 return configSection;
 
-            if (configSection.SectionInformation?.SectionName == "appSettings")
-                _appSettings = configSection as AppSettingsSection;
+            _currentSection = configSection;
 
             // Strict Mode. Only replace existing key/values.
             if (Mode == KeyValueMode.Strict)
