@@ -350,7 +350,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             // TODO: Check to see if SecretClient can take the full uri instead of requiring us to parse out the secretID.
             SecretClient kvClient = GetSecretClient(vaultUri);
             if (kvClient == null && !Optional)
-                throw new ConfigurationErrorsException("Could not connect to Azure Key Vault while retrieving secret. Connection is not optional.");
+                throw new RequestFailedException("Could not connect to Azure Key Vault while retrieving secret. Connection is not optional.");
 
             // Retrieve Value
             KeyVaultSecret kvSecret = await kvClient.GetSecretAsync(secretUri.Segments[2].TrimEnd(new char[] { '/' }));  // ['/', 'secrets/', '{secretID}/']
