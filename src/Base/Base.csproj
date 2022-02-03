@@ -42,6 +42,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="KeyValueConfigException.cs" />
     <Compile Include="SectionHandler.cs" />
     <Compile Include="SectionHandlerSection.cs" />
     <Compile Include="Utils.cs" />

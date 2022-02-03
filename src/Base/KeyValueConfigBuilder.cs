@@ -215,9 +215,9 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                     }
                 }
             }
-            catch (Exception e)
+            catch (Exception ex) when (!KeyValueExceptionHelper.IsKeyValueConfigException(ex))
             {
-                throw new Exception($"Error in Configuration Builder '{Name}'::GetAllValues({KeyPrefix})", e);
+                throw KeyValueExceptionHelper.CreateKVCException("GetAllValues() Error", ex, this);
             }
         }
 
@@ -291,9 +291,16 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                 {
                     if (!_lazyInitialized && !_lazyInitializeStarted)
                     {
-                        _lazyInitializeStarted = true;
-                        LazyInitialize(Name, _config);
-                        _lazyInitialized = true;
+                        try
+                        {
+                            _lazyInitializeStarted = true;
+                            LazyInitialize(Name, _config);
+                            _lazyInitialized = true;
+                        }
+                        catch (Exception ex) when (!KeyValueExceptionHelper.IsKeyValueConfigException(ex))
+                        {
+                            throw KeyValueExceptionHelper.CreateKVCException("Initialization Error", ex, this);
+                        }
                     }
                 }
             }
@@ -341,9 +348,9 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
                 return (_cachedValues.ContainsKey(sourceKey)) ? _cachedValues[sourceKey] : _cachedValues[sourceKey] = GetValue(sourceKey);
             }
-            catch (Exception e)
+            catch (Exception ex) when (!KeyValueExceptionHelper.IsKeyValueConfigException(ex))
             {
-                throw new Exception($"Error in Configuration Builder '{Name}'::GetValue({key})", e);
+                throw KeyValueExceptionHelper.CreateKVCException("GetValue() Error", ex, this);
             }
         }
 
