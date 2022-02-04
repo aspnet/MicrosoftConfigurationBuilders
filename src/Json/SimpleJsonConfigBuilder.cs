@@ -17,11 +17,11 @@ namespace Microsoft.Configuration.ConfigurationBuilders
     /// </summary>
     public class SimpleJsonConfigBuilder : KeyValueConfigBuilder
     {
-#pragma warning disable CS1591 // No xml comments for tag literals.
+        #pragma warning disable CS1591 // No xml comments for tag literals.
         public const string jsonFileTag = "jsonFile";
         public const string jsonModeTag = "jsonMode";
         public const string keyDelimiter = ":";
-#pragma warning restore CS1591 // No xml comments for tag literals.
+        #pragma warning restore CS1591 // No xml comments for tag literals.
 
         private string _currentSection;
         private Dictionary<string, Dictionary<string, string>> _allSettings;
@@ -77,20 +77,20 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             JsonDocument document;
             using (var stream = File.OpenRead(JsonFile))
             {
-                document = JsonDocument.Parse(stream);
+                JsonDocumentOptions opts = new JsonDocumentOptions() { AllowTrailingCommas = true, CommentHandling = JsonCommentHandling.Skip };
+                document = JsonDocument.Parse(stream, opts);
             }
 
             var root = document.RootElement;
 
             if (JsonMode == SimpleJsonConfigBuilderMode.Flat)
             {
-                _allSettings[""] = LoadDictionaryFromJObject(root, true);
+                _allSettings[""] = ProcessJson(root, null, "", false);
             }
             else
             {
                 // Non-"sections" get dumped into the default top level dictionary
-                _allSettings[""] = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-                ProcessJson(root, _allSettings[""], "", true, true);
+                _allSettings[""] = ProcessJson(root, null, "", true);
 
                 // Get separate dictionaries for each "section"
                 var objects = root.EnumerateObject();
@@ -99,7 +99,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                     var current = objects.Current;
                     if (current.Value.ValueKind == JsonValueKind.Object)
                     {
-                        _allSettings[current.Name] = LoadDictionaryFromJObject(current.Value, false);
+                        _allSettings[current.Name] = ProcessJson(current.Value, null, "", false);
                     }
                 }
             }
@@ -152,26 +152,23 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             return _allSettings[""];
         }
 
-        private Dictionary<string, string> LoadDictionaryFromJObject(JsonElement element, bool isRootElement)
+        private Dictionary<string, string> ProcessJson(JsonElement jsonElement, Dictionary<string, string> d, string prefix, bool excludeObjects, bool isRootElement = true)
         {
-            Dictionary<string, string> d = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            ProcessJson(element, d, "", isRootElement, false);
-            return d;
-        }
+            d = d ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-        private void ProcessJson(JsonElement jsonElement, Dictionary<string, string> d, string prefix, bool isRootElement, bool excludeObjects)
-        {
             switch (jsonElement.ValueKind)
             {
                 // Objects get flattened
                 case JsonValueKind.Object:
+                    // The first level element passed in will always be an object. We want to parse it every time.
+                    // But whether or not we parse (flatten) it's children depends on 'excludeObjects'.
                     if (isRootElement || !excludeObjects)
                     {
                         var objects = jsonElement.EnumerateObject();
                         while (objects.MoveNext())
                         {
                             var current = objects.Current;
-                            ProcessJson(current.Value, d, BuildPrefix(prefix, current.Name), false, excludeObjects);
+                            ProcessJson(current.Value, d, BuildPrefix(prefix, current.Name), excludeObjects, false);
                         }
                     }
                     break;
@@ -183,20 +180,23 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                     while (array.MoveNext())
                     {
                         var current = array.Current;
-                        ProcessJson(current, d, BuildPrefix(prefix, indexArray++.ToString()), false, excludeObjects);
+                        ProcessJson(current, d, BuildPrefix(prefix, indexArray++.ToString()), excludeObjects, false);
                     }
                     break;
 
                 // Primatives get stuck in the default section
-                case JsonValueKind.Undefined:
+                case JsonValueKind.String:
                 case JsonValueKind.Number:
                 case JsonValueKind.True:
                 case JsonValueKind.False:
                 case JsonValueKind.Null:
-                    // Core's json provider throws exceptions on duplicates. Let's use Add() and do the same.
+                case JsonValueKind.Undefined:
+                    // .NET Core's json provider throws exceptions on duplicates. Let's use Add() and do the same.
                     d.Add(prefix, jsonElement.GetRawText());
                     break;
             }
+
+            return d;
         }
 
         private string BuildPrefix(string prefix, string ext)
