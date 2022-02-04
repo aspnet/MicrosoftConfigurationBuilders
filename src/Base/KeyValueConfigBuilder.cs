@@ -387,29 +387,30 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
         private Dictionary<string, string> ParseCharacterMap(string stringMap)
         {
-            // The format here is string=string,string=string
-            // To use separators other than , and =... prefix the string with {AB} where
-            //      A is used to create pairs and
-            //      B is used to delimit the pairs
-
+            // The format here is string=string,string=string.
+            // To use separators in your maps, escape them by doubling.
             Dictionary<string, string> charmap = new Dictionary<string, string>();
             char[] coupler = { '=' };
             char[] delimiter = { ',' };
 
+            if (String.IsNullOrWhiteSpace(stringMap))
+                return charmap;
+
             try
             {
+                // Break the string into pairs - Account for escaped ','s
+                var pairs = stringMap.Replace(",,", "\x30").Split(delimiter, StringSplitOptions.RemoveEmptyEntries);
 
-                if (stringMap.Length > 3 && stringMap[0] == '{' && stringMap[3] == '}')
+                foreach (string pairing in pairs)
                 {
-                    coupler = new char[] { stringMap[1] };
-                    delimiter = new char[] { stringMap[2] };
-                    stringMap = stringMap.Substring(4);
-                }
+                    // Remember to un-escape any ','s first
+                    var mapping = pairing.Replace("\x30", ",").Replace("==", "\x30").Split(coupler, 2, StringSplitOptions.RemoveEmptyEntries);
 
-                foreach (var pairing in stringMap.Split(delimiter))
-                {
-                    string[] mappedValues = pairing.Split(coupler, 2);
-                    charmap.Add(mappedValues[0], mappedValues[1]);
+                    // If we have a 'mapping' that does not have two parts, this is an error
+                    if (mapping.Length < 2)
+                        throw new ArgumentException("Mapping should be a ',' delimited list of strings paired with '='. Use double characters to escape ',' and '='.", charMapTag);
+
+                    charmap.Add(mapping[0], mapping[1]);
                 }
             }
             catch (Exception ex)
