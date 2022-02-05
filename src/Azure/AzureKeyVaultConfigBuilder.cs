@@ -43,8 +43,8 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// <param name="config">A collection of the name/value pairs representing builder-specific attributes specified in the configuration for this provider.</param>
         protected override void LazyInitialize(string name, NameValueCollection config)
         {
-            // Default 'Optional' to false. base.LazyInitialize() will override if specified in config.
-            Optional = false;
+            // Default to 'Enabled'. base.LazyInitialize() will override if specified in config.
+            Enabled = KeyValueEnabled.Enabled;
 
             // Colons and underscores are common in appSettings keys, but not allowed in key vault key names.
             // It's likely that apps will want to lookup config values with these characters in their name in
@@ -70,7 +70,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             {
                 if (String.IsNullOrWhiteSpace(_vaultName))
                 {
-                    if (Optional)
+                    if (IsOptional)
                     {
                         return;
                     }
@@ -100,7 +100,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             }
             catch (Exception)
             {
-                if (!Optional)
+                if (!IsOptional)
                     throw;
                 _kvClient = null;
             }
@@ -212,7 +212,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
                     // If there was a permission issue or some other error, let the exception bubble
                     // FYI: kve.Body.Error.Code == "Forbidden" :: No Rights, or secret is disabled.
-                    if (!Optional)
+                    if (!IsOptional)
                         throw;
                 }
             }
@@ -245,7 +245,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                 if (rfex.ErrorCode == "Forbidden")
                     return keys;
 
-                if (!Optional)
+                if (!IsOptional)
                     throw;
             }
 

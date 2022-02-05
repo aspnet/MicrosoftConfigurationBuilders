@@ -33,8 +33,8 @@ Version 2 is here with some new features:
   * Updateable Keys - Builders can now massage key names before inserting into config. The [AzureKeyVaultConfigBuilder](#azurekeyvaultconfigbuilder) has been
 		updated to use this feature to allow embedding 'version' tags in key names instead of applying a single 'version' tag to the builder.  (Note: This is
 		seperate from, and performed *after* prefix stripping.)
-  * Base Optional Tag - The [optional](#optional) tag that some of the builders in this project employed in V1 has been moved into the base class and is now available
-		on all key/value config builders.
+  * **[[Obsolete]] This has been superceded by the [enabled](#enabled) tag.** (Base Optional Tag - The `optional` tag that some of the builders in
+        this project employed in V1 has been moved into the base class and is now available on all key/value config builders.)
   * Escaping Expanded Values - It is possible to xml-escape inserted values in `Expand` mode now using the new [escapeExpandedValues](#escapeexpandedvalues) attribute.
   * Section Handlers - This feature allows users to develop extensions that will apply key/value config to sections other than `appSettings` and `connectionStrings`
 		if desired. Read more about this feature in the [Section Handlers](#section-handlers) segment below.
@@ -84,9 +84,12 @@ A related setting that is common among all of these key/value builders is `strip
 strings... but now all the keys in AppSettings start with "AppSetting_". Maybe this is fine for code you wrote. Chances are that prefix is better off stripped from the
 key name before being inserted into AppSettings. `stripPrefix` is a boolean value, and accomplishes just that. It's default value is `false`.
 
-#### optional
-This setting is a boolean that specified whether to avoid throwing exceptions when the backing configuration source cannot be found or connected.
-The default default value is `true`, though some config builders (such as the Azure-based builders) will use a different default.
+#### enabled
+This is a setting that controls whether a config builder gets executed or not, and if it fails silently or not. Supported values are
+`enabled`, `disabled`, and `optional`. (As well as `true` and `false` as equivallents of enabled/disabled.) If 'enabled', then the builder will execute and throw
+exceptions when it fails. When 'disabled', builders will not execute. When set to 'optional', builders will execute but failures will be silent. This can be useful in
+cases like "User Secrets" where the backing secrets file is only likely to exist on a dev machine and not in a staging or test environment.
+The default value is `optional`, though some config builders (such as the KeyPerFile and Azure-based builders) will use `enabled`.
 
 #### escapeExpandedValues
 .Net configuration is XML-based in it's raw form. While these config builders work on `ConfigurationSection` objects in `Strict` and `Greedy` modes,
@@ -279,7 +282,7 @@ then the resulting xml that gets used to build the config object would look like
 ### EnvironmentConfigBuilder
 ```xml
 <add name="Environment"
-    [mode|@prefix|@stripPrefix|tokenPattern|@escapeExpandedValues|@optional=true]
+    [mode|@prefix|@stripPrefix|tokenPattern|@escapeExpandedValues|@enabled=optional]
     type="Microsoft.Configuration.ConfigurationBuilders.EnvironmentConfigBuilder, Microsoft.Configuration.ConfigurationBuilders.Environment" />
 ```
 This is the most basic of the config builders. It draws its values from Environment, and it does not have any additional configuration options.
@@ -292,7 +295,7 @@ This is the most basic of the config builders. It draws its values from Environm
 ### UserSecretsConfigBuilder
 ```xml
 <add name="UserSecrets"
-    [mode|@prefix|@stripPrefix|tokenPattern|@escapeExpandedValues|@optional=true]
+    [mode|@prefix|@stripPrefix|tokenPattern|@escapeExpandedValues|@enabled=optional]
     (@userSecretsId="12345678-90AB-CDEF-1234-567890" | @userSecretsFile="~\secrets.file")
     type="Microsoft.Configuration.ConfigurationBuilders.UserSecretsConfigBuilder, Microsoft.Configuration.ConfigurationBuilders.UserSecrets" />
 ```
@@ -328,7 +331,7 @@ and currently exposes the format of the file which, as mentioned above, should b
 ### AzureAppConfigurationBuilder
 ```xml
 <add name="AzureAppConfig"
-    [mode|@prefix|@stripPrefix|tokenPattern|@escapeExpandedValues|@optional=false]
+    [mode|@prefix|@stripPrefix|tokenPattern|@escapeExpandedValues|@enabled=enabled]
     (@endpoint="https://your-appconfig-store.azconfig.io" | @connectionString="Endpoint=https://your-appconfig-store.azconfig.io;Id=XXXXXXXXXX;Secret=XXXXXXXXXX")
     [@keyFilter="string"]
     [@labelFilter="label"]
@@ -358,7 +361,7 @@ required, but all other attributes are optional. If both `endpoint` and `connect
 ### AzureKeyVaultConfigBuilder
 ```xml
 <add name="AzureKeyVault"
-    [mode|@prefix|@stripPrefix|tokenPattern|@escapeExpandedValues|@optional=false]
+    [mode|@prefix|@stripPrefix|tokenPattern|@escapeExpandedValues|@enabled=enabled]
     (@vaultName="MyVaultName" | @uri="https://MyVaultName.vault.azure.net")
     [@version="secrets version"]
     [@preloadSecretNames="true"]
@@ -396,7 +399,7 @@ entries: `item1` and `item2`.
 ### KeyPerFileConfigBuilder
 ```xml
 <add name="KeyPerFile"
-    [mode|@prefix|@stripPrefix|tokenPattern|@escapeExpandedValues|@optional=false]
+    [mode|@prefix|@stripPrefix|tokenPattern|@escapeExpandedValues|@enabled=enabled]
     @directoryPath="PathToSourceDirectory"
     [@ignorePrefix="ignore."]
     [keyDelimiter=":"]
@@ -414,7 +417,7 @@ their orchestrated windows containers in this key-per-file manner.
 ### SimpleJsonConfigBuilder
 ```xml
 <add name="SimpleJson"
-    [mode|@prefix|@stripPrefix|tokenPattern|@escapeExpandedValues|@optional=true]
+    [mode|@prefix|@stripPrefix|tokenPattern|@escapeExpandedValues|@enabled=optional]
     @jsonFile="~\config.json"
     [@jsonMode="(Flat|Sectional)"]
     type="Microsoft.Configuration.ConfigurationBuilders.SimpleJsonConfigBuilder, Microsoft.Configuration.ConfigurationBuilders.Json" />
