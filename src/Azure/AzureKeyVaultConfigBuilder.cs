@@ -46,6 +46,13 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             // Default 'Optional' to false. base.LazyInitialize() will override if specified in config.
             Optional = false;
 
+            // Colons and underscores are common in appSettings keys, but not allowed in key vault key names.
+            // It's likely that apps will want to lookup config values with these characters in their name in
+            // key vault. More extensive key mapping can be done with subclasses. But let's handle the most
+            // most common case here.
+            CharacterMap.Add(":", "-");
+            CharacterMap.Add("_", "-");
+
             base.LazyInitialize(name, config);
 
             if (!Boolean.TryParse(UpdateConfigSettingWithAppSettings(preloadTag), out _preload))
@@ -143,25 +150,6 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             Task.WhenAll(tasks).Wait();
 
             return d;
-        }
-
-        /// <summary>
-        /// Transform the given key to an intermediate format that will be used to look up values in backing store.
-        /// </summary>
-        /// <param name="key">The string to be mapped.</param>
-        /// <returns>The key string to be used while looking up config values..</returns>
-        public override string MapKey(string key)
-        {
-            if (String.IsNullOrEmpty(key))
-                return key;
-
-            // Colons and underscores are common in appSettings keys, but not allowed in key vault key names.
-            // It's likely that apps will want to lookup config values with these characters in their name in
-            // key vault. More extensive key mapping can be done with subclasses. But let's handle the most
-            // most common case here.
-            key = key.Replace(':', '-');
-            key = key.Replace('_', '-');
-            return key;
         }
 
         /// <summary>

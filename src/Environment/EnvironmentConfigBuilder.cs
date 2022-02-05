@@ -4,6 +4,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 
 namespace Microsoft.Configuration.ConfigurationBuilders
 {
@@ -12,6 +13,20 @@ namespace Microsoft.Configuration.ConfigurationBuilders
     /// </summary>
     public class EnvironmentConfigBuilder : KeyValueConfigBuilder
     {
+        /// <summary>
+        /// Initializes the configuration builder lazily.
+        /// </summary>
+        /// <param name="name">The friendly name of the provider.</param>
+        /// <param name="config">A collection of the name/value pairs representing builder-specific attributes specified in the configuration for this provider.</param>
+        protected override void LazyInitialize(string name, NameValueCollection config)
+        {
+            // Colons are common in appSettings keys, but not allowed in some environments. A common replacement
+            // for them is the double underscore. Following .Net Core's example here.
+            CharacterMap.Add(":", "__");
+
+            base.LazyInitialize(name, config);
+        }
+
         /// <summary>
         /// Looks up a single 'value' for the given 'key.'
         /// </summary>
