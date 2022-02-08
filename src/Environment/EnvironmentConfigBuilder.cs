@@ -28,6 +28,20 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         }
 
         /// <summary>
+        /// Initializes the configuration builder lazily.
+        /// </summary>
+        /// <param name="name">The friendly name of the provider.</param>
+        /// <param name="config">A collection of the name/value pairs representing builder-specific attributes specified in the configuration for this provider.</param>
+        protected override void LazyInitialize(string name, NameValueCollection config)
+        {
+            // Colons are common in appSettings keys, but not allowed in some environments. A common replacement
+            // for them is the double underscore. Following .Net Core's example here.
+            CharacterMap.Add(":", "__");
+
+            base.LazyInitialize(name, config);
+        }
+
+        /// <summary>
         /// Looks up a single 'value' for the given 'key.'
         /// </summary>
         /// <param name="key">The 'key' to look up in the environment. (Prefix handling is not needed here.)</param>
@@ -40,7 +54,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             }
             catch (Exception)
             {
-                if (!Optional)
+                if (!IsOptional)
                     throw;
             }
 
@@ -67,7 +81,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             }
             catch (Exception)
             {
-                if (!Optional)
+                if (!IsOptional)
                     throw;
             }
 

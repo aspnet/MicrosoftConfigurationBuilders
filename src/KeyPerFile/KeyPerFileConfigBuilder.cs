@@ -45,14 +45,14 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// <param name="config">A collection of the name/value pairs representing builder-specific attributes specified in the configuration for this provider.</param>
         protected override void LazyInitialize(string name, NameValueCollection config)
         {
-            // Default 'Optional' to false. base.Initialize() will override if specified in config.
-            Optional = false;
+            // Default to 'Enabled'. base.Initialize() will override if specified in config.
+            Enabled = KeyValueEnabled.Enabled;
 
             base.LazyInitialize(name, config);
 
             string directoryPath = UpdateConfigSettingWithAppSettings(directoryPathTag);
-            DirectoryPath = Utils.MapPath(directoryPath);
-            if (!Optional && (String.IsNullOrEmpty(DirectoryPath) || !Directory.Exists(DirectoryPath)))
+            DirectoryPath = Utils.MapPath(directoryPath, CurrentSection);
+            if (!IsOptional && (String.IsNullOrEmpty(DirectoryPath) || !Directory.Exists(DirectoryPath)))
             {
                 throw new ArgumentException($"'directoryPath' does not exist.");
             }

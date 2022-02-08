@@ -10,6 +10,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 using Azure;
+using Azure.Core;
 using Azure.Identity;
 using Azure.Security.KeyVault.Secrets;
 
@@ -43,8 +44,15 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// <param name="config">A collection of the name/value pairs representing builder-specific attributes specified in the configuration for this provider.</param>
         protected override void LazyInitialize(string name, NameValueCollection config)
         {
-            // Default 'Optional' to false. base.LazyInitialize() will override if specified in config.
-            Optional = false;
+            // Default to 'Enabled'. base.LazyInitialize() will override if specified in config.
+            Enabled = KeyValueEnabled.Enabled;
+
+            // Colons and underscores are common in appSettings keys, but not allowed in key vault key names.
+            // It's likely that apps will want to lookup config values with these characters in their name in
+            // key vault. More extensive key mapping can be done with subclasses. But let's handle the most
+            // most common case here.
+            CharacterMap.Add(":", "-");
+            CharacterMap.Add("_", "-");
 
             base.LazyInitialize(name, config);
 
@@ -63,7 +71,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             {
                 if (String.IsNullOrWhiteSpace(_vaultName))
                 {
-                    if (Optional)
+                    if (IsOptional)
                     {
                         return;
                     }
@@ -89,11 +97,11 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             // Connect to KeyVault
             try
             {
-                _kvClient = new SecretClient(new Uri(_uri), new DefaultAzureCredential());
+                _kvClient = new SecretClient(new Uri(_uri), GetCredential());
             }
             catch (Exception)
             {
-                if (!Optional)
+                if (!IsOptional)
                     throw;
                 _kvClient = null;
             }
@@ -114,6 +122,12 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             // to avoid potential deadlocks.
             return Task.Run(async () => { return await GetValueAsync(key); }).Result?.Value;
         }
+
+        /// <summary>
+        /// Gets a <see cref="TokenCredential"/> to authenticate with KeyVault. This defaults to <see cref="DefaultAzureCredential"/>.
+        /// </summary>
+        /// <returns>A token credential.</returns>
+        protected virtual TokenCredential GetCredential() => new DefaultAzureCredential();
 
         /// <summary>
         /// Retrieves all known key/value pairs from the Key Vault where the key begins with with <paramref name="prefix"/>.
@@ -143,25 +157,6 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             Task.WhenAll(tasks).Wait();
 
             return d;
-        }
-
-        /// <summary>
-        /// Transform the given key to an intermediate format that will be used to look up values in backing store.
-        /// </summary>
-        /// <param name="key">The string to be mapped.</param>
-        /// <returns>The key string to be used while looking up config values..</returns>
-        public override string MapKey(string key)
-        {
-            if (String.IsNullOrEmpty(key))
-                return key;
-
-            // Colons and underscores are common in appSettings keys, but not allowed in key vault key names.
-            // It's likely that apps will want to lookup config values with these characters in their name in
-            // key vault. More extensive key mapping can be done with subclasses. But let's handle the most
-            // most common case here.
-            key = key.Replace(':', '-');
-            key = key.Replace('_', '-');
-            return key;
         }
 
         /// <summary>
@@ -224,7 +219,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
                     // If there was a permission issue or some other error, let the exception bubble
                     // FYI: kve.Body.Error.Code == "Forbidden" :: No Rights, or secret is disabled.
-                    if (!Optional)
+                    if (!IsOptional)
                         throw;
                 }
             }
@@ -257,7 +252,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                 if (rfex.ErrorCode == "Forbidden")
                     return keys;
 
-                if (!Optional)
+                if (!IsOptional)
                     throw;
             }
 

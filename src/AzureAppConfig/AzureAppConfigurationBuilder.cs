@@ -5,17 +5,15 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Specialized;
-using System.Configuration;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 using Azure;
+using Azure.Core;
 using Azure.Data.AppConfiguration;
 using Azure.Identity;
 using Azure.Security.KeyVault.Secrets;
-using Newtonsoft.Json;
 
 namespace Microsoft.Configuration.ConfigurationBuilders
 {
@@ -51,8 +49,8 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// <param name="config">A collection of the name/value pairs representing builder-specific attributes specified in the configuration for this provider.</param>
         protected override void LazyInitialize(string name, NameValueCollection config)
         {
-            // Default 'Optional' to false. base.LazyInitialize() will override if specified in config.
-            Optional = false;
+            // Default to 'Enabled'. base.LazyInitialize() will override if specified in config.
+            Enabled = KeyValueEnabled.Enabled;
 
             base.LazyInitialize(name, config);
 
@@ -97,11 +95,11 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                     try
                     {
                         _endpoint = new Uri(uri);
-                        _client = new ConfigurationClient(_endpoint, new DefaultAzureCredential());
+                        _client = new ConfigurationClient(_endpoint, GetCredential());
                     }
                     catch (Exception ex)
                     {
-                        if (!Optional)
+                        if (!IsOptional)
                             throw new ArgumentException($"Exception encountered while creating connection to Azure App Configuration store.", ex);
                     }
                 }
@@ -119,7 +117,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                 }
                 catch (Exception ex)
                 {
-                    if (!Optional)
+                    if (!IsOptional)
                         throw new ArgumentException($"Exception encountered while creating connection to Azure App Configuration store.", ex);
                 }
             }
@@ -199,6 +197,12 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             return Task.Run(async () => { return await GetAllValuesAsync(prefix); }).Result;
         }
 
+        /// <summary>
+        /// Gets a <see cref="TokenCredential"/> to authenticate with App Configuration. This defaults to <see cref="DefaultAzureCredential"/>.
+        /// </summary>
+        /// <returns>A token credential.</returns>
+        protected virtual TokenCredential GetCredential() => new DefaultAzureCredential();
+
         private async Task<string> GetValueAsync(string key)
         {
             if (_client == null)
@@ -231,18 +235,18 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                     if (current == null)
                         return null;
 
-                    if (_useKeyVault && IsKeyVaultReference(current))
+                    if (_useKeyVault && current is SecretReferenceConfigurationSetting secretReference)
                     {
                         try
                         {
-                            return await GetKeyVaultValue(current);
+                            return await GetKeyVaultValue(secretReference);
                         }
                         catch (Exception)
                         {
                             // 'Optional' plays a double role with this provider. Being optional means it is
                             // ok for us to fail to resolve a keyvault reference. If we are not optional though,
                             // we want to make some noise when a reference fails to resolve.
-                            if (!Optional)
+                            if (!IsOptional)
                                 throw;
                         }
                     }
@@ -254,7 +258,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                     await enumerator.DisposeAsync();
                 }
             }
-            catch (Exception e) when (Optional && ((e.InnerException is System.Net.Http.HttpRequestException) || (e.InnerException is UnauthorizedAccessException))) { }
+            catch (Exception e) when (IsOptional && ((e.InnerException is System.Net.Http.HttpRequestException) || (e.InnerException is UnauthorizedAccessException))) { }
 
             return null;
         }
@@ -298,18 +302,18 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                         string configValue = setting.Value;
 
                         // If it's a key vault reference, go fetch the value from key vault
-                        if (_useKeyVault && IsKeyVaultReference(setting))
+                        if (_useKeyVault && setting is SecretReferenceConfigurationSetting secretReference)
                         {
                             try
                             {
-                                configValue = await GetKeyVaultValue(setting);
+                                configValue = await GetKeyVaultValue(secretReference);
                             }
                             catch (Exception)
                             {
                                 // 'Optional' plays a double role with this provider. Being optional means it is
                                 // ok for us to fail to resolve a keyvault reference. If we are not optional though,
                                 // we want to make some noise when a reference fails to resolve.
-                                if (!Optional)
+                                if (!IsOptional)
                                     throw;
                             }
                         }
@@ -323,55 +327,30 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                     await enumerator.DisposeAsync();
                 }
             }
-            catch (Exception e) when (Optional && ((e.InnerException is System.Net.Http.HttpRequestException) || (e.InnerException is UnauthorizedAccessException))) { }
+            catch (Exception e) when (IsOptional && ((e.InnerException is System.Net.Http.HttpRequestException) || (e.InnerException is UnauthorizedAccessException))) { }
 
             return data;
         }
 
-        private bool IsKeyVaultReference(ConfigurationSetting setting)
+        private async Task<string> GetKeyVaultValue(SecretReferenceConfigurationSetting secretReference)
         {
-            string contentType = setting.ContentType?.Split(';')[0].Trim();
-
-            return String.Equals(contentType, KeyVaultContentType);
-        }
-
-        private async Task<string> GetKeyVaultValue(ConfigurationSetting setting)
-        {
-            // The key vault reference will be in the form of a Uri wrapped in JSON, like so:
-            // {"uri":"https://vaultName.vault.azure.net/secrets/secretName"}
-
-            // Content validation - will throw JsonReaderException on failure
-            KeyVaultSecretReference secretRef = JsonConvert.DeserializeObject<KeyVaultSecretReference>(setting.Value, KeyVaultSecretReference.s_SerializationSettings);
-
-            // Uri validation - will throw UriFormatException upon failure
-            Uri secretUri = new Uri(secretRef.Uri);
-            Uri vaultUri = new Uri(secretUri.GetLeftPart(UriPartial.Authority));
-
-            // TODO: Check to see if SecretClient can take the full uri instead of requiring us to parse out the secretID.
-            SecretClient kvClient = GetSecretClient(vaultUri);
-            if (kvClient == null && !Optional)
-                throw new ConfigurationErrorsException("Could not connect to Azure Key Vault while retrieving secret. Connection is not optional.");
+            KeyVaultSecretIdentifier secretIdentifier = new KeyVaultSecretIdentifier(secretReference.SecretId);
+            SecretClient kvClient = GetSecretClient(secretIdentifier);
+            if (kvClient == null && !IsOptional)
+                throw new RequestFailedException("Could not connect to Azure Key Vault while retrieving secret. Connection is not optional.");
 
             // Retrieve Value
-            KeyVaultSecret kvSecret = await kvClient.GetSecretAsync(secretUri.Segments[2].TrimEnd(new char[] { '/' }));  // ['/', 'secrets/', '{secretID}/']
+            Response<KeyVaultSecret> resp = await kvClient.GetSecretAsync(secretIdentifier.Name, secretIdentifier.Version);
+            KeyVaultSecret kvSecret = resp.Value;
             if (kvSecret != null && kvSecret.Properties.Enabled.GetValueOrDefault())
                 return kvSecret.Value;
 
             return null;
         }
 
-        private SecretClient GetSecretClient(Uri vaultUri)
+        private SecretClient GetSecretClient(KeyVaultSecretIdentifier identifier)
         {
-            return _kvClientCache.GetOrAdd(vaultUri, uri => new SecretClient(uri, new DefaultAzureCredential()));
-        }
-
-        [JsonObject(MemberSerialization.OptIn)]
-        private class KeyVaultSecretReference
-        {
-            public static JsonSerializerSettings s_SerializationSettings = new JsonSerializerSettings { DateParseHandling = DateParseHandling.None };
-
-            [JsonProperty("uri")]
-            public string Uri { get; set; }
+            return _kvClientCache.GetOrAdd(identifier.VaultUri, uri => new SecretClient(identifier.VaultUri, new DefaultAzureCredential()));
         }
     }
 }

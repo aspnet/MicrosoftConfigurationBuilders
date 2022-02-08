@@ -24,7 +24,9 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         public const string stripPrefixTag = "stripPrefix";
         public const string tokenPatternTag = "tokenPattern";
         public const string optionalTag = "optional";
+        public const string enabledTag = "enabled";
         public const string escapeTag = "escapeExpandedValues";
+        public const string charMapTag = "charMap";
 #pragma warning restore CS1591 // No xml comments for tag literals.
 
         private NameValueCollection _config = null;
@@ -33,7 +35,6 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         private bool _lazyInitialized = false;
         private bool _greedyInitialized = false;
         private bool _inAppSettings = false;
-        private AppSettingsSection _appSettings = null;
 
         /// <summary>
         /// Gets or sets the substitution pattern to be used by the KeyValueConfigBuilder.
@@ -48,23 +49,47 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
         private bool StripPrefix { get { EnsureInitialized(); return _stripPrefix; } }
         private bool _stripPrefix = false;  // Prefix-stripping is all handled in this base class; this is private so it doesn't confuse sub-classes.
+
         /// <summary>
         /// Specifies whether the config builder should cause errors if the backing source cannot be found.
         /// </summary>
-        public bool Optional { get { EnsureInitialized(); return _optional; } protected set { _optional = value; } }
-        private bool _optional = true;
+        [Obsolete("Please use the 'Enabled' flag instead to specify optional builders.")]
+        public bool Optional { get { return Enabled != KeyValueEnabled.Enabled; } protected set { _enabled = value ? KeyValueEnabled.Optional : KeyValueEnabled.Enabled; } }
+        /// <summary>
+        /// Specifies whether the config builder should cause errors if the backing source cannot be found.
+        /// </summary>
+        public bool IsOptional { get { return Enabled != KeyValueEnabled.Enabled; } }
+
+        /// <summary>
+        /// Specifies whether the config builder should cause errors if the backing source cannot be found, or even run at all.
+        /// </summary>
+        public KeyValueEnabled Enabled { get { EnsureInitialized(); return _enabled; } protected set { _enabled = value; } }
+        private KeyValueEnabled _enabled = KeyValueEnabled.Optional;
 
         /// <summary>
         /// Specifies whether the config builder should cause errors if the backing source cannot be found.
         /// </summary>
         public bool EscapeValues { get { EnsureInitialized(); return _escapeValues; } protected set { _escapeValues = value; } }
         private bool _escapeValues = false;
+
         /// <summary>
         /// Gets or sets a regular expression used for matching tokens in raw xml during Greedy substitution.
         /// </summary>
         public string TokenPattern { get { EnsureInitialized(); return _tokenPattern; } protected set { _tokenPattern = value; } }
         //private string _tokenPattern = @"\$\{(\w+)\}";
         private string _tokenPattern = @"\$\{(\w[\w-_$@#+,.:~]*)\}";    // Updated to be more reasonable for V2
+
+        /// <summary>
+        /// Gets or sets a string-represented mapping of characters to apply when mapping keys. Ex ":=_,;=__" or "{>|}:>_|;>__"
+        /// </summary>
+        public Dictionary<string, string> CharacterMap { get { EnsureInitialized(); return _characterMap; } protected set { _characterMap = value; } }
+        private Dictionary<string, string> _characterMap = new Dictionary<string, string>();
+
+        /// <summary>
+        /// Gets the ConfigurationSection object that is currently being processed by this builder.
+        /// </summary>
+        protected ConfigurationSection CurrentSection { get { return _currentSection; } }
+        private ConfigurationSection _currentSection = null;
 
         /// <summary>
         /// Looks up a single 'value' for the given 'key.'
@@ -85,7 +110,17 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// </summary>
         /// <param name="key">The string to be mapped.</param>
         /// <returns>The key string to be used while looking up config values..</returns>
-        public virtual string MapKey(string key) { return key; }
+        public virtual string MapKey(string key)
+        {
+            if (String.IsNullOrEmpty(key))
+                return key;
+
+            foreach (var mapping in CharacterMap)
+                key = key.Replace(mapping.Key, mapping.Value);
+
+            return key;
+        }
+
         /// <summary>
         /// Makes a determination about whether the input key is valid for this builder and backing store.
         /// </summary>
@@ -126,12 +161,27 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// <param name="config">A collection of the name/value pairs representing builder-specific attributes specified in the configuration for this provider.</param>
         protected virtual void LazyInitialize(string name, NameValueCollection config)
         {
-            // Use pre-assigned defaults if not specified. Non-freeform options should throw on unrecognized values.
+            // We need this first so we can look for tokens to replace with AppSettings
             _tokenPattern = config[tokenPatternTag] ?? _tokenPattern;
+
+            // 'optional' is obsolete, but we'll still honor it only if it is set explicitly and does not conflict
+            // with an explicit 'enabled' attribute.
+            _enabled = (UpdateConfigSettingWithAppSettings(enabledTag) != null) ? (KeyValueEnabled)Enum.Parse(typeof(KeyValueEnabled), config[enabledTag], true) : _enabled;
+            if (config[enabledTag] == null)
+            {
+                // There was no explicit 'enabled' attribute, but we have our default. Only change if we find an explicit 'optional'.
+                if (UpdateConfigSettingWithAppSettings(optionalTag) != null)
+                    _enabled = Boolean.Parse(config[optionalTag]) ? KeyValueEnabled.Optional : KeyValueEnabled.Enabled;
+            }
+
+            // At this point, we have our 'Enabled' choice. If we are disabled, we can stop right here.
+            if (Enabled == KeyValueEnabled.Disabled) return;
+
+            // Use pre-assigned defaults if not specified. Non-freeform options should throw on unrecognized values.
             _keyPrefix = UpdateConfigSettingWithAppSettings(prefixTag) ?? _keyPrefix;
             _stripPrefix = (UpdateConfigSettingWithAppSettings(stripPrefixTag) != null) ? Boolean.Parse(config[stripPrefixTag]) : _stripPrefix;
-            _optional = (UpdateConfigSettingWithAppSettings(optionalTag) != null) ? Boolean.Parse(config[optionalTag]) : _optional;
             _escapeValues = (UpdateConfigSettingWithAppSettings(escapeTag) != null) ? Boolean.Parse(config[escapeTag]) : _escapeValues;
+            _characterMap = (UpdateConfigSettingWithAppSettings(charMapTag) != null) ? ParseCharacterMap(config[charMapTag]) : _characterMap;
 
             _cachedValues = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         }
@@ -150,12 +200,12 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
             // If we are processing appSettings in ProcessConfigurationSection(), then we can use that. Other config builders in
             // the chain before us have already finished, so this is a relatively consistent and logical state to draw from.
-            if (_appSettings != null)
+            if (CurrentSection is AppSettingsSection appSettings && CurrentSection.SectionInformation?.SectionName == "appSettings")
             {
                 configValue = Regex.Replace(configValue, _tokenPattern, (m) =>
                 {
                     string settingName = m.Groups[1].Value;
-                    return (_appSettings.Settings[settingName]?.Value ?? m.Groups[0].Value);
+                    return (appSettings.Settings[settingName]?.Value ?? m.Groups[0].Value);
                 });
             }
 
@@ -209,9 +259,9 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                     }
                 }
             }
-            catch (Exception e)
+            catch (Exception ex) when (!KeyValueExceptionHelper.IsKeyValueConfigException(ex))
             {
-                throw new Exception($"Error in Configuration Builder '{Name}'::GetAllValues({KeyPrefix})", e);
+                throw KeyValueExceptionHelper.CreateKVCException("GetAllValues() Error", ex, this);
             }
         }
 
@@ -224,7 +274,8 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         {
             _inAppSettings = (rawXml.Name == "appSettings");    // System.Configuration hard codes this, so we might as well too.
 
-            if (Mode == KeyValueMode.Expand)
+            // Checking Enabled will kick off LazyInit, so only do that if we are actually going to do work here.
+            if (Mode == KeyValueMode.Expand && Enabled != KeyValueEnabled.Disabled)
                 return ExpandTokens(rawXml);
 
             return rawXml;
@@ -241,8 +292,10 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             if (handler == null)
                 return configSection;
 
-            if (configSection.SectionInformation?.SectionName == "appSettings")
-                _appSettings = configSection as AppSettingsSection;
+            _currentSection = configSection;
+
+            // Don't do anything more if we are disabled.
+            if (Enabled == KeyValueEnabled.Disabled) return configSection;
 
             // Strict Mode. Only replace existing key/values.
             if (Mode == KeyValueMode.Strict)
@@ -286,9 +339,16 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                 {
                     if (!_lazyInitialized && !_lazyInitializeStarted)
                     {
-                        _lazyInitializeStarted = true;
-                        LazyInitialize(Name, _config);
-                        _lazyInitialized = true;
+                        try
+                        {
+                            _lazyInitializeStarted = true;
+                            LazyInitialize(Name, _config);
+                            _lazyInitialized = true;
+                        }
+                        catch (Exception ex) when (!KeyValueExceptionHelper.IsKeyValueConfigException(ex))
+                        {
+                            throw KeyValueExceptionHelper.CreateKVCException("Initialization Error", ex, this);
+                        }
                     }
                 }
             }
@@ -336,9 +396,9 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
                 return (_cachedValues.ContainsKey(sourceKey)) ? _cachedValues[sourceKey] : _cachedValues[sourceKey] = GetValue(sourceKey);
             }
-            catch (Exception e)
+            catch (Exception ex) when (!KeyValueExceptionHelper.IsKeyValueConfigException(ex))
             {
-                throw new Exception($"Error in Configuration Builder '{Name}'::GetValue({key})", e);
+                throw KeyValueExceptionHelper.CreateKVCException("GetValue() Error", ex, this);
             }
         }
 
@@ -354,6 +414,42 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         private string EscapeValue(string original)
         {
             return (_escapeValues && original != null) ? SecurityElement.Escape(original) : original;
+        }
+
+        private Dictionary<string, string> ParseCharacterMap(string stringMap)
+        {
+            // The format here is string=string,string=string.
+            // To use separators in your maps, escape them by doubling.
+            Dictionary<string, string> charmap = new Dictionary<string, string>();
+            char[] coupler = { '=' };
+            char[] delimiter = { ',' };
+
+            if (String.IsNullOrWhiteSpace(stringMap))
+                return charmap;
+
+            try
+            {
+                // Break the string into pairs - Account for escaped ','s
+                var pairs = stringMap.Replace(",,", "\x30").Split(delimiter, StringSplitOptions.RemoveEmptyEntries);
+
+                foreach (string pairing in pairs)
+                {
+                    // Remember to un-escape any ','s first
+                    var mapping = pairing.Replace("\x30", ",").Replace("==", "\x30").Split(coupler, 2, StringSplitOptions.RemoveEmptyEntries);
+
+                    // If we have a 'mapping' that does not have two parts, this is an error
+                    if (mapping.Length < 2)
+                        throw new ArgumentException("Mapping should be a ',' delimited list of strings paired with '='. Use double characters to escape ',' and '='.", charMapTag);
+
+                    charmap.Add(mapping[0], mapping[1]);
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error in Configuration Builder '{Name}' while parsing '{charMapTag}'", ex);
+            }
+
+            return charmap;
         }
 
         #endregion
