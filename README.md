@@ -12,8 +12,9 @@ This ReadMe has gotten quite long, so here is a quick table of contents:
   * [Config Builders In This Project](#config-builders-in-this-project)
     * [EnvironmentConfigBuilder](#environmentconfigbuilder)
     * [UserSecretsConfigBuilder](#usersecretsconfigbuilder)
-    * [AzureAppConfigurationBuilder](#azureappconfigurationbuilder)
-    * [AzureKeyVaultConfigBuilder](#azurekeyvaultconfigbuilder)
+    * [Azure Config Builders](#azure-config-builders)
+      * [AzureAppConfigurationBuilder](#azureappconfigurationbuilder)
+      * [AzureKeyVaultConfigBuilder](#azurekeyvaultconfigbuilder)
     * [KeyPerFileConfigBuilder](#keyperfileconfigbuilder)
     * [SimpleJsonConfigBuilder](#simplejsonconfigbuilder)
   * [Section Handlers](#section-handlers)
@@ -328,7 +329,28 @@ and currently exposes the format of the file which, as mentioned above, should b
 </root>
 ```
 
-### AzureAppConfigurationBuilder
+### Azure Config Builders
+This repo contains two different configuration builders that draw from two different Azure stores: Key Vault and App Configuration.
+These stores have differences and were developed to accommodate different usage scenarios. But they both draw on some similar
+capabilities from the Azure SDK - Authentication in particular.
+
+Both builders make use of [`DefaultAzureCredential`](https://docs.microsoft.com/en-us/dotnet/api/azure.identity.defaultazurecredential)
+for connecting to their respective service. This is a powerful yet easy-to-use method for connecting to Azure services and it provides
+these builders with quite a bit of flexibility. `DefaultAzureCredential` searches through a list of different types of Azure credential
+sources until it finds one to use, which gives applications that use these providers quite a few options. For **User-Assigned Managed
+Identity**, or **Client Certificate-based** authorization, applications can take advantage of the abilities of [`EnvironmentalCredential`](https://docs.microsoft.com/en-us/dotnet/api/azure.identity.environmentcredential)
+to read the necessary options for these methods via environment variables. Builders who require more complexity in the selection of
+their Azure credential for these builders can extend and override the `GetCredential()` method of either builder to supply the correct
+`TokenCredential` for connecting to Azure.
+
+NOTE: These packages both currently depend on version ***1.2*** of the `Azure.Identity` nuget package. This version was chosen because
+it has a fairly comprehensive list of capabilities for `DefaultAzureCredential` but also is a relatively early version of this SDK package.
+This way these builders won't be responsible for forcing unwanted package upgrades when not necessary. However, `DefaultAzureCredential`
+[frequently picks up new capabilies](https://github.com/Azure/azure-sdk-for-net/blob/main/sdk/identity/Azure.Identity/CHANGELOG.md), and
+users are encouraged to manually update the version of `Azure.Identity` their application uses if they want to take advantage of new
+features.
+
+#### AzureAppConfigurationBuilder
 ```xml
 <add name="AzureAppConfig"
     [mode|@prefix|@stripPrefix|tokenPattern|@escapeExpandedValues|@enabled=enabled]
@@ -358,7 +380,7 @@ required, but all other attributes are optional. If both `endpoint` and `connect
   be used to connect to Key Vault. The Key Vault uri is retrieved as part of the data from AppConfiguration and does not need to be specified here.
   Default is `false`.
 
-### AzureKeyVaultConfigBuilder
+#### AzureKeyVaultConfigBuilder
 ```xml
 <add name="AzureKeyVault"
     [mode|@prefix|@stripPrefix|tokenPattern|@escapeExpandedValues|@enabled=enabled]
