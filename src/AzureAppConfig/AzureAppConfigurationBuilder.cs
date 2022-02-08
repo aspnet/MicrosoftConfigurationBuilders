@@ -5,9 +5,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Specialized;
-using System.Configuration;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
@@ -16,7 +14,6 @@ using Azure.Core;
 using Azure.Data.AppConfiguration;
 using Azure.Identity;
 using Azure.Security.KeyVault.Secrets;
-using Newtonsoft.Json;
 
 namespace Microsoft.Configuration.ConfigurationBuilders
 {
@@ -238,11 +235,11 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                     if (current == null)
                         return null;
 
-                    if (_useKeyVault && IsKeyVaultReference(current))
+                    if (_useKeyVault && current is SecretReferenceConfigurationSetting secretReference)
                     {
                         try
                         {
-                            return await GetKeyVaultValue(current);
+                            return await GetKeyVaultValue(secretReference);
                         }
                         catch (Exception)
                         {
@@ -305,11 +302,11 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                         string configValue = setting.Value;
 
                         // If it's a key vault reference, go fetch the value from key vault
-                        if (_useKeyVault && IsKeyVaultReference(setting))
+                        if (_useKeyVault && setting is SecretReferenceConfigurationSetting secretReference)
                         {
                             try
                             {
-                                configValue = await GetKeyVaultValue(setting);
+                                configValue = await GetKeyVaultValue(secretReference);
                             }
                             catch (Exception)
                             {
@@ -335,50 +332,25 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             return data;
         }
 
-        private bool IsKeyVaultReference(ConfigurationSetting setting)
+        private async Task<string> GetKeyVaultValue(SecretReferenceConfigurationSetting secretReference)
         {
-            string contentType = setting.ContentType?.Split(';')[0].Trim();
-
-            return String.Equals(contentType, KeyVaultContentType);
-        }
-
-        private async Task<string> GetKeyVaultValue(ConfigurationSetting setting)
-        {
-            // The key vault reference will be in the form of a Uri wrapped in JSON, like so:
-            // {"uri":"https://vaultName.vault.azure.net/secrets/secretName"}
-
-            // Content validation - will throw JsonReaderException on failure
-            KeyVaultSecretReference secretRef = JsonConvert.DeserializeObject<KeyVaultSecretReference>(setting.Value, KeyVaultSecretReference.s_SerializationSettings);
-
-            // Uri validation - will throw UriFormatException upon failure
-            Uri secretUri = new Uri(secretRef.Uri);
-            Uri vaultUri = new Uri(secretUri.GetLeftPart(UriPartial.Authority));
-
-            // TODO: Check to see if SecretClient can take the full uri instead of requiring us to parse out the secretID.
-            SecretClient kvClient = GetSecretClient(vaultUri);
+            KeyVaultSecretIdentifier secretIdentifier = new KeyVaultSecretIdentifier(secretReference.SecretId);
+            SecretClient kvClient = GetSecretClient(secretIdentifier);
             if (kvClient == null && !IsOptional)
                 throw new RequestFailedException("Could not connect to Azure Key Vault while retrieving secret. Connection is not optional.");
 
             // Retrieve Value
-            KeyVaultSecret kvSecret = await kvClient.GetSecretAsync(secretUri.Segments[2].TrimEnd(new char[] { '/' }));  // ['/', 'secrets/', '{secretID}/']
+            Response<KeyVaultSecret> resp = await kvClient.GetSecretAsync(secretIdentifier.Name, secretIdentifier.Version);
+            KeyVaultSecret kvSecret = resp.Value;
             if (kvSecret != null && kvSecret.Properties.Enabled.GetValueOrDefault())
                 return kvSecret.Value;
 
             return null;
         }
 
-        private SecretClient GetSecretClient(Uri vaultUri)
+        private SecretClient GetSecretClient(KeyVaultSecretIdentifier identifier)
         {
-            return _kvClientCache.GetOrAdd(vaultUri, uri => new SecretClient(uri, new DefaultAzureCredential()));
-        }
-
-        [JsonObject(MemberSerialization.OptIn)]
-        private class KeyVaultSecretReference
-        {
-            public static JsonSerializerSettings s_SerializationSettings = new JsonSerializerSettings { DateParseHandling = DateParseHandling.None };
-
-            [JsonProperty("uri")]
-            public string Uri { get; set; }
+            return _kvClientCache.GetOrAdd(identifier.VaultUri, uri => new SecretClient(identifier.VaultUri, new DefaultAzureCredential()));
         }
     }
 }
