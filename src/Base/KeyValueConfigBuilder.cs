@@ -79,6 +79,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         //private string _tokenPattern = @"\$\{(\w+)\}";
         private string _tokenPattern = @"\$\{(\w[\w-_$@#+,.:~]*)\}";    // Updated to be more reasonable for V2
 
+        /// <summary>
         /// Gets or sets a string-represented mapping of characters to apply when mapping keys. Ex ":=_,;=__" or "{>|}:>_|;>__"
         /// </summary>
         public Dictionary<string, string> CharacterMap { get { EnsureInitialized(); return _characterMap; } protected set { _characterMap = value; } }
