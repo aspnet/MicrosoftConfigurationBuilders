@@ -32,11 +32,13 @@ namespace Microsoft.Configuration.ConfigurationBuilders
     // ConfigurationErrorsExceptions differently. It considers it to be a pre-wrapped and ready for
     // presentation exception. Other exceptions get wrapped by the config system.
 
+    [Serializable]
     internal class KeyValueConfigException : Exception
     {
         public KeyValueConfigException(string msg, Exception inner) : base(msg, inner) { }
     }
 
+    [Serializable]
     internal class KeyValueConfigWrappedException : ConfigurationErrorsException
     {
         public KeyValueConfigWrappedException(string msg, Exception inner) : base(msg, inner) { }

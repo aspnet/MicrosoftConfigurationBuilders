@@ -50,6 +50,9 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
             base.LazyInitialize(name, config);
 
+            // At this point, we have our 'Enabled' choice. If we are disabled, we can stop right here.
+            if (Enabled == KeyValueEnabled.Disabled) return;
+
             string directoryPath = UpdateConfigSettingWithAppSettings(directoryPathTag);
             DirectoryPath = Utils.MapPath(directoryPath, CurrentSection);
             if (!IsOptional && (String.IsNullOrEmpty(DirectoryPath) || !Directory.Exists(DirectoryPath)))

@@ -25,6 +25,10 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             CharacterMap.Add(":", "__");
 
             base.LazyInitialize(name, config);
+
+            // At this point, we have our 'Enabled' choice. If we are disabled, we can stop right here.
+            //Don't forget to add this here if we ever do anything beyond base.LazyInitialize() here.
+            //if (Enabled == KeyValueEnabled.Disabled) return;
         }
 
         /// <summary>

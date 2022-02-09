@@ -54,6 +54,9 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
             base.LazyInitialize(name, config);
 
+            // At this point, we have our 'Enabled' choice. If we are disabled, we can stop right here.
+            if (Enabled == KeyValueEnabled.Disabled) return;
+
             // keyFilter
             _keyFilter = UpdateConfigSettingWithAppSettings(keyFilterTag);
             if (String.IsNullOrWhiteSpace(_keyFilter))

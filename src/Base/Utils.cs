@@ -20,6 +20,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// Returns the physical file path that corresponds to the specified relative path. 
         /// </summary>
         /// <param name="path"></param>
+        /// <param name="configSection"></param>
         /// <returns></returns>
         public static string MapPath(string path, ConfigurationSection configSection = null)
         {
