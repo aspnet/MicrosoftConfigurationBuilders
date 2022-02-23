@@ -71,32 +71,26 @@
     <ProjectReference Include="..\..\src\AzureAppConfig\AzureAppConfig.csproj">
       <Project>{3f1bb24a-355f-49e7-b396-6aa2eb5dda0e}</Project>
       <Name>AzureAppConfig</Name>
-      <PrivateAssets>All</PrivateAssets>
     </ProjectReference>
     <ProjectReference Include="..\..\src\Azure\Azure.csproj">
       <Project>{345c5437-4990-45dc-be34-6e37aa05d8d2}</Project>
       <Name>Azure</Name>
-      <PrivateAssets>All</PrivateAssets>
-    </ProjectReference>
-    <ProjectReference Include="..\..\src\Json\Json.csproj">
-      <Project>{84e0ce5d-4af2-414f-a940-22b3f93fc727}</Project>
-      <Name>Json</Name>
-      <PrivateAssets>All</PrivateAssets>
     </ProjectReference>
     <ProjectReference Include="..\..\src\Environment\Environment.csproj">
       <Project>{c6530e81-d8d8-47a8-912e-d2939f801835}</Project>
       <Name>Environment</Name>
-      <PrivateAssets>All</PrivateAssets>
+    </ProjectReference>
+    <ProjectReference Include="..\..\src\Json\Json.csproj">
+      <Project>{84e0ce5d-4af2-414f-a940-22b3f93fc727}</Project>
+      <Name>Json</Name>
     </ProjectReference>
     <ProjectReference Include="..\..\src\KeyPerFile\KeyPerFile.csproj">
       <Project>{60c31149-44ed-4789-b5c3-aaa5d3b2fcf1}</Project>
       <Name>KeyPerFile</Name>
-      <PrivateAssets>All</PrivateAssets>
     </ProjectReference>
     <ProjectReference Include="..\..\src\UserSecrets\UserSecrets.csproj">
       <Project>{c60d6cbb-d513-4692-81a6-0be5d45e4702}</Project>
       <Name>UserSecrets</Name>
-      <PrivateAssets>All</PrivateAssets>
     </ProjectReference>
   </ItemGroup>
   <PropertyGroup>
@@ -128,7 +122,7 @@
   <Target Name="UpdateBindingRedirects" AfterTargets="AfterBuild" Condition="$(UpdateBindingRedirectsAfterBuild)=='true'">
     <Copy SourceFiles="$(OutDir)$(AssemblyName).dll.config" DestinationFiles="web.config" />
   </Target>
-  
+
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">
