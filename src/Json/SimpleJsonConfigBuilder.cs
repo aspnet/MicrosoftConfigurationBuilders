@@ -194,8 +194,10 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                 case JsonValueKind.False:
                 case JsonValueKind.Null:
                 case JsonValueKind.Undefined:
+                    // Ultimately, all the types above can be ToString()-ed, and a string is the ultimate
+                    // type destination for config values... so we can treat these kinds all the same.
                     // .NET Core's json provider throws exceptions on duplicates. Let's use Add() and do the same.
-                    d.Add(prefix, jsonElement.GetRawText());
+                    d.Add(prefix, jsonElement.ToString());
                     break;
             }
 
