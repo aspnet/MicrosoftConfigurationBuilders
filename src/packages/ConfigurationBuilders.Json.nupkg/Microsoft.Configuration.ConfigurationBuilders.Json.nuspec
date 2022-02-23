@@ -19,7 +19,7 @@
 
     <dependencies>
       <dependency id="Microsoft.Configuration.ConfigurationBuilders.Base" version="$NuGetPackageBaseDependencyVersion$" />
-      <dependency id="Newtonsoft.Json" version="11.0" />
+      <dependency id="System.Text.Json" version="4.7.1" />
     </dependencies>
   </metadata>
 </package>
