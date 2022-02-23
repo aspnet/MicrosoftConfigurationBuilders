@@ -39,8 +39,8 @@ $keyValueCommonParameters = @(
 function CommonInstall($builderDescription) {
 	##### Update/Rehydrate config declarations #####
 	$config = ReadConfigFile
-	$rehydratedCount = RehydrateOldDeclarations $config $builderDescription | Out-Null
-	$updatedCount = UpdateDeclarations $config $builderDescription | Out-Null
+	$rehydratedCount = RehydrateOldDeclarations $config $builderDescription
+	$updatedCount = UpdateDeclarations $config $builderDescription
 	if ($updatedCount -le 0) { AddDefaultDeclaration $config $builderDescription }
 	SaveConfigFile $config
 }
@@ -76,7 +76,6 @@ function ReadConfigFile() {
 
 function DehydrateDeclarations($config, $typeName) {
 	$tempFile = GetTempFileName
-	$xml
 	$count = 0
 
 	if ([io.file]::Exists($tempFile)) {
@@ -92,7 +91,7 @@ function DehydrateDeclarations($config, $typeName) {
 		$config.xml.configuration.configBuilders.builders.RemoveChild($rec) | Out-Null
 
 		# Add the record to the temp stash. Don't worry about duplicates.
-		AppendBuilderNode $xml.ImportNode($rec, $true) $xml.DocumentElement
+		AppendBuilderNode $xml.ImportNode($rec, $true) $xml.DocumentElement | Out-Null
 		$count++
 	}
 
@@ -120,8 +119,9 @@ function RehydrateOldDeclarations($config, $builderDescription) {
 		if ($existingRecord -ne $null) { continue }
 
 		# Bring the record back to life
-		AppendBuilderNode $config.xml.ImportNode($rec, $true) $config.xml.configuration.configBuilders.builders
+		AppendBuilderNode $config.xml.ImportNode($rec, $true) $config.xml.configuration.configBuilders.builders | Out-Null
 		$count++
+		Write-Host "Restored configBuilder '$($rec.name)'."
 	}
 
 	# Make dried record removal permanent
@@ -147,7 +147,8 @@ function UpdateDeclarations($config, $builderDescription) {
 					Write-Host "Failed to add parameter to '$($builder.name)' configBuilder: '$($p.Name)' is required, but does not have a default value."
 					return
 				}
-				$builder.SetAttribute($p.Name, $p.DefaultValue)
+				$builder.SetAttribute($p.Name, $p.DefaultValue) | Out-Null
+				Write-Host "Added default value for parameter '$($p.Name)' to configBuilder '$($builder.name)'"
 			}
 		}
 
@@ -167,7 +168,7 @@ function AddDefaultDeclaration($config, $builderDescription) {
 	$dd = $config.xml.CreateElement("add")
 
 	# name first
-	$dd.SetAttribute("name", $builderDescription.DefaultName)
+	$dd.SetAttribute("name", $builderDescription.DefaultName) | Out-Null
 
 	# everything else in the middle
 	foreach ($p in $builderDescription.AllowedParameters) {
@@ -177,14 +178,15 @@ function AddDefaultDeclaration($config, $builderDescription) {
 		}
 
 		if ($p.DefaultValue -ne $null) {
-			$dd.SetAttribute($p.Name, $p.DefaultValue)
+			$dd.SetAttribute($p.Name, $p.DefaultValue) | Out-Null
 		}
 	}
 
 	# type last
-	$dd.SetAttribute("type", "$($builderDescription.TypeName), $($builderDescription.Assembly), Version=$($builderDescription.Version), Culture=neutral, PublicKeyToken=31bf3856ad364e35")
+	$dd.SetAttribute("type", "$($builderDescription.TypeName), $($builderDescription.Assembly), Version=$($builderDescription.Version), Culture=neutral, PublicKeyToken=31bf3856ad364e35") | Out-Null
 
-	AppendBuilderNode $dd $config.xml.configuration.configBuilders.builders
+	AppendBuilderNode $dd $config.xml.configuration.configBuilders.builders | Out-Null
+	Write-Host "Added default configBuilder '$($dd.name)'."
 }
 
 function AppendBuilderNode($builder, $parent, $indentLevel = 3) {
@@ -203,7 +205,7 @@ function AppendBuilderNode($builder, $parent, $indentLevel = 3) {
 	}
 
 	# Add on a new line with indents. Make sure there is no existing whitespace mucking this up.
-	foreach ($exws in $parent.ChildNodes | where { $_ -is [System.Xml.XmlWhitespace] }) { $parent.RemoveChild($exws) }
+	foreach ($exws in $parent.ChildNodes | where { $_ -is [System.Xml.XmlWhitespace] }) { $parent.RemoveChild($exws) | Out-Null }
 	$parent.AppendChild($parent.OwnerDocument.CreateWhitespace("`r`n")) | Out-Null
 	$parent.AppendChild($parent.OwnerDocument.CreateWhitespace("  " * $indentLevel)) | Out-Null
 	$parent.AppendChild($builder) | Out-Null
@@ -212,7 +214,7 @@ function AppendBuilderNode($builder, $parent, $indentLevel = 3) {
 }
 
 function SaveConfigFile($config) {
-	$config.xml.Save($config.fileName)
+	$config.xml.Save($config.fileName) | Out-Null
 }
 
 function IsSameType($typeString1, $typeString2) {
