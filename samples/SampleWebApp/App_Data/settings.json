@@ -6,7 +6,8 @@
     "jsonSubSetting2": "From AppSettings Json object",
     "jsonSub": {
       "subSetting3": "From sub-property of AppSettings Json object"
-    }
+    },
+    "jsonInteger": 42
   },
 
   "connectionStrings": {
