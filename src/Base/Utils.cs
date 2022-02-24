@@ -48,7 +48,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             // Otherwise, non "rooted" paths should try to be relative to the config file if possible
             string configFile = configSection?.ElementInformation?.Source;
             string root = (configFile != null) ? Path.GetDirectoryName(configFile) : AppDomain.CurrentDomain.BaseDirectory;
-            return Path.Combine(root, path);
+            return Path.GetFullPath(Path.Combine(root, path));
         }
 
         private static bool IsAspNet
