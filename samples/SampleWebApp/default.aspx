@@ -14,6 +14,7 @@
 
         var expectedAppsettings = GetExpectedAppSettings(azureEnabled);
         Response.Write("<table border=1><tr><th colspan=3><h2>Application Settings</h2></th></tr>");
+        Response.Write("<tr><th></th><th>Actual</th><th>Expected</th></tr>");
         foreach (string appsetting in WebConfigurationManager.AppSettings.Keys)
         {
             Response.Write("<tr><td>" + HttpUtility.HtmlEncode(appsetting) + "</td>");
@@ -40,6 +41,7 @@
         Response.Write("</table><br/><br/>");
 
         Response.Write("<table border=1><tr><th colspan=3><h2>Connection Strings</h2></th></tr>");
+        Response.Write("<tr><th></th><th>Actual</th><th>Expected</th></tr>");
         foreach (ConnectionStringSettings cs in WebConfigurationManager.ConnectionStrings) {
             Response.Write("<tr><td>" + HttpUtility.HtmlEncode(cs.Name) + "</td><td>" + HttpUtility.HtmlEncode(cs.ConnectionString) + "</td>");
             if (expectedConnectionStrings.ContainsKey(cs.Name))
