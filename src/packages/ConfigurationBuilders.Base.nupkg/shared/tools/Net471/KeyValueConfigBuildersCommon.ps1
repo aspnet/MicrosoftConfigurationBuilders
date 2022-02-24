@@ -12,11 +12,20 @@
 ##
 Add-Type @"
 	using System;
-	
+
+	public class ValueMap {
+		public string OriginalValue;
+		public string NewValue;
+	}
+
 	public class ParameterDescription {
 		public string Name;
 		public string DefaultValue;
 		public bool IsRequired;
+		public string MigrateTo;
+		public ValueMap[] ValueMigration;
+		public bool IsObsolete;
+		public string[] ObsoleteValues;
 	}
 
 	public class BuilderDescription {
@@ -33,15 +42,22 @@ $keyValueCommonParameters = @(
 		[ParameterDescription]@{ Name="prefix"; IsRequired=$false },
 		[ParameterDescription]@{ Name="stripPrefix"; IsRequired=$false },
 		[ParameterDescription]@{ Name="tokenPattern"; IsRequired=$false },
-		[ParameterDescription]@{ Name="optional"; IsRequired=$false });
-
+		[ParameterDescription]@{ Name="escapeExpandedValues"; IsRequired=$false },
+		[ParameterDescription]@{ Name="charMap"; IsRequired=$false },
+		[ParameterDescription]@{ Name="enabled"; IsRequired=$false },
+		[ParameterDescription]@{ Name="optional"; IsRequired=$false; MigrateTo="enabled";
+			ValueMigration=@(
+				[ValueMap]@{ OriginalValue="true"; NewValue="optional"},
+				[ValueMap]@{ OriginalValue="false"; NewValue="enabled"}
+			)
+		});
 
 function CommonInstall($builderDescription) {
 	##### Update/Rehydrate config declarations #####
 	$config = ReadConfigFile
 	$rehydratedCount = RehydrateOldDeclarations $config $builderDescription
 	$updatedCount = UpdateDeclarations $config $builderDescription
-	if ($updatedCount -le 0) { AddDefaultDeclaration $config $builderDescription }
+	if ($rehydratedCount -le 0) { AddDefaultDeclaration $config $builderDescription }
 	SaveConfigFile $config
 }
 
@@ -134,31 +150,62 @@ function UpdateDeclarations($config, $builderDescription) {
 	$count = 0
 
 	foreach ($builder in $config.xml.configuration.configBuilders.builders.add | where { IsSameType $_.type ($builderDescription.TypeName + "," + $builderDescription.Assembly) }) {
-		# Count the existing declaration as found
-		$count++
 
-		# Update type
-		$builder.type = "$($builderDescription.TypeName), $($builderDescription.Assembly), Version=$($builderDescription.Version), Culture=neutral, PublicKeyToken=31bf3856ad364e35"
+		$failed = $false
+
+		# Migrate parameters that have changed
+		foreach ($p in $builderDescription.AllowedParameters | where { $_.MigrateTo -ne $null }) {
+			if ($builder.($p.Name) -ne $null) {
+				$newvalue = ($p.ValueMigration | where { $_.OriginalValue -eq $builder.($p.Name) } | select -First 1 ).NewValue
+				if ($newvalue -eq $null) {
+					Write-Warning "Failed to migrate parameter '$($p.Name)' on '$($builder.name)' configBuilder: '$($p.MigrateTo)' should be the new parameter name."
+					$failed = $true
+				}
+				$oldvalue = $builder.($p.Name)
+				$builder.RemoveAttribute($p.Name) | Out-Null
+				$builder.SetAttribute($p.MigrateTo, $newvalue) | Out-Null
+				Write-Host "Migrated '$($p.Name):$($oldvalue)' to '$($p.MigrateTo):$($newvalue)' for configBuilder '$($builder.name)'"
+			}
+		}
 
 		# Add default parameters if they are required and not already present
 		foreach ($p in $builderDescription.AllowedParameters | where { $_.IsRequired -eq $true }) {
 			if ($builder.($p.Name) -eq $null) {
 				if ($p.DefaultValue -eq $null) {
-					Write-Host "Failed to add parameter to '$($builder.name)' configBuilder: '$($p.Name)' is required, but does not have a default value."
-					return
+					Write-Warning "Failed to add parameter to '$($builder.name)' configBuilder: '$($p.Name)' is required, but does not have a default value."
+					$failed = $true
 				}
 				$builder.SetAttribute($p.Name, $p.DefaultValue) | Out-Null
 				Write-Host "Added default value for parameter '$($p.Name)' to configBuilder '$($builder.name)'"
 			}
 		}
 
+		# Finally, update type. And do so with remove/add so the 'type' parameter get put at the end
+		$builder.RemoveAttribute("type") | Out-Null
+		$builder.SetAttribute("type", "$($builderDescription.TypeName), $($builderDescription.Assembly), Version=$($builderDescription.Version), Culture=neutral, PublicKeyToken=31bf3856ad364e35") | Out-Null
+
 		# Check for unknown parameters
 		foreach ($attr in $builder.Attributes | where { ($_.Name -ne "name") -and ($_.Name -ne "type") }) {
 			if (($builderDescription.AllowedParameters | where { $_.Name -ceq $attr.Name }) -eq $null) {
 				# Leave it alone, but spit out a warning?
-				Write-Host "Warning: The parameter '$($attr.Name)' on configBuilder '$($builder.name)' is unknown and may cause errors at runtime."
+				Write-Warning "The parameter '$($attr.Name)' on configBuilder '$($builder.name)' is unknown and may cause errors at runtime."
 			}
 		}
+
+		# Warn about any obsolete settings
+		foreach ($p in $builderDescription.AllowedParameters | where { $_.IsObsolete -eq $true }) {
+			if ($builder.($p.Name) -ne $null) {
+				Write-Warning "The parameter '$($p.Name)' on '$($builder.name)' configBuilder is obsolete. Please consider alternative configurations."
+			}
+		}
+		foreach ($p in $builderDescription.AllowedParameters | where { $_.ObsoleteValues -ne $null -and $_.ObsoleteValues.Count -gt 0 }) {
+			if ($builder.($p.Name) -ne $null -and $p.ObsoleteValues.Contains($builder.($p.Name))) {
+				Write-Warning "The value of parameter '$($p.Name)' on '$($builder.name)' configBuilder is obsolete. Please consider alternative configurations."
+			}
+		}
+
+		# Count the existing declaration as updated
+		if ($failed -ne $true) { $count++ }
 	}
 
 	return $count
