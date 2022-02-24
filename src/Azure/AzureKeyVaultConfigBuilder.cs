@@ -47,12 +47,16 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             // Default to 'Enabled'. base.LazyInitialize() will override if specified in config.
             Enabled = KeyValueEnabled.Enabled;
 
-            // Colons and underscores are common in appSettings keys, but not allowed in key vault key names.
-            // It's likely that apps will want to lookup config values with these characters in their name in
-            // key vault. More extensive key mapping can be done with subclasses. But let's handle the most
-            // most common case here.
+            // Key Vault names can only contain [a-zA-Z0-9] and '-'.
+            // https://docs.microsoft.com/en-us/azure/key-vault/general/about-keys-secrets-certificates
+            // That's a lot of disallowed characters to map away. Fortunately, 'charMap' allows users
+            // to do this on a per-case basis. But let's cover some common cases by default.
             CharacterMap.Add(":", "-");
             CharacterMap.Add("_", "-");
+            CharacterMap.Add(".", "-");
+            CharacterMap.Add("+", "-");
+            CharacterMap.Add("/", "-");
+            CharacterMap.Add(@"\", "-");
 
             base.LazyInitialize(name, config);
 
