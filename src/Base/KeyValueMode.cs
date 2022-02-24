@@ -1,6 +1,8 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See the License.txt file in the project root for full license information.
 
+using System;
+
 namespace Microsoft.Configuration.ConfigurationBuilders
 {
     /// <summary>
@@ -17,8 +19,19 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// </summary>
         Greedy,
         /// <summary>
+        /// Obsolete: Re-named to <see cref="RawToken"/>.
+        /// </summary>
+        [Obsolete]
+        Expand,
+        /// <summary>
         /// Replace 'key'-specifying tokens in raw xml with 'values.' Operates on any config section.
         /// </summary>
-        Expand
+#pragma warning disable CS0612 // Type or member is obsolete
+        RawToken = Expand,
+#pragma warning restore CS0612 // Type or member is obsolete
+        /// <summary>
+        /// Replace 'key'-specifying tokens in the 'key' or 'value' parts of a config entry.
+        /// </summary>
+        Token
     }
 }

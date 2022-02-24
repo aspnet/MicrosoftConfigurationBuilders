@@ -282,24 +282,13 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         // Sub-classes need not worry about this stuff, even though some of it is "public" because it comes from the framework.
 
         #pragma warning disable CS1591 // No xml comments for overrides that implementing classes shouldn't worry about.
-        /// <summary>
-        ///  (Warning: Overriding may interfere with recursion detection.)
-        /// </summary>
         public override XmlNode ProcessRawXml(XmlNode rawXml)
         {
             _inAppSettings = (rawXml.Name == "appSettings");    // System.Configuration hard codes this, so we might as well too.
 
             // Checking Enabled will kick off LazyInit, so only do that if we are actually going to do work here.
             if (Mode == KeyValueMode.Expand && Enabled != KeyValueEnabled.Disabled)
-            {
-                using (var rg = new RecursionGuard(this, rawXml.Name, Recursion))
-                {
-                    if (rg.ShouldStop)
-                        return rawXml;
-
-                    return ExpandTokens(rawXml);
-                }
-            }
+                return ExpandTokens(rawXml);
 
             return rawXml;
         }
@@ -310,7 +299,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         public override ConfigurationSection ProcessConfigurationSection(ConfigurationSection configSection)
         {
             // Expand mode only works on the raw string input
-            if (Mode == KeyValueMode.Expand)
+            if (Mode == KeyValueMode.RawToken)
                 return configSection;
 
             using (var rg = new RecursionGuard(this, configSection.SectionInformation?.Name, Recursion))
@@ -328,19 +317,32 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                 // Don't do anything more if we are disabled.
                 if (Enabled == KeyValueEnabled.Disabled) return configSection;
 
-                // Strict Mode. Only replace existing key/values.
-                if (Mode == KeyValueMode.Strict)
+            // Strict Mode. Only replace existing key/values.
+            if (Mode == KeyValueMode.Strict)
+            {
+                foreach (var configItem in handler.KeysValuesAndState())
                 {
-                    foreach (var configItem in handler)
-                    {
-                        // Presumably, UpdateKey will preserve casing appropriately, so newKey is cased as expected.
-                        string newKey = UpdateKey(configItem.Key);
-                        string newValue = GetValueInternal(configItem.Key);
+                    // Presumably, UpdateKey will preserve casing appropriately, so newKey is cased as expected.
+                    string newKey = UpdateKey(configItem.Item1);
+                    string newValue = GetValueInternal(configItem.Item1);
 
-                        if (newValue != null)
-                            handler.InsertOrUpdate(newKey, newValue, configItem.Key, configItem.Value);
-                    }
+                    if (newValue != null)
+                        handler.InsertOrUpdate(newKey, newValue, configItem.Item1, configItem.Item3);
                 }
+            }
+
+            // Token Mode. Replace tokens in existing key/values.
+            else if (Mode == KeyValueMode.Token)
+            {
+                foreach (var configItem in handler.KeysValuesAndState())
+                {
+                    string newKey = ExpandTokens(configItem.Item1);
+                    string newValue = ExpandTokens(configItem.Item2);
+
+                    if (newValue != null)
+                        handler.InsertOrUpdate(newKey, newValue, configItem.Item1, configItem.Item3);
+                }
+            }
 
                 // Greedy Mode. Insert all key/values.
                 else if (Mode == KeyValueMode.Greedy)
@@ -393,7 +395,17 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             if (String.IsNullOrEmpty(rawXmlString))
                 return rawXml;
 
-            rawXmlString = Regex.Replace(rawXmlString, TokenPattern, (m) =>
+            string updatedXmlString = ExpandTokens(rawXmlString);
+
+            XmlDocument doc = new XmlDocument();
+            doc.PreserveWhitespace = true;
+            doc.LoadXml(updatedXmlString);
+            return doc.DocumentElement;
+        }
+
+        private string ExpandTokens(string rawString)
+        {
+            string updatedString = Regex.Replace(rawString, TokenPattern, (m) =>
                 {
                     string key = m.Groups[1].Value;
 
@@ -401,11 +413,8 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                     // Since the key is being completely replaced by the value, we don't need to call UpdateKey().
                     return EscapeValue(GetValueInternal(key)) ?? m.Groups[0].Value;
                 });
-            
-            XmlDocument doc = new XmlDocument();
-            doc.PreserveWhitespace = true;
-            doc.LoadXml(rawXmlString);
-            return doc.DocumentElement;
+
+            return updatedString;
         }
 
         private string GetValueInternal(string key)
