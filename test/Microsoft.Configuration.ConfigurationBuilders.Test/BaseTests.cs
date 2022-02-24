@@ -35,8 +35,13 @@ namespace Test
 
             // Expand
             builder = new FakeConfigBuilder();
-            builder.Initialize("test", new NameValueCollection() { { "mode", "Expand" } });
-            Assert.Equal(KeyValueMode.Expand, builder.Mode);
+            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Expand" } });
+            Assert.Equal(KeyValueMode.RawToken, builder.Mode);
+
+            // RawToken
+            builder = new FakeConfigBuilder();
+            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "RawToken" } });
+            Assert.Equal(KeyValueMode.RawToken, builder.Mode);
 
             // Invalid
             builder = new FakeConfigBuilder();
@@ -51,8 +56,8 @@ namespace Test
 
             // Case sensitive attribute name
             builder = new FakeConfigBuilder();
-            builder.Initialize("test", new NameValueCollection() { { "MODE", "Expand" } });
-            Assert.Equal(KeyValueMode.Expand, builder.Mode);
+            builder.Initialize("test", new NameValueCollection() { { "MODE", "Greedy" } });
+            Assert.Equal(KeyValueMode.Greedy, builder.Mode);
         }
 
         [Fact]
