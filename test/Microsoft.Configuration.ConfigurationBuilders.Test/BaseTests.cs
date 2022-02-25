@@ -36,7 +36,7 @@ namespace Test
             // Invalid
             builder = new FakeConfigBuilder();
             var exception = Record.Exception(() => {
-                builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "InvalidModeDoesNotExist" } });
+                builder.Initialize("test", new NameValueCollection() { { "mode", "InvalidModeDoesNotExist" } });
                 Assert.Equal(KeyValueMode.Strict, builder.Mode); // Will throw trying to read the mode
             });
             Assert.NotNull(exception);
@@ -46,7 +46,7 @@ namespace Test
             // No longer valid
             builder = new FakeConfigBuilder();
             exception = Record.Exception(() => {
-                builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Expand" } });
+                builder.Initialize("test", new NameValueCollection() { { "mode", "Expand" } });
                 Assert.Equal(KeyValueMode.Strict, builder.Mode); // Will throw trying to read the mode
             });
             Assert.NotNull(exception);

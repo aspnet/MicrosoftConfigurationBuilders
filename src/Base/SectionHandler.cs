@@ -6,8 +6,6 @@ using System.Collections.Generic;
 using System.Configuration.Provider;
 using System.Collections.Specialized;
 using System;
-using System.Linq.Expressions;
-using System.Collections;
 
 namespace Microsoft.Configuration.ConfigurationBuilders
 {
@@ -157,7 +155,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// <param name="newKey">The updated key name for the connection string.</param>
         /// <param name="newValue">The updated value for the connection string.</param>
         /// <param name="oldKey">The old key name for the connection string, or null.</param>
-        /// <param name="oldItem">A reference to the old <see cref="ConnectionStringSettings"/> object obtained by <see cref="GetEnumerator"/>, or null.</param>
+        /// <param name="oldItem">A reference to the old <see cref="ConnectionStringSettings"/> object obtained by <see cref="KeysValuesAndState"/>, or null.</param>
         public override void InsertOrUpdate(string newKey, string newValue, string oldKey = null, object oldItem = null)
         {
             if (newValue != null)

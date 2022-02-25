@@ -113,7 +113,10 @@
     Dictionary<string, string> expectedConnectionStrings = new Dictionary<string, string>()
     {
         { "LocalSqlServer", "data source=.\\SQLEXPRESS;Integrated Security=SSPI;AttachDBFilename=|DataDirectory|aspnetdb.mdf;User Instance=true" },
-        { "tokenTest", "A & really ' bad \" unescaped < connection > string." },
+        // In the old 'Expand' mode that manipulated raw XML, this escaped string would become unescaped when reading the xml into the config system.
+        //{ "tokenTest", "A & really ' bad \" unescaped < connection > string." },
+        // Now it get injected during PCS, so it does not get unescaped when reading in the raw xml.
+        { "tokenTest", "A &amp; really &apos; bad &quot; unescaped &lt; connection &gt; string." },
         { "expandTestCS", "Only replaced in Strict/Greedy modes. Not Token." },
         { "jsonConnectionString1", "CS From Json Root" },
         { "connectionStrings:jsonConnectionString1", "CS1 From ConnectionStrings Json object" },

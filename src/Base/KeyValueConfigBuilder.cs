@@ -2,12 +2,11 @@
 // Licensed under the MIT license. See the License.txt file in the project root for full license information.
 
 using System;
-using System.Configuration;
 using System.Collections.Generic;
 using System.Collections.Specialized;
-using System.Text.RegularExpressions;
-using System.Xml;
+using System.Configuration;
 using System.Security;
+using System.Text.RegularExpressions;
 
 namespace Microsoft.Configuration.ConfigurationBuilders
 {
@@ -267,7 +266,6 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         #region "Private" stuff
         // Sub-classes need not worry about this stuff, even though some of it is "public" because it comes from the framework.
 
-#pragma warning disable CS1591 // No xml comments for overrides that implementing classes shouldn't worry about.
         /// <summary>
         ///  (Warning: Overriding may interfere with recursion detection.)
         /// </summary>
@@ -277,43 +275,42 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
             using (var rg = new RecursionGuard(this, configSection.SectionInformation?.Name, Recursion))
             {
-                if (rg.ShouldStop)
+                // Don't do anything more if we are disabled or getting caught in recursion.
+                if (rg.ShouldStop || Enabled == KeyValueEnabled.Disabled)
                     return configSection;
-
-                // Don't do anything more if we are disabled.
-                if (Enabled == KeyValueEnabled.Disabled) return configSection;
 
                 // See if we know how to process this section
                 ISectionHandler handler = SectionHandlersSection.GetSectionHandler(configSection);
                 if (handler == null)
                     return configSection;
 
-            // Strict Mode. Only replace existing key/values.
-            if (Mode == KeyValueMode.Strict)
-            {
-                foreach (var configItem in handler.KeysValuesAndState())
+
+                // Strict Mode. Only replace existing key/values.
+                if (Mode == KeyValueMode.Strict)
                 {
-                    // Presumably, UpdateKey will preserve casing appropriately, so newKey is cased as expected.
-                    string newKey = UpdateKey(configItem.Item1);
-                    string newValue = GetValueInternal(configItem.Item1);
+                    foreach (var configItem in handler.KeysValuesAndState())
+                    {
+                        // Presumably, UpdateKey will preserve casing appropriately, so newKey is cased as expected.
+                        string newKey = UpdateKey(configItem.Item1);
+                        string newValue = GetValueInternal(configItem.Item1);
 
-                    if (newValue != null)
-                        handler.InsertOrUpdate(newKey, newValue, configItem.Item1, configItem.Item3);
+                        if (newValue != null)
+                            handler.InsertOrUpdate(newKey, newValue, configItem.Item1, configItem.Item3);
+                    }
                 }
-            }
 
-            // Token Mode. Replace tokens in existing key/values.
-            else if (Mode == KeyValueMode.Token)
-            {
-                foreach (var configItem in handler.KeysValuesAndState())
+                // Token Mode. Replace tokens in existing key/values.
+                else if (Mode == KeyValueMode.Token)
                 {
-                    string newKey = ExpandTokens(configItem.Item1);
-                    string newValue = ExpandTokens(configItem.Item2);
+                    foreach (var configItem in handler.KeysValuesAndState())
+                    {
+                        string newKey = ExpandTokens(configItem.Item1);
+                        string newValue = ExpandTokens(configItem.Item2);
 
-                    if (newValue != null)
-                        handler.InsertOrUpdate(newKey, newValue, configItem.Item1, configItem.Item3);
+                        if (newValue != null)
+                            handler.InsertOrUpdate(newKey, newValue, configItem.Item1, configItem.Item3);
+                    }
                 }
-            }
 
                 // Greedy Mode. Insert all key/values.
                 else if (Mode == KeyValueMode.Greedy)
@@ -335,7 +332,6 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             _currentSection = null;
             return configSection;
         }
-        #pragma warning restore CS1591 // No xml comments for overrides that implementing classes shouldn't worry about.
 
         private void EnsureInitialized()
         {
@@ -358,21 +354,6 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                     }
                 }
             }
-        }
-
-        private XmlNode ExpandTokens(XmlNode rawXml)
-        {
-            string rawXmlString = rawXml.OuterXml;
-
-            if (String.IsNullOrEmpty(rawXmlString))
-                return rawXml;
-
-            string updatedXmlString = ExpandTokens(rawXmlString);
-
-            XmlDocument doc = new XmlDocument();
-            doc.PreserveWhitespace = true;
-            doc.LoadXml(updatedXmlString);
-            return doc.DocumentElement;
         }
 
         private string ExpandTokens(string rawString)

@@ -130,8 +130,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// <returns>The value corresponding to the given 'key' or null if no value is found.</returns>
         public override string GetValue(string key)
         {
-            string value;
-            return GetCurrentDictionary().TryGetValue(key, out value) ? value : null;
+            return GetCurrentDictionary().TryGetValue(key, out string value) ? value : null;
         }
 
         /// <summary>

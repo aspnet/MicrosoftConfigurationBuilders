@@ -266,7 +266,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             return keys;
         }
 
-        class VersionedKey
+        private class VersionedKey
         {
             public string Key;
             public string Version;

@@ -22,8 +22,6 @@ namespace Microsoft.Configuration.ConfigurationBuilders
     /// </summary>
     public class AzureAppConfigurationBuilder : KeyValueConfigBuilder
     {
-        private const string KeyVaultContentType = "application/vnd.microsoft.appconfig.keyvaultref+json";
-
         #pragma warning disable CS1591 // No xml comments for tag literals.
         public const string endpointTag = "endpoint";
         public const string connectionStringTag = "connectionString";
@@ -211,8 +209,8 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             if (_client == null)
                 return null;
 
-            SettingSelector selector = new SettingSelector();
-            selector.KeyFilter = key;
+            SettingSelector selector = new SettingSelector { KeyFilter = key };
+
             if (_labelFilter != null)
             {
                 selector.LabelFilter = _labelFilter;

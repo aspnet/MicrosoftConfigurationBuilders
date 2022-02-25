@@ -3,7 +3,6 @@
 using System;
 using System.Collections.Generic;
 using System.Configuration;
-using System.Linq;
 using System.Threading;
 
 namespace Microsoft.Configuration.ConfigurationBuilders
@@ -32,11 +31,11 @@ namespace Microsoft.Configuration.ConfigurationBuilders
     /// </summary>
     internal class RecursionGuard : IDisposable
     {
-        private static AsyncLocal<Stack<(string section, string builder)>> sectionsEntered = new AsyncLocal<Stack<(string, string)>>();
+        private static readonly AsyncLocal<Stack<(string section, string builder)>> sectionsEntered = new AsyncLocal<Stack<(string, string)>>();
 
         internal bool ShouldStop = false;
-        private string sectionName;
-        private string builderName;
+        private readonly string sectionName;
+        private readonly string builderName;
 
         internal RecursionGuard(ConfigurationBuilder configBuilder, string sectionName, RecursionGuardValues behavior)
         {
@@ -86,11 +85,11 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             // If we tracked the entering of a section... stop tracking now.
             if (sectionName != null)
             {
-                var poppedRecord = sectionsEntered.Value.Pop();
+                var (section, builder) = sectionsEntered.Value.Pop();
 
                 // Sanity check to make sure we are un-tracking what we expect to un-track.
-                if ((poppedRecord.section != sectionName) || (poppedRecord.builder != builderName)) {
-                    throw new InvalidOperationException($"The ConfigurationBuilder {builderName} has detected a mix up while processing of the '{sectionName}' section. ({poppedRecord.builder},{poppedRecord.section})");
+                if ((section != sectionName) || (builder != builderName)) {
+                    throw new InvalidOperationException($"The ConfigurationBuilder {builderName} has detected a mix up while processing of the '{sectionName}' section. ({builder},{section})");
                 }
             }
         }

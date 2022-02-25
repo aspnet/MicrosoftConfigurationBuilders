@@ -13,7 +13,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
     /// </summary>
     public sealed class SectionHandlersSection : ConfigurationSection
     {
-        static readonly string handlerSectionName = "Microsoft.Configuration.ConfigurationBuilders.SectionHandlers";
+        private static readonly string handlerSectionName = "Microsoft.Configuration.ConfigurationBuilders.SectionHandlers";
 
         /// <summary>
         /// Gets the collection of <see cref="SectionHandler{T}" />s defined for processing config sections with <see cref="KeyValueConfigBuilder"/>s./>
@@ -39,14 +39,13 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             }
         }
 
-        static internal ISectionHandler GetSectionHandler<T>(T configSection) where T : ConfigurationSection
+        internal static ISectionHandler GetSectionHandler<T>(T configSection) where T : ConfigurationSection
         {
             if (configSection == null)
                 return null;
 
-            SectionHandlersSection handlerSection = ConfigurationManager.GetSection(handlerSectionName) as SectionHandlersSection;
 
-            if (handlerSection == null)
+            if (!(ConfigurationManager.GetSection(handlerSectionName) is SectionHandlersSection handlerSection))
             {
                 handlerSection = new SectionHandlersSection();
                 handlerSection.InitializeDefault();
@@ -61,8 +60,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                 Type handlerType = Type.GetType(handlerSection.Handlers[i].Type);
                 if (handlerType != null && handlerType.IsSubclassOf(sectionHandlerDesiredType))
                 {
-                    ISectionHandler handler = Activator.CreateInstance(handlerType) as ISectionHandler;
-                    if (handler != null)
+                    if (Activator.CreateInstance(handlerType) is ISectionHandler handler)
                     {
                         ProviderSettings settings = handlerSection.Handlers[i];
                         NameValueCollection clonedParams = new NameValueCollection(settings.Parameters.Count);

@@ -3,10 +3,7 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Configuration;
 using System.Linq;
-using System.Reflection;
-using System.Threading;
 using System.Threading.Tasks;
-using System.Xml;
 using Microsoft.Configuration.ConfigurationBuilders;
 using Xunit;
 
@@ -21,7 +18,7 @@ namespace Test
         {
             //Arrange
             var builder = new SlowInitConfigBuilder();
-            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Token" } });
+            builder.Initialize("test", new NameValueCollection() { { "mode", "Token" } });
             var appSettings = GetAppSettings();
 
             //Act

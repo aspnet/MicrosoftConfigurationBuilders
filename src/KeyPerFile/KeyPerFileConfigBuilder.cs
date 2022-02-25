@@ -36,7 +36,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// </summary>
         public string IgnorePrefix { get; protected set; }
 
-        private ConcurrentDictionary<string, string> _allValues = new ConcurrentDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        private readonly ConcurrentDictionary<string, string> _allValues = new ConcurrentDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
         /// Initializes the configuration builder lazily.
