@@ -20,38 +20,38 @@ namespace Test
         {
             // Default Strict
             var builder = new FakeConfigBuilder();
-            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection());
+            builder.Initialize("test", new NameValueCollection());
             Assert.Equal(KeyValueMode.Strict, builder.Mode);
 
             // Strict
             builder = new FakeConfigBuilder();
-            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Strict" } });
+            builder.Initialize("test", new NameValueCollection() { { "mode", "Strict" } });
             Assert.Equal(KeyValueMode.Strict, builder.Mode);
 
             // Greedy
             builder = new FakeConfigBuilder();
-            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Greedy" } });
+            builder.Initialize("test", new NameValueCollection() { { "mode", "Greedy" } });
             Assert.Equal(KeyValueMode.Greedy, builder.Mode);
 
             // Expand
             builder = new FakeConfigBuilder();
-            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Expand" } });
+            builder.Initialize("test", new NameValueCollection() { { "mode", "Expand" } });
             Assert.Equal(KeyValueMode.Expand, builder.Mode);
 
             // Invalid
             builder = new FakeConfigBuilder();
             Assert.Throws<ArgumentException>(() => {
-                builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "InvalidModeDoesNotExist" } });
+                builder.Initialize("test", new NameValueCollection() { { "mode", "InvalidModeDoesNotExist" } });
             });
 
             // Case-insensitive value
             builder = new FakeConfigBuilder();
-            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "grEEdy" } });
+            builder.Initialize("test", new NameValueCollection() { { "mode", "grEEdy" } });
             Assert.Equal(KeyValueMode.Greedy, builder.Mode);
 
             // Case sensitive attribute name
             builder = new FakeConfigBuilder();
-            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "MODE", "Expand" } });
+            builder.Initialize("test", new NameValueCollection() { { "MODE", "Expand" } });
             Assert.Equal(KeyValueMode.Expand, builder.Mode);
         }
 
@@ -60,17 +60,17 @@ namespace Test
         {
             // Default empty string. (Not null)
             var builder = new FakeConfigBuilder();
-            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection());
+            builder.Initialize("test", new NameValueCollection());
             Assert.Equal("", builder.KeyPrefix);
 
             // Prefix, case preserved
             builder = new FakeConfigBuilder();
-            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "prefix", "_This_is_my_PREFIX:" } });
+            builder.Initialize("test", new NameValueCollection() { { "prefix", "_This_is_my_PREFIX:" } });
             Assert.Equal("_This_is_my_PREFIX:", builder.KeyPrefix);
 
             // Case sensitive attribute name
             builder = new FakeConfigBuilder();
-            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "PREfix", "$This_is_my_other_PREFIX#" } });
+            builder.Initialize("test", new NameValueCollection() { { "PREfix", "$This_is_my_other_PREFIX#" } });
             Assert.Equal("$This_is_my_other_PREFIX#", builder.KeyPrefix);
         }
 
@@ -79,37 +79,37 @@ namespace Test
         {
             // Default false
             var builder = new FakeConfigBuilder();
-            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection());
+            builder.Initialize("test", new NameValueCollection());
             Assert.False(builder.StripPrefix);
 
             // True
             builder = new FakeConfigBuilder();
-            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "stripPrefix", "True" } });
+            builder.Initialize("test", new NameValueCollection() { { "stripPrefix", "True" } });
             Assert.True(builder.StripPrefix);
 
             // fAlSe
             builder = new FakeConfigBuilder();
-            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "stripPrefix", "fAlSe" } });
+            builder.Initialize("test", new NameValueCollection() { { "stripPrefix", "fAlSe" } });
             Assert.False(builder.StripPrefix);
 
             // Works with 'prefix'
             builder = new FakeConfigBuilder();
-            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "prefix", "Test_" }, { "stripPrefix", "TRUE" } });
+            builder.Initialize("test", new NameValueCollection() { { "prefix", "Test_" }, { "stripPrefix", "TRUE" } });
             Assert.True(builder.StripPrefix);
 
             // Can be set in Greedy mode
             builder = new FakeConfigBuilder();
-            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Greedy" }, { "stripPrefix", "TRUE" } });
+            builder.Initialize("test", new NameValueCollection() { { "mode", "Greedy" }, { "stripPrefix", "TRUE" } });
             Assert.True(builder.StripPrefix);
 
             // Can be set in Expand mode
             builder = new FakeConfigBuilder();
-            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Expand" }, { "stripPrefix", "TRUE" } });
+            builder.Initialize("test", new NameValueCollection() { { "mode", "Expand" }, { "stripPrefix", "TRUE" } });
             Assert.True(builder.StripPrefix);
 
             // Case sensitive attribute name
             builder = new FakeConfigBuilder();
-            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "STRIppreFIX", "true" } });
+            builder.Initialize("test", new NameValueCollection() { { "STRIppreFIX", "true" } });
             Assert.True(builder.StripPrefix);
         }
 
@@ -118,22 +118,22 @@ namespace Test
         {
             // Default string. (Not null)
             var builder = new FakeConfigBuilder();
-            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection());
+            builder.Initialize("test", new NameValueCollection());
             Assert.Equal(@"\$\{(\w[\w-_$@#+,.:~]*)\}", builder.TokenPattern);
 
             // TokenPattern, case preserved
             builder = new FakeConfigBuilder();
-            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "tokenPattern", @"%([^\s+\W*#$&_-])}%" } });
+            builder.Initialize("test", new NameValueCollection() { { "tokenPattern", @"%([^\s+\W*#$&_-])}%" } });
             Assert.Equal(@"%([^\s+\W*#$&_-])}%", builder.TokenPattern);
 
             // Case sensitive attribute name
             builder = new FakeConfigBuilder();
-            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "TOKenpaTTerN", @"\[pattern\]" } });
+            builder.Initialize("test", new NameValueCollection() { { "TOKenpaTTerN", @"\[pattern\]" } });
             Assert.Equal(@"\[pattern\]", builder.TokenPattern);
 
             // Protected setter
             builder = new FakeConfigBuilder();
-            builder.Initialize("test", null);
+            builder.Initialize("test");
             builder.SetTokenPattern("TestPattern");
             Assert.Equal(@"TestPattern", builder.TokenPattern);
         }
@@ -146,19 +146,19 @@ namespace Test
         {
             // Strict - ProcessRawXml is a noop
             var builder = new FakeConfigBuilder();
-            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection());
+            builder.Initialize("test", new NameValueCollection());
             XmlNode xmlInput = GetNode(rawXmlInput);
             Assert.Equal(xmlInput, builder.ProcessRawXml(xmlInput));
 
             // Strict - ProcessRawXml is a noop, even with prefix stuff
             builder = new FakeConfigBuilder();
-            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "prefix", "Prefix_" }, { "stripPrefix", "TRUE" } });
+            builder.Initialize("test", new NameValueCollection() { { "prefix", "Prefix_" }, { "stripPrefix", "TRUE" } });
             xmlInput = GetNode(rawXmlInput);
             Assert.Equal(xmlInput, builder.ProcessRawXml(xmlInput));
 
             // Strict - ProcessConfigurationSection
             builder = new FakeConfigBuilder();
-            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection());
+            builder.Initialize("test", new NameValueCollection());
             AppSettingsSection newSettings = (AppSettingsSection)builder.ProcessConfigurationSection(GetAppSettings());
             Assert.Equal("TestKey1Value", newSettings.Settings["TestKey1"]?.Value);
             Assert.Equal("${TestKey1}", newSettings.Settings["test1"]?.Value);
@@ -171,7 +171,7 @@ namespace Test
 
             // Strict - ProcessConfigurationSection with prefix
             builder = new FakeConfigBuilder();
-            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "prefix", "Prefix_" }});
+            builder.Initialize("test", new NameValueCollection() { { "prefix", "Prefix_" }});
             newSettings = (AppSettingsSection)builder.ProcessConfigurationSection(GetAppSettings());
             Assert.Equal("val1", newSettings.Settings["TestKey1"]?.Value);
             Assert.Equal("${TestKey1}", newSettings.Settings["test1"]?.Value);
@@ -184,7 +184,7 @@ namespace Test
 
             // Strict - ProcessConfigurationSection with prefix - NOT Case-Sensitive
             builder = new FakeConfigBuilder();
-            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "prefix", "preFIX_" } });
+            builder.Initialize("test", new NameValueCollection() { { "prefix", "preFIX_" } });
             newSettings = (AppSettingsSection)builder.ProcessConfigurationSection(GetAppSettings());
             Assert.Equal("val1", newSettings.Settings["TestKey1"]?.Value);
             Assert.Equal("${TestKey1}", newSettings.Settings["test1"]?.Value);
@@ -197,7 +197,7 @@ namespace Test
 
             // Strict - ProcessConfigurationSection with prefix and strip
             builder = new FakeConfigBuilder();
-            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "prefix", "preFIX_" }, { "stripPrefix", "true" } });
+            builder.Initialize("test", new NameValueCollection() { { "prefix", "preFIX_" }, { "stripPrefix", "true" } });
             newSettings = (AppSettingsSection)builder.ProcessConfigurationSection(GetAppSettings());
             Assert.Equal("Prefix_TestKey1Value", newSettings.Settings["TestKey1"]?.Value);
             Assert.Equal("${TestKey1}", newSettings.Settings["test1"]?.Value);
@@ -210,7 +210,7 @@ namespace Test
 
             // Strict - ProcessConfigurationSection with strip with no prefix
             builder = new FakeConfigBuilder();
-            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "stripPrefix", "true" } });
+            builder.Initialize("test", new NameValueCollection() { { "stripPrefix", "true" } });
             newSettings = (AppSettingsSection)builder.ProcessConfigurationSection(GetAppSettings());
             Assert.Equal("TestKey1Value", newSettings.Settings["TestKey1"]?.Value);
             Assert.Equal("${TestKey1}", newSettings.Settings["test1"]?.Value);
@@ -227,7 +227,7 @@ namespace Test
         {
             // Expand - ProcessConfigurationSection is a noop
             var builder = new FakeConfigBuilder();
-            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Expand" } });
+            builder.Initialize("test", new NameValueCollection() { { "mode", "Expand" } });
             AppSettingsSection origSettings = GetAppSettings();
             AppSettingsSection newSettings = (AppSettingsSection)builder.ProcessConfigurationSection(GetAppSettings());
             Assert.Equal(origSettings.Settings.Count, newSettings.Settings.Count);
@@ -236,7 +236,7 @@ namespace Test
 
             // Expand - ProcessConfigurationSection is a noop, even with prefix stuff
             builder = new FakeConfigBuilder();
-            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Expand" }, { "prefix", "Prefix_" }, { "stripPrefix", "true" } });
+            builder.Initialize("test", new NameValueCollection() { { "mode", "Expand" }, { "prefix", "Prefix_" }, { "stripPrefix", "true" } });
             newSettings = (AppSettingsSection)builder.ProcessConfigurationSection(GetAppSettings());
             Assert.Equal(origSettings.Settings.Count, newSettings.Settings.Count);
             foreach (string key in origSettings.Settings.AllKeys)
@@ -244,7 +244,7 @@ namespace Test
 
             // Expand - ProcessRawXml
             builder = new FakeConfigBuilder();
-            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Expand" } });
+            builder.Initialize("test", new NameValueCollection() { { "mode", "Expand" } });
             XmlNode xmlInput = GetNode(rawXmlInput);
             XmlNode xmlOutput = builder.ProcessRawXml(xmlInput);
             Assert.Equal("appSettings", xmlOutput.Name);
@@ -260,7 +260,7 @@ namespace Test
 
             // Expand - ProcessRawXml with prefix
             builder = new FakeConfigBuilder();
-            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Expand" }, { "prefix", "Prefix_" } });
+            builder.Initialize("test", new NameValueCollection() { { "mode", "Expand" }, { "prefix", "Prefix_" } });
             xmlInput = GetNode(rawXmlInput);
             xmlOutput = builder.ProcessRawXml(xmlInput);
             Assert.Equal("appSettings", xmlOutput.Name);
@@ -276,7 +276,7 @@ namespace Test
 
             // Expand - ProcessRawXml with prefix - NOT Case-Sensitive
             builder = new FakeConfigBuilder();
-            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Expand" }, { "prefix", "prEFiX_" } });
+            builder.Initialize("test", new NameValueCollection() { { "mode", "Expand" }, { "prefix", "prEFiX_" } });
             xmlInput = GetNode(rawXmlInput);
             xmlOutput = builder.ProcessRawXml(xmlInput);
             Assert.Equal("appSettings", xmlOutput.Name);
@@ -292,7 +292,7 @@ namespace Test
 
             // Expand - ProcessRawXml with prefix and strip
             builder = new FakeConfigBuilder();
-            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Expand" }, { "prefix", "prEFiX_" }, { "stripPrefix", "true" } });
+            builder.Initialize("test", new NameValueCollection() { { "mode", "Expand" }, { "prefix", "prEFiX_" }, { "stripPrefix", "true" } });
             xmlInput = GetNode(rawXmlInput);
             xmlOutput = builder.ProcessRawXml(xmlInput);
             Assert.Equal("appSettings", xmlOutput.Name);
@@ -308,7 +308,7 @@ namespace Test
 
             // Expand - ProcessRawXml with strip with no prefix
             builder = new FakeConfigBuilder();
-            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Expand" }, { "stripPrefix", "true" } });
+            builder.Initialize("test", new NameValueCollection() { { "mode", "Expand" }, { "stripPrefix", "true" } });
             xmlInput = GetNode(rawXmlInput);
             xmlOutput = builder.ProcessRawXml(xmlInput);
             Assert.Equal("appSettings", xmlOutput.Name);
@@ -324,7 +324,7 @@ namespace Test
 
             // Expand - ProcessRawXml with alternate tokenPattern
             builder = new FakeConfigBuilder();
-            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Expand" }, { "tokenPattern", @"%%([\w:]+)%%" } });
+            builder.Initialize("test", new NameValueCollection() { { "mode", "Expand" }, { "tokenPattern", @"%%([\w:]+)%%" } });
             xmlInput = GetNode(rawXmlInput);
             xmlOutput = builder.ProcessRawXml(xmlInput);
             Assert.Equal("appSettings", xmlOutput.Name);
@@ -342,7 +342,7 @@ namespace Test
 
             // Expand - ProcessRawXml does not work with alternate tokenPattern with no capture group
             builder = new FakeConfigBuilder();
-            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Expand" }, { "tokenPattern", @"%%[\w:]+%%" } });
+            builder.Initialize("test", new NameValueCollection() { { "mode", "Expand" }, { "tokenPattern", @"%%[\w:]+%%" } });
             xmlInput = GetNode(rawXmlInput);
             xmlOutput = builder.ProcessRawXml(xmlInput);
             Assert.Equal("appSettings", xmlOutput.Name);
@@ -360,7 +360,7 @@ namespace Test
 
             // Expand - ProcessRawXml does not blow up with alternate tokenPattern with empty capture group
             builder = new FakeConfigBuilder();
-            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Expand" }, { "tokenPattern", @"%(.?)%" } });
+            builder.Initialize("test", new NameValueCollection() { { "mode", "Expand" }, { "tokenPattern", @"%(.?)%" } });
             xmlInput = GetNode(rawXmlInput);
             xmlOutput = builder.ProcessRawXml(xmlInput);
             Assert.Equal("appSettings", xmlOutput.Name);
@@ -378,7 +378,7 @@ namespace Test
 
             // Expand - ProcessRawXml with alternate tokenPattern and prefix
             builder = new FakeConfigBuilder();
-            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Expand" }, { "tokenPattern", @"%%([\w:]+)%%" }, { "prefix", "Prefix_" } });
+            builder.Initialize("test", new NameValueCollection() { { "mode", "Expand" }, { "tokenPattern", @"%%([\w:]+)%%" }, { "prefix", "Prefix_" } });
             xmlInput = GetNode(rawXmlInput);
             xmlOutput = builder.ProcessRawXml(xmlInput);
             Assert.Equal("appSettings", xmlOutput.Name);
@@ -396,7 +396,7 @@ namespace Test
 
             // Expand - ProcessRawXml with alternate tokenPattern and strip prefix
             builder = new FakeConfigBuilder();
-            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Expand" }, { "tokenPattern", @"%%([\w:]+)%%" }, { "prefix", "Prefix_" }, { "stripPrefix", "true" } });
+            builder.Initialize("test", new NameValueCollection() { { "mode", "Expand" }, { "tokenPattern", @"%%([\w:]+)%%" }, { "prefix", "Prefix_" }, { "stripPrefix", "true" } });
             xmlInput = GetNode(rawXmlInput);
             xmlOutput = builder.ProcessRawXml(xmlInput);
             Assert.Equal("appSettings", xmlOutput.Name);
@@ -418,19 +418,19 @@ namespace Test
         {
             // Greedy - ProcessRawXml is a noop
             var builder = new FakeConfigBuilder();
-            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Greedy" } });
+            builder.Initialize("test", new NameValueCollection() { { "mode", "Greedy" } });
             XmlNode xmlInput = GetNode(rawXmlInput);
             Assert.Equal(xmlInput, builder.ProcessRawXml(xmlInput));
 
             // Greedy - ProcessRawXml is a noop, even with prefix stuff
             builder = new FakeConfigBuilder();
-            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Greedy" }, { "prefix", "PreFIX_" }, { "stripPrefix", "true" } });
+            builder.Initialize("test", new NameValueCollection() { { "mode", "Greedy" }, { "prefix", "PreFIX_" }, { "stripPrefix", "true" } });
             xmlInput = GetNode(rawXmlInput);
             Assert.Equal(xmlInput, builder.ProcessRawXml(xmlInput));
 
             // Greedy - ProcessConfigurationSection
             builder = new FakeConfigBuilder();
-            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Greedy" } });
+            builder.Initialize("test", new NameValueCollection() { { "mode", "Greedy" } });
             AppSettingsSection newSettings = (AppSettingsSection)builder.ProcessConfigurationSection(GetAppSettings());
             Assert.Equal("TestKey1Value", newSettings.Settings["TestKey1"]?.Value);
             Assert.Equal("${TestKey1}", newSettings.Settings["test1"]?.Value);
@@ -443,7 +443,7 @@ namespace Test
 
             // Greedy - ProcessConfigurationSection with prefix
             builder = new FakeConfigBuilder();
-            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Greedy" }, { "prefix", "Prefix_" } });
+            builder.Initialize("test", new NameValueCollection() { { "mode", "Greedy" }, { "prefix", "Prefix_" } });
             newSettings = (AppSettingsSection)builder.ProcessConfigurationSection(GetAppSettings());
             Assert.Equal("val1", newSettings.Settings["TestKey1"]?.Value);
             Assert.Equal("${TestKey1}", newSettings.Settings["test1"]?.Value);
@@ -456,7 +456,7 @@ namespace Test
 
             // Greedy - ProcessConfigurationSection with prefix - NOT Case-Sensitive
             builder = new FakeConfigBuilder();
-            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Greedy" }, { "prefix", "preFIX_" } });
+            builder.Initialize("test", new NameValueCollection() { { "mode", "Greedy" }, { "prefix", "preFIX_" } });
             newSettings = (AppSettingsSection)builder.ProcessConfigurationSection(GetAppSettings());
             Assert.Equal("val1", newSettings.Settings["TestKey1"]?.Value);
             Assert.Equal("${TestKey1}", newSettings.Settings["test1"]?.Value);
@@ -469,7 +469,7 @@ namespace Test
 
             // Greedy - ProcessConfigurationSection with prefix and strip
             builder = new FakeConfigBuilder();
-            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Greedy" }, { "prefix", "preFIX_" }, { "stripPrefix", "true" } });
+            builder.Initialize("test", new NameValueCollection() { { "mode", "Greedy" }, { "prefix", "preFIX_" }, { "stripPrefix", "true" } });
             newSettings = (AppSettingsSection)builder.ProcessConfigurationSection(GetAppSettings());
             Assert.Equal("Prefix_TestKey1Value", newSettings.Settings["TestKey1"]?.Value);
             Assert.Equal("${TestKey1}", newSettings.Settings["test1"]?.Value);
@@ -482,7 +482,7 @@ namespace Test
 
             // Greedy - ProcessConfigurationSection with strip with no prefix
             builder = new FakeConfigBuilder();
-            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Greedy" }, { "stripPrefix", "true" } });
+            builder.Initialize("test", new NameValueCollection() { { "mode", "Greedy" }, { "stripPrefix", "true" } });
             newSettings = (AppSettingsSection)builder.ProcessConfigurationSection(GetAppSettings());
             Assert.Equal("TestKey1Value", newSettings.Settings["TestKey1"]?.Value);
             Assert.Equal("${TestKey1}", newSettings.Settings["test1"]?.Value);
@@ -502,7 +502,7 @@ namespace Test
         {
             // Strict
             var builder = new FakeKeyMappingConfigBuilder();
-            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection());
+            builder.Initialize("test", new NameValueCollection());
             AppSettingsSection newSettings = (AppSettingsSection)builder.ProcessConfigurationSection(GetAppSettings());
             Assert.Equal("TestKey1Value", newSettings.Settings["TestKey1"]?.Value);
             Assert.Equal("${TestKey1}", newSettings.Settings["test1"]?.Value);
@@ -518,7 +518,7 @@ namespace Test
 
             // Strict with prefix
             builder = new FakeKeyMappingConfigBuilder();
-            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "prefix", "Prefix_" } });
+            builder.Initialize("test", new NameValueCollection() { { "prefix", "Prefix_" } });
             newSettings = (AppSettingsSection)builder.ProcessConfigurationSection(GetAppSettings());
             Assert.Equal("val1", newSettings.Settings["TestKey1"]?.Value);
             Assert.Equal("${TestKey1}", newSettings.Settings["test1"]?.Value);
@@ -534,7 +534,7 @@ namespace Test
 
             // Greedy
             builder = new FakeKeyMappingConfigBuilder();
-            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Greedy" } });
+            builder.Initialize("test", new NameValueCollection() { { "mode", "Greedy" } });
             newSettings = (AppSettingsSection)builder.ProcessConfigurationSection(GetAppSettings());
             Assert.Equal("TestKey1Value", newSettings.Settings["TestKey1"]?.Value);
             Assert.Equal("TestKey2Value", newSettings.Settings["TestKey2"]?.Value);
@@ -555,7 +555,7 @@ namespace Test
 
             // Greedy with prefix and stripping
             builder = new FakeKeyMappingConfigBuilder();
-            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Greedy" }, { "prefix", "Prefix_" }, { "stripPrefix", "TRUE" } });
+            builder.Initialize("test", new NameValueCollection() { { "mode", "Greedy" }, { "prefix", "Prefix_" }, { "stripPrefix", "TRUE" } });
             newSettings = (AppSettingsSection)builder.ProcessConfigurationSection(GetAppSettings());
             Assert.Equal("Prefix_TestKey1Value", newSettings.Settings["TestKey1"]?.Value);
             Assert.Null(newSettings.Settings["TestKey2"]?.Value);
@@ -574,7 +574,7 @@ namespace Test
 
             // Greedy with interesting prefix
             builder = new FakeKeyMappingConfigBuilder();
-            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Greedy" }, { "prefix", "Prefix:" } });
+            builder.Initialize("test", new NameValueCollection() { { "mode", "Greedy" }, { "prefix", "Prefix:" } });
             newSettings = (AppSettingsSection)builder.ProcessConfigurationSection(GetAppSettings());
             Assert.Equal("val1", newSettings.Settings["TestKey1"]?.Value);
             Assert.Null(newSettings.Settings["TestKey2"]?.Value);
@@ -742,6 +742,7 @@ namespace Test
             };
 
         public bool FailInit = false;
+        public bool ForceLazyInit = true;
         public bool FailGetValues = false;
 
         public bool StripPrefix
@@ -754,13 +755,20 @@ namespace Test
             }
         }
 
-        public override void Initialize(string name, NameValueCollection config)
+        public override void Initialize(string name, NameValueCollection config = null)
         {
             if (FailInit)
                 throw new Exception("Generic Exception Message");
 
+            if (config == null)
+                config = new NameValueCollection();
+
             base.Initialize(name, config);
+
+            if (ForceLazyInit)
+                LazyInitialize(name, config);
         }
+
         public override string GetValue(string key)
         {
             if (FailGetValues)

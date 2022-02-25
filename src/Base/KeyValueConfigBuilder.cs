@@ -27,7 +27,8 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         public const string enabledTag = "enabled";
         public const string escapeTag = "escapeExpandedValues";
         public const string charMapTag = "charMap";
-#pragma warning restore CS1591 // No xml comments for tag literals.
+        public const string recursionGuardTag = "recur";
+        #pragma warning restore CS1591 // No xml comments for tag literals.
 
         private NameValueCollection _config = null;
         private IDictionary<string, string> _cachedValues;
@@ -80,7 +81,13 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         private string _tokenPattern = @"\$\{(\w[\w-_$@#+,.:~]*)\}";    // Updated to be more reasonable for V2
 
         /// <summary>
-        /// Gets or sets a string-represented mapping of characters to apply when mapping keys. Ex ":=_,;=__" or "{>|}:>_|;>__"
+        /// Gets or sets the behavior to use when recursion is detected.
+        /// </summary>
+        public RecursionGuardValues Recursion { get { return _recur; } private set { _recur = value; } }
+        private RecursionGuardValues _recur = RecursionGuardValues.Throw;
+
+        /// <summary>
+        /// Gets or sets a string-represented mapping of characters to apply when mapping keys. Escape with doubles. Ex "@=a,$=S" or "a-z=a,,z,0-9=0,,9"
         /// </summary>
         public Dictionary<string, string> CharacterMap { get { EnsureInitialized(); return _characterMap; } protected set { _characterMap = value; } }
         private Dictionary<string, string> _characterMap = new Dictionary<string, string>();
@@ -151,6 +158,11 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             {
                 // We want an exception here if 'mode' is specified but unrecognized.
                 Mode = (KeyValueMode)Enum.Parse(typeof(KeyValueMode), config[modeTag], true);
+            }
+            if (_config[recursionGuardTag] != null)
+            {
+                // We want an exception here if 'recursionCheck' is specified but unrecognized.
+                Recursion = (RecursionGuardValues)Enum.Parse(typeof(RecursionGuardValues), config[recursionGuardTag], true);
             }
         }
 
@@ -270,59 +282,79 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         // Sub-classes need not worry about this stuff, even though some of it is "public" because it comes from the framework.
 
         #pragma warning disable CS1591 // No xml comments for overrides that implementing classes shouldn't worry about.
+        /// <summary>
+        ///  (Warning: Overriding may interfere with recursion detection.)
+        /// </summary>
         public override XmlNode ProcessRawXml(XmlNode rawXml)
         {
             _inAppSettings = (rawXml.Name == "appSettings");    // System.Configuration hard codes this, so we might as well too.
 
             // Checking Enabled will kick off LazyInit, so only do that if we are actually going to do work here.
             if (Mode == KeyValueMode.Expand && Enabled != KeyValueEnabled.Disabled)
-                return ExpandTokens(rawXml);
+            {
+                using (var rg = new RecursionGuard(this, rawXml.Name, Recursion))
+                {
+                    if (rg.ShouldStop)
+                        return rawXml;
+
+                    return ExpandTokens(rawXml);
+                }
+            }
 
             return rawXml;
         }
 
+        /// <summary>
+        ///  (Warning: Overriding may interfere with recursion detection.)
+        /// </summary>
         public override ConfigurationSection ProcessConfigurationSection(ConfigurationSection configSection)
         {
             // Expand mode only works on the raw string input
             if (Mode == KeyValueMode.Expand)
                 return configSection;
 
-            // See if we know how to process this section
-            ISectionHandler handler = SectionHandlersSection.GetSectionHandler(configSection);
-            if (handler == null)
-                return configSection;
-
-            _currentSection = configSection;
-
-            // Don't do anything more if we are disabled.
-            if (Enabled == KeyValueEnabled.Disabled) return configSection;
-
-            // Strict Mode. Only replace existing key/values.
-            if (Mode == KeyValueMode.Strict)
+            using (var rg = new RecursionGuard(this, configSection.SectionInformation?.Name, Recursion))
             {
-                foreach (var configItem in handler)
-                {
-                    // Presumably, UpdateKey will preserve casing appropriately, so newKey is cased as expected.
-                    string newKey = UpdateKey(configItem.Key);
-                    string newValue = GetValueInternal(configItem.Key);
+                if (rg.ShouldStop)
+                    return configSection;
 
-                    if (newValue != null)
-                        handler.InsertOrUpdate(newKey, newValue, configItem.Key, configItem.Value);
-                }
-            }
+                // See if we know how to process this section
+                ISectionHandler handler = SectionHandlersSection.GetSectionHandler(configSection);
+                if (handler == null)
+                    return configSection;
 
-            // Greedy Mode. Insert all key/values.
-            else if (Mode == KeyValueMode.Greedy)
-            {
-                EnsureGreedyInitialized();
-                foreach (KeyValuePair<string, string> kvp in _cachedValues)
+                _currentSection = configSection;
+
+                // Don't do anything more if we are disabled.
+                if (Enabled == KeyValueEnabled.Disabled) return configSection;
+
+                // Strict Mode. Only replace existing key/values.
+                if (Mode == KeyValueMode.Strict)
                 {
-                    if (kvp.Value != null)
+                    foreach (var configItem in handler)
                     {
-                        // Here, kvp.Key is not from the config file, so it might not be correctly cased. Get the correct casing for UpdateKey.
-                        string oldKey = TrimPrefix(kvp.Key);
-                        string newKey = UpdateKey(handler.TryGetOriginalCase(oldKey));
-                        handler.InsertOrUpdate(newKey, kvp.Value, oldKey);
+                        // Presumably, UpdateKey will preserve casing appropriately, so newKey is cased as expected.
+                        string newKey = UpdateKey(configItem.Key);
+                        string newValue = GetValueInternal(configItem.Key);
+
+                        if (newValue != null)
+                            handler.InsertOrUpdate(newKey, newValue, configItem.Key, configItem.Value);
+                    }
+                }
+
+                // Greedy Mode. Insert all key/values.
+                else if (Mode == KeyValueMode.Greedy)
+                {
+                    EnsureGreedyInitialized();
+                    foreach (KeyValuePair<string, string> kvp in _cachedValues)
+                    {
+                        if (kvp.Value != null)
+                        {
+                            // Here, kvp.Key is not from the config file, so it might not be correctly cased. Get the correct casing for UpdateKey.
+                            string oldKey = TrimPrefix(kvp.Key);
+                            string newKey = UpdateKey(handler.TryGetOriginalCase(oldKey));
+                            handler.InsertOrUpdate(newKey, kvp.Value, oldKey);
+                        }
                     }
                 }
             }

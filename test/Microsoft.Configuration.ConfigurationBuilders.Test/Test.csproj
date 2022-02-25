@@ -44,6 +44,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="TestHelper.cs" />
+    <Compile Include="RecursionTests.cs" />
     <Compile Include="CommonBuilderTests.cs" />
     <Compile Include="MultiThreadingTests.cs" />
     <Compile Include="UserSecretsTests.cs" Condition="'$(SkipUserSecretsProj)' != 'true'" />
@@ -75,6 +77,23 @@
       <Project>{60c31149-44ed-4789-b5c3-aaa5d3b2fcf1}</Project>
       <Name>KeyPerFile</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="testConfigFiles\empty.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="testConfigFiles\instance-appexe.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="testConfigFiles\recursion-appexe.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="testConfigFiles\recursion-machine.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="testConfigFiles\instance-machine.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="xunit">
