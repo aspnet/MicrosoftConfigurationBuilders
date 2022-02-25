@@ -129,7 +129,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             // we will be used, because this is the 'lazy' initializer. But let's handle one oddball case
             // before we go.
             // If we have a keyFilter set, then we will always query a set of values instead of a single
-            // value, regardless of whether we are in strict/expand/greedy mode. But if we're not in
+            // value, regardless of whether we are in strict/token/greedy mode. But if we're not in
             // greedy mode, then the base KeyValueConfigBuilder will still request each key/value it is
             // interested in one at a time, and only cache that one result. So we will end up querying the
             // same set of values from the AppConfig service for every value. Let's only do this once and

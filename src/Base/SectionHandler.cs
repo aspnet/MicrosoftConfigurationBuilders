@@ -7,6 +7,7 @@ using System.Configuration.Provider;
 using System.Collections.Specialized;
 using System;
 using System.Linq.Expressions;
+using System.Collections;
 
 namespace Microsoft.Configuration.ConfigurationBuilders
 {
@@ -14,7 +15,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
     internal interface ISectionHandler
     {
         void InsertOrUpdate(string newKey, string newValue, string oldKey = null, object oldItem = null);
-        IEnumerator<KeyValuePair<string, object>> GetEnumerator();
+        IEnumerable<Tuple<string, string, object>> KeysValuesAndState();
         string TryGetOriginalCase(string requestedKey);
     }
 
@@ -30,11 +31,29 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         public T ConfigSection { get; private set; }
 
         /// <summary>
-        /// Gets an <see cref="IEnumerator{T}"/> that iterates over the key/value pairs contained in the assigned <see cref="ConfigSection"/>. />
+        /// Obsolete: Please implement <see cref="KeysValuesAndState()" /> to provide enumeration compatible with <see cref="KeyValueMode.Token"/>
         /// </summary>
         /// <returns>An enumerator over pairs consisting of the existing key for a config value in the config section, and an object reference
         /// for the key/value pair to be passed in to <see cref="InsertOrUpdate(string, string, string, object)"/> while processing the config section.</returns>
-        public abstract IEnumerator<KeyValuePair<string, object>> GetEnumerator();
+        [Obsolete]
+        public virtual IEnumerator<KeyValuePair<string, object>> GetEnumerator()
+        {
+            return null;
+        }
+
+        /// <summary>
+        /// Gets an <see cref="IEnumerable{T}"/> for iterating over the key/value pairs contained in the assigned <see cref="ConfigSection"/>. />
+        /// </summary>
+        /// <returns>An <see cref="IEnumerable{T}"/> of <see cref="Tuple{T1, T2, T3}"/> for iterating over each key/value pair contained in 
+        /// the config section. Each Tuple contains the 'key', 'value', and a 'state' object which is passed back to this SectionHandler
+        /// when updating records with <see cref="InsertOrUpdate(string, string, string, object)"/>.</returns>
+        public virtual IEnumerable<Tuple<string, string, object>> KeysValuesAndState()
+        {
+#pragma warning disable CS0612 // Type or member is obsolete
+            foreach (KeyValuePair<string, object> kvp in this)
+#pragma warning restore CS0612 // Type or member is obsolete
+                yield return Tuple.Create(kvp.Key, (string)null, kvp.Value);
+        }
 
         /// <summary>
         /// Updates an existing config value in the assigned <see cref="ConfigSection"/> with a new key and a new value. The old config value
@@ -57,6 +76,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         {
             return requestedKey;
         }
+
 
         private void Initialize(string name, T configSection, NameValueCollection config)
         {
@@ -91,15 +111,17 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         }
 
         /// <summary>
-        /// Gets an <see cref="IEnumerator{T}"/> that iterates over the key/value pairs contained in the assigned <see cref="SectionHandler{T}.ConfigSection"/>. />
+        /// Gets an <see cref="IEnumerable{T}"/> for iterating over the key/value pairs contained in the assigned <see cref="SectionHandler{T}.ConfigSection"/>. />
         /// </summary>
-        /// <returns>An enumerator over pairs where both values of the pair are the existing key for each setting in the appSettings section.</returns>
-        public override IEnumerator<KeyValuePair<string, object>> GetEnumerator()
+        /// <returns>An enumerator over tuples where the values of the tuple are the existing key for each setting, the old value for the
+        /// setting, and the existing key for the setting again as the state which will be returned unmodified when updating.</returns>
+        public override IEnumerable<Tuple<string, string, object>> KeysValuesAndState()
         {
             // Grab a copy of the keys array since we are using 'yield' and the Settings collection may change on us.
-            string[] keys = (string[])ConfigSection.Settings.AllKeys;
-            foreach (string key in keys)
-                yield return new KeyValuePair<string, object>(key, key);
+            ConfigurationElement[] allSettings = new ConfigurationElement[ConfigSection.Settings.Count];
+            ConfigSection.Settings.CopyTo(allSettings, 0);
+            foreach (KeyValueConfigurationElement setting in allSettings)
+                yield return Tuple.Create(setting.Key, setting.Value, (object)setting.Key);
         }
 
         /// <summary>
@@ -155,18 +177,19 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         }
 
         /// <summary>
-        /// Gets an <see cref="IEnumerator{T}"/> that iterates over the key/value pairs contained in the assigned <see cref="SectionHandler{T}.ConfigSection"/>. />
+        /// Gets an <see cref="IEnumerable{T}"/> for iterating over the key/value pairs contained in the assigned <see cref="SectionHandler{T}.ConfigSection"/>. />
         /// </summary>
-        /// <returns>An enumerator over pairs where the key is the existing name for each setting in the connectionStrings section, and the value
-        /// is a reference to the <see cref="ConnectionStringSettings"/> object referred to by that name.</returns>
-        public override IEnumerator<KeyValuePair<string, object>> GetEnumerator()
+        /// <returns>An enumerator over tuples where the values of the tuple are the existing name for each connection string, the value of 
+        /// the connection string, and a reference to the <see cref="ConnectionStringSettings"/> object itself which will be returned to
+        /// us as a reference state object when updating the config record.</returns>
+        public override IEnumerable<Tuple<string, string, object>> KeysValuesAndState()
         {
             // The ConnectionStrings collection may change on us while we enumerate. :/
             ConnectionStringSettings[] connStrs = new ConnectionStringSettings[ConfigSection.ConnectionStrings.Count];
             ConfigSection.ConnectionStrings.CopyTo(connStrs, 0);
 
             foreach (ConnectionStringSettings cs in connStrs)
-                yield return new KeyValuePair<string, object>(cs.Name, cs);
+                yield return Tuple.Create(cs.Name, cs.ConnectionString, (object)cs);
         }
 
         /// <summary>

@@ -38,7 +38,10 @@ Add-Type @"
 "@
 
 $keyValueCommonParameters = @(
-		[ParameterDescription]@{ Name="mode"; IsRequired=$false },
+		[ParameterDescription]@{ Name="mode"; IsRequired=$false; MigrateTo="mode";
+			ValueMigration=@(
+				[ValueMap]@{ OriginalValue="Expand"; NewValue="Token"}
+			) },
 		[ParameterDescription]@{ Name="prefix"; IsRequired=$false },
 		[ParameterDescription]@{ Name="stripPrefix"; IsRequired=$false },
 		[ParameterDescription]@{ Name="tokenPattern"; IsRequired=$false },
@@ -49,8 +52,8 @@ $keyValueCommonParameters = @(
 			ValueMigration=@(
 				[ValueMap]@{ OriginalValue="true"; NewValue="optional"},
 				[ValueMap]@{ OriginalValue="false"; NewValue="enabled"}
-			)
-		});
+			) }
+		);
 
 function CommonInstall($builderDescription) {
 	##### Update/Rehydrate config declarations #####
@@ -156,12 +159,9 @@ function UpdateDeclarations($config, $builderDescription) {
 		# Migrate parameters that have changed
 		foreach ($p in $builderDescription.AllowedParameters | where { $_.MigrateTo -ne $null }) {
 			if ($builder.($p.Name) -ne $null) {
-				$newvalue = ($p.ValueMigration | where { $_.OriginalValue -eq $builder.($p.Name) } | select -First 1 ).NewValue
-				if ($newvalue -eq $null) {
-					Write-Warning "Failed to migrate parameter '$($p.Name)' on '$($builder.name)' configBuilder: '$($p.MigrateTo)' should be the new parameter name."
-					$failed = $true
-				}
 				$oldvalue = $builder.($p.Name)
+				$newvalue = ($p.ValueMigration | where { $_.OriginalValue -eq $oldvalue } | select -First 1 ).NewValue
+				if ($newvalue -eq $null) { $newvalue = $oldvalue }
 				$builder.RemoveAttribute($p.Name) | Out-Null
 				$builder.SetAttribute($p.MigrateTo, $newvalue) | Out-Null
 				Write-Host "Migrated '$($p.Name):$($oldvalue)' to '$($p.MigrateTo):$($newvalue)' for configBuilder '$($builder.name)'"

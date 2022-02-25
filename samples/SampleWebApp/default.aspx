@@ -72,9 +72,10 @@
             { "AzureBuildersEnabled", "disabled"},
             { "app~Settings_Colon-and$friends@super+duper,awesome#cool:Test.", "optional" },
             { "Optional", "optional" },
-            { "Value_Replaced_By_Environment_In_Expand_Mode", "${WINDIR}" },
+            { "Value_Replaced_By_Environment_In_Token_Mode", @"C:\WINDOWS" },
+            { "Key_Replaced_By_Windows_NT_Environment_In_Token_Mode", @"Should be Windows_NT or similar. May need to update per machine." },
             { "ARCHITECTURE", "Will be replaced by 'Environment' in Strict/Greedy modes IFF prefix='PROCESSOR_' AND stripPrefix='true'" },
-            { "Value_Replaced_By_Json_In_Expand_Mode", "${jsonSetting1}" },
+            { "Value_Replaced_By_Json_In_Token_Mode", "${jsonSetting1}" },
             { "jsonSubSetting2", "Will be replaced by 'Json' in 'Sectional' jsonMode." },
             { "jsonInteger", "Will be replaced by 'Json' in 'Sectional' jsonMode." },
             { "jsonSub:subSetting3", "Will be replaced by 'Json' in 'Sectional' jsonMode." },
@@ -112,8 +113,8 @@
     Dictionary<string, string> expectedConnectionStrings = new Dictionary<string, string>()
     {
         { "LocalSqlServer", "data source=.\\SQLEXPRESS;Integrated Security=SSPI;AttachDBFilename=|DataDirectory|aspnetdb.mdf;User Instance=true" },
-        { "expansionTest", "A & really ' bad \" unescaped < connection > string." },
-        { "expandTestCS", "Only replaced in Strict/Greedy modes. Not Expand." },
+        { "tokenTest", "A & really ' bad \" unescaped < connection > string." },
+        { "expandTestCS", "Only replaced in Strict/Greedy modes. Not Token." },
         { "jsonConnectionString1", "CS From Json Root" },
         { "connectionStrings:jsonConnectionString1", "CS1 From ConnectionStrings Json object" },
         { "jsonConnectionString2", "Will only be replaced by 'Json' in 'Sectional' jsonMode." },
