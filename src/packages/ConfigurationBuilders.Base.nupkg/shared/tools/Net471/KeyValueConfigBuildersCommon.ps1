@@ -40,7 +40,7 @@ Add-Type @"
 $keyValueCommonParameters = @(
 		[ParameterDescription]@{ Name="mode"; IsRequired=$false; MigrateTo="mode";
 			ValueMigration=@(
-				[ValueMap]@{ OriginalValue="Expand"; NewValue="RawToken"}
+				[ValueMap]@{ OriginalValue="Expand"; NewValue="Token"}
 			) },
 		[ParameterDescription]@{ Name="prefix"; IsRequired=$false },
 		[ParameterDescription]@{ Name="stripPrefix"; IsRequired=$false },

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.Configuration;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
@@ -13,21 +14,23 @@ namespace Test
 {
     public class MultiThreadingTests
     {
+        // This test likely produces an uncatchable StackOverflowException when it fails. Beware that
+        // there likely won't be an explicit failure with this test. More like an 'incomplete.'
         [Fact]
-        public void ProcessRawXml_BigWorkInLazyInitialize_ThreadUsesNotinitializedObject()
+        public void BigWorkInLazyInitialize_ThreadUsesNotinitializedObject()
         {
             //Arrange
             var builder = new SlowInitConfigBuilder();
-            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Expand" } });
-            XmlNode xmlInput = GetNode(rawXmlInput);
+            builder.Initialize("test", new System.Collections.Specialized.NameValueCollection() { { "mode", "Token" } });
+            var appSettings = GetAppSettings();
 
             //Act
-            var task = Task.Run(() => builder.ProcessRawXml(xmlInput));
+            var task = Task.Run(() => builder.ProcessConfigurationSection(appSettings));
             var task2 = Task.Run(() =>
             {
-                while(!builder.BaseInitialized) { }
-                
-                builder.ProcessRawXml(xmlInput);
+                while (!builder.BaseInitialized) { }
+
+                builder.ProcessConfigurationSection(appSettings);
             });
             Task.WaitAll(task, task2);
 
@@ -80,17 +83,12 @@ namespace Test
             }
         }
 
-        const string rawXmlInput = @"
-                <appSettings>
-                    <add key=""${TestKey1}"" value=""expandTestValue"" />
-                </appSettings>";
-
-        XmlNode GetNode(string xmlInput)
+        // TODO - move this (and BaseTests.GetAppSettings) to a common util class
+        AppSettingsSection GetAppSettings()
         {
-            XmlDocument doc = new XmlDocument();
-            doc.PreserveWhitespace = true;
-            doc.LoadXml(xmlInput);
-            return doc.DocumentElement;
+            AppSettingsSection appSettings = new AppSettingsSection();
+            appSettings.Settings.Add("${TestKey1}", "expandTestValue");
+            return appSettings;
         }
     }
 }

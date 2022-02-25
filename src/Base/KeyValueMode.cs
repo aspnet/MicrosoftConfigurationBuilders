@@ -19,19 +19,8 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// </summary>
         Greedy,
         /// <summary>
-        /// Obsolete: Re-named to <see cref="RawToken"/>.
-        /// </summary>
-        [Obsolete]
-        Expand,
-        /// <summary>
-        /// Replace 'key'-specifying tokens in raw xml with 'values.' Operates on any config section.
-        /// </summary>
-#pragma warning disable CS0612 // Type or member is obsolete
-        RawToken = Expand,
-#pragma warning restore CS0612 // Type or member is obsolete
-        /// <summary>
         /// Replace 'key'-specifying tokens in the 'key' or 'value' parts of a config entry.
         /// </summary>
-        Token
+        Token = 3
     }
 }

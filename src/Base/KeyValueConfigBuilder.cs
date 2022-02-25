@@ -35,12 +35,12 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         private bool _lazyInitializeStarted = false;
         private bool _lazyInitialized = false;
         private bool _greedyInitialized = false;
-        private bool _inAppSettings = false;
 
         /// <summary>
         /// Gets or sets the substitution pattern to be used by the KeyValueConfigBuilder.
         /// </summary>
-        public KeyValueMode Mode { get; private set; } = KeyValueMode.Strict;
+        public KeyValueMode Mode { get { EnsureInitialized(); return _mode; } }
+        private KeyValueMode _mode = KeyValueMode.Strict;
 
         /// <summary>
         /// Gets or sets a prefix string that must be matched by keys to be considered for value substitution.
@@ -152,13 +152,6 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             base.Initialize(name, config);
             _config = config ?? new NameValueCollection();
 
-            // Mode can't be lazy initialized, because it is used to determine how late we can go before initializing.
-            // Reading it would force initialization too early in many cases.
-            if (_config[modeTag] != null)
-            {
-                // We want an exception here if 'mode' is specified but unrecognized.
-                Mode = (KeyValueMode)Enum.Parse(typeof(KeyValueMode), config[modeTag], true);
-            }
             if (_config[recursionGuardTag] != null)
             {
                 // We want an exception here if 'recursionCheck' is specified but unrecognized.
@@ -176,6 +169,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             // We need this first so we can look for tokens to replace with AppSettings
             _tokenPattern = config[tokenPatternTag] ?? _tokenPattern;
 
+            // Next, check 'enabled' to see if we even need to do anything.
             // 'optional' is obsolete, but we'll still honor it only if it is set explicitly and does not conflict
             // with an explicit 'enabled' attribute.
             _enabled = (UpdateConfigSettingWithAppSettings(enabledTag) != null) ? (KeyValueEnabled)Enum.Parse(typeof(KeyValueEnabled), config[enabledTag], true) : _enabled;
@@ -190,6 +184,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             if (Enabled == KeyValueEnabled.Disabled) return;
 
             // Use pre-assigned defaults if not specified. Non-freeform options should throw on unrecognized values.
+            _mode = (UpdateConfigSettingWithAppSettings(modeTag) != null) ? (KeyValueMode)Enum.Parse(typeof(KeyValueMode), config[modeTag], true) : _mode;
             _keyPrefix = UpdateConfigSettingWithAppSettings(prefixTag) ?? _keyPrefix;
             _stripPrefix = (UpdateConfigSettingWithAppSettings(stripPrefixTag) != null) ? Boolean.Parse(config[stripPrefixTag]) : _stripPrefix;
             _escapeValues = (UpdateConfigSettingWithAppSettings(escapeTag) != null) ? Boolean.Parse(config[escapeTag]) : _escapeValues;
@@ -219,15 +214,6 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                     string settingName = m.Groups[1].Value;
                     return (appSettings.Settings[settingName]?.Value ?? m.Groups[0].Value);
                 });
-            }
-
-            // But if we are processing appSettings in ProcessRawXml(), then it's iffy to parse the raw xml for values that might
-            // be inconsistent since other config builders in the chain before us have only 'half-executed' on this section.
-            // So just pass in this case.
-            // (Note: If we are processing appSettings, this condition will be true even after finishing ProcessRawXml(). That's why this check is second.)
-            else if (_inAppSettings)
-            {
-                return configValue;
             }
 
             // All other config sections can just go through ConfigurationManager to get app settings though. :)
@@ -281,31 +267,19 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         #region "Private" stuff
         // Sub-classes need not worry about this stuff, even though some of it is "public" because it comes from the framework.
 
-        #pragma warning disable CS1591 // No xml comments for overrides that implementing classes shouldn't worry about.
-        public override XmlNode ProcessRawXml(XmlNode rawXml)
-        {
-            _inAppSettings = (rawXml.Name == "appSettings");    // System.Configuration hard codes this, so we might as well too.
-
-            // Checking Enabled will kick off LazyInit, so only do that if we are actually going to do work here.
-            if (Mode == KeyValueMode.Expand && Enabled != KeyValueEnabled.Disabled)
-                return ExpandTokens(rawXml);
-
-            return rawXml;
-        }
-
+#pragma warning disable CS1591 // No xml comments for overrides that implementing classes shouldn't worry about.
         /// <summary>
         ///  (Warning: Overriding may interfere with recursion detection.)
         /// </summary>
         public override ConfigurationSection ProcessConfigurationSection(ConfigurationSection configSection)
         {
-            // Expand mode only works on the raw string input
-            if (Mode == KeyValueMode.RawToken)
-                return configSection;
-
             using (var rg = new RecursionGuard(this, configSection.SectionInformation?.Name, Recursion))
             {
                 if (rg.ShouldStop)
                     return configSection;
+
+                // Don't do anything more if we are disabled.
+                if (Enabled == KeyValueEnabled.Disabled) return configSection;
 
                 // See if we know how to process this section
                 ISectionHandler handler = SectionHandlersSection.GetSectionHandler(configSection);
@@ -313,9 +287,6 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                     return configSection;
 
                 _currentSection = configSection;
-
-                // Don't do anything more if we are disabled.
-                if (Enabled == KeyValueEnabled.Disabled) return configSection;
 
             // Strict Mode. Only replace existing key/values.
             if (Mode == KeyValueMode.Strict)
@@ -409,7 +380,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                 {
                     string key = m.Groups[1].Value;
 
-                    // Same prefix-handling rules apply in expand mode as in strict mode.
+                    // Same prefix-handling rules apply in token mode as in strict mode.
                     // Since the key is being completely replaced by the value, we don't need to call UpdateKey().
                     return EscapeValue(GetValueInternal(key)) ?? m.Groups[0].Value;
                 });
