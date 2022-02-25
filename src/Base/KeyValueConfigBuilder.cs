@@ -273,6 +273,8 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// </summary>
         public override ConfigurationSection ProcessConfigurationSection(ConfigurationSection configSection)
         {
+            _currentSection = configSection;
+
             using (var rg = new RecursionGuard(this, configSection.SectionInformation?.Name, Recursion))
             {
                 if (rg.ShouldStop)
@@ -285,8 +287,6 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                 ISectionHandler handler = SectionHandlersSection.GetSectionHandler(configSection);
                 if (handler == null)
                     return configSection;
-
-                _currentSection = configSection;
 
             // Strict Mode. Only replace existing key/values.
             if (Mode == KeyValueMode.Strict)
@@ -332,6 +332,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                 }
             }
 
+            _currentSection = null;
             return configSection;
         }
         #pragma warning restore CS1591 // No xml comments for overrides that implementing classes shouldn't worry about.
