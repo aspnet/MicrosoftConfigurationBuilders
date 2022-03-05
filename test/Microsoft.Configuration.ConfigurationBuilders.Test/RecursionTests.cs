@@ -2,9 +2,6 @@
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Configuration;
-using System.Linq;
-using System.Reflection;
-using System.Xml;
 using Microsoft.Configuration.ConfigurationBuilders;
 using Xunit;
 
@@ -29,14 +26,14 @@ namespace Test
             // .Net framework. But I wanted to have this sanity check while working
             // on recursion handling, and there's no sense letting a perfectly fine
             // unit test go to waste.
-            var config = LoadMultiLevelConfig("instance-machine.config", "instance-appexe.config");
+            var config = TestHelper.LoadMultiLevelConfig("instance-machine.config", "instance-appexe.config");
 
             // Check appSettings
             string guid2 = config.AppSettings.Settings["not-a-guid"]?.Value;
             Assert.Equal(2, config.AppSettings.Settings.Count);
             Assert.NotEqual("I am a string.", guid2);
             string guid1 = config.AppSettings.Settings["InstanceCheck1"]?.Value;
-            Assert.True(Guid.TryParse(guid1, out Guid g));
+            Assert.True(Guid.TryParse(guid1, out _));
 
             // Load fakeAppSettings with the same config builder names applied.
             // They are different instances. The guids will be different.
@@ -125,7 +122,7 @@ namespace Test
         public void Recursion_Direct(RecursionGuardValues behavior, string appConfig)
         {
             Environment.SetEnvironmentVariable("_recur_", behavior.ToString());
-            var config = LoadMultiLevelConfig("recursion-machine.config", appConfig);
+            var config = TestHelper.LoadMultiLevelConfig("recursion-machine.config", appConfig);
 
             //
             // Direct Recursion
@@ -158,7 +155,7 @@ namespace Test
 
                     // The main exception should be wrapped, and include our error
                     // message at the top for easy diagnosis
-                    Exception unwrapped = TestHelper.AssertExceptionIsWrapped(e, msg);
+                    Exception unwrapped = TestHelper.ValidateFullyWrappedException(e, msg);
 
                     // The exception should be an InvalidOperationException and include
                     // a message about recursion, the section, and the builder.
@@ -168,7 +165,7 @@ namespace Test
                 }
                 else if (behavior == RecursionGuardValues.Allow)
                 {
-                    Exception unwrapped = TestHelper.AssertExceptionIsWrapped(e);
+                    Exception unwrapped = TestHelper.ValidateFullyWrappedException(e);
 
                     // The inner exception should be a "Stack Overflow"
                     Assert.NotNull(unwrapped);
@@ -188,7 +185,7 @@ namespace Test
         public void Recursion_Indirect(RecursionGuardValues behavior, string appConfig)
         {
             Environment.SetEnvironmentVariable("_recur_", behavior.ToString());
-            var config = LoadMultiLevelConfig("recursion-machine.config", appConfig);
+            var config = TestHelper.LoadMultiLevelConfig("recursion-machine.config", appConfig);
 
             //
             // Indirect Recursion
@@ -225,7 +222,7 @@ namespace Test
 
                     // The main exception should be wrapped, and include our error
                     // message at the top for easy diagnosis
-                    Exception unwrapped = TestHelper.AssertExceptionIsWrapped(e, msg);
+                    Exception unwrapped = TestHelper.ValidateFullyWrappedException(e, msg);
 
                     // The exception should be an InvalidOperationException and include
                     // a message about recursion, the section, and the builder.
@@ -235,7 +232,7 @@ namespace Test
                 }
                 else if (behavior == RecursionGuardValues.Allow)
                 {
-                    Exception unwrapped = TestHelper.AssertExceptionIsWrapped(e);
+                    Exception unwrapped = TestHelper.ValidateFullyWrappedException(e);
 
                     // The inner exception should be a "Stack Overflow"
                     Assert.NotNull(unwrapped);
@@ -255,7 +252,7 @@ namespace Test
         public void Recursion_False(RecursionGuardValues behavior, string appConfig)
         {
             Environment.SetEnvironmentVariable("_recur_", behavior.ToString());
-            var config = LoadMultiLevelConfig("recursion-machine.config", appConfig);
+            var config = TestHelper.LoadMultiLevelConfig("recursion-machine.config", appConfig);
 
             //
             // No False Recursion
@@ -287,7 +284,7 @@ namespace Test
         public void Recursion_Buried(RecursionGuardValues behavior, string appConfig)
         {
             Environment.SetEnvironmentVariable("_recur_", behavior.ToString());
-            var config = LoadMultiLevelConfig("recursion-machine.config", appConfig);
+            var config = TestHelper.LoadMultiLevelConfig("recursion-machine.config", appConfig);
 
             // Direct
             try
@@ -324,7 +321,7 @@ namespace Test
 
                     // The main exception should be wrapped, and include our error
                     // message at the top for easy diagnosis
-                    Exception unwrapped = TestHelper.AssertExceptionIsWrapped(e, msg);
+                    Exception unwrapped = TestHelper.ValidateFullyWrappedException(e, msg);
 
                     // The exception should be an InvalidOperationException and include
                     // a message about recursion, the section, and the builder.
@@ -334,7 +331,7 @@ namespace Test
                 }
                 else if (behavior == RecursionGuardValues.Allow)
                 {
-                    Exception unwrapped = TestHelper.AssertExceptionIsWrapped(e);
+                    Exception unwrapped = TestHelper.ValidateFullyWrappedException(e);
 
                     // The inner exception should be a "Stack Overflow"
                     Assert.NotNull(unwrapped);
@@ -378,7 +375,7 @@ namespace Test
 
                     // The main exception should be wrapped, and include our error
                     // message at the top for easy diagnosis
-                    Exception unwrapped = TestHelper.AssertExceptionIsWrapped(e, msg);
+                    Exception unwrapped = TestHelper.ValidateFullyWrappedException(e, msg);
 
                     // The exception should be an InvalidOperationException and include
                     // a message about recursion, the section, and the builder.
@@ -388,7 +385,7 @@ namespace Test
                 }
                 else if (behavior == RecursionGuardValues.Allow)
                 {
-                    Exception unwrapped = TestHelper.AssertExceptionIsWrapped(e);
+                    Exception unwrapped = TestHelper.ValidateFullyWrappedException(e);
 
                     // The inner exception should be a "Stack Overflow"
                     Assert.NotNull(unwrapped);
@@ -408,7 +405,7 @@ namespace Test
         public void Recursion_Reentry(RecursionGuardValues behavior, string appConfig)
         {
             Environment.SetEnvironmentVariable("_recur_", behavior.ToString());
-            var config = LoadMultiLevelConfig("recursion-machine.config", appConfig);
+            var config = TestHelper.LoadMultiLevelConfig("recursion-machine.config", appConfig);
             string target = (appConfig == null) ? "reentry.target" : "app.reentry.target";
 
 
@@ -422,26 +419,6 @@ namespace Test
             Assert.Equal("stopped at target", cfgSect.Settings["Reentry:Reentry"].Value);
             Assert.Equal(target, cfgSect.Settings["Reentry:section"].Value);
             Assert.Equal("reentry.start", cfgSect.Settings["section"].Value);
-        }
-
-        // ======================================================================
-        //   Helpers
-        // ======================================================================
-        Configuration LoadMultiLevelConfig(string machine, string appexe = null)
-        {
-            var filemap = new ExeConfigurationFileMap();
-
-            var configFile = String.IsNullOrEmpty(machine) ? "empty.config" : machine;
-            if (!System.IO.File.Exists(configFile) && !System.IO.Path.IsPathRooted(configFile))
-                configFile = System.IO.Path.Combine("testConfigFiles", configFile);
-            filemap.MachineConfigFilename = configFile;
-
-            configFile = String.IsNullOrEmpty(appexe) ? "empty.config" : appexe;
-            if (!System.IO.File.Exists(configFile) && !System.IO.Path.IsPathRooted(configFile))
-                configFile = System.IO.Path.Combine("testConfigFiles", configFile);
-            filemap.ExeConfigFilename = configFile;
-
-            return ConfigurationManager.OpenMappedExeConfiguration(filemap, ConfigurationUserLevel.None);
         }
     }
 
@@ -520,9 +497,9 @@ namespace Test
             {
                 var settings = new Dictionary<string, string>() { { Name, "was here" } };
 
-                var configSection = currentSection.CurrentConfiguration.GetSection(section) as AppSettingsSection;
 
-                if (configSection != null) foreach (var s in configSection.Settings.AllKeys)
+                if (currentSection.CurrentConfiguration.GetSection(section) is AppSettingsSection configSection)
+                    foreach (var s in configSection.Settings.AllKeys)
                         settings.Add($"{Name}:{s}", configSection.Settings[s].Value);
 
                 return settings;

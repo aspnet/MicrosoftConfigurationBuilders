@@ -29,10 +29,27 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         public const string preloadTag = "preloadSecretNames";
         #pragma warning restore CS1591 // No xml comments for tag literals.
 
-        private string _vaultName;
-        private string _uri;
-        private string _version;
-        private bool _preload;
+        /// <summary>
+        /// Gets or sets the name of the Azure Key Vault to connect to. Used in the construction of default Uri.
+        /// </summary>
+        public string VaultName { get; protected set; }
+
+        /// <summary>
+        /// Gets or sets the specific Uri used to connect to Azure Key Vault. (May be inferred based on <see cref="VaultName"/>.)
+        /// </summary>
+        public string Uri { get; protected set; }
+
+        /// <summary>
+        /// Gets or sets a version string used to retrieve specific versions of secrets from the vault.
+        /// </summary>
+        public string Version { get; protected set; }
+
+        /// <summary>
+        /// Gets or sets a property indicating whether the builder should request a list of all keys from the vault before
+        /// looking up secrets. (This knowledge may reduce the number of requests made to KeyVault, but could also bring
+        /// large amounts of data into memory that may be unwanted.)
+        /// </summary>
+        public bool Preload { get; protected set; }
 
         private SecretClient _kvClient;
         private Lazy<List<string>> _allKeys;
@@ -51,11 +68,11 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             // https://docs.microsoft.com/en-us/azure/key-vault/general/about-keys-secrets-certificates
             // That's a lot of disallowed characters to map away. Fortunately, 'charMap' allows users
             // to do this on a per-case basis. But let's cover some common cases by default.
+            // Don't add '/' to the map though, as that will mess up versioned keys.
             CharacterMap.Add(":", "-");
             CharacterMap.Add("_", "-");
             CharacterMap.Add(".", "-");
             CharacterMap.Add("+", "-");
-            CharacterMap.Add("/", "-");
             CharacterMap.Add(@"\", "-");
 
             base.LazyInitialize(name, config);
@@ -63,34 +80,35 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             // At this point, we have our 'Enabled' choice. If we are disabled, we can stop right here.
             if (Enabled == KeyValueEnabled.Disabled) return;
 
-            if (!Boolean.TryParse(UpdateConfigSettingWithAppSettings(preloadTag), out _preload))
-                _preload = true;
-            if (!_preload && Mode == KeyValueMode.Greedy)
+            // It's lazy, but if something goes off-track before we do this... well, we'd at least like to
+            // work with an empty list rather than a null list. So do this up front.
+            _allKeys = new Lazy<List<string>>(() => GetAllKeys(), System.Threading.LazyThreadSafetyMode.ExecutionAndPublication);
+
+            Preload = true;
+            if (Boolean.TryParse(UpdateConfigSettingWithAppSettings(preloadTag), out bool _preload))
+                Preload = _preload;
+            if (!Preload && Mode == KeyValueMode.Greedy)
                 throw new ArgumentException($"'{preloadTag}'='false' is not compatible with {KeyValueMode.Greedy} mode.");
 
-            _uri = UpdateConfigSettingWithAppSettings(uriTag);
-            _vaultName = UpdateConfigSettingWithAppSettings(vaultNameTag);
-            _version = UpdateConfigSettingWithAppSettings(versionTag);
-            if (String.IsNullOrWhiteSpace(_version))
-                _version = null;
+            Uri = UpdateConfigSettingWithAppSettings(uriTag);
 
-            if (String.IsNullOrWhiteSpace(_uri))
+            if (String.IsNullOrWhiteSpace(Uri))
             {
-                if (String.IsNullOrWhiteSpace(_vaultName))
+                VaultName = UpdateConfigSettingWithAppSettings(vaultNameTag);
+                if (String.IsNullOrWhiteSpace(VaultName))
                 {
-                    if (IsOptional)
-                    {
-                        return;
-                    }
-
                     throw new ArgumentException($"Vault must be specified by name or URI using the '{vaultNameTag}' or '{uriTag}' attribute.");
                 }
                 else
                 {
-                    _uri = $"https://{_vaultName}.vault.azure.net";
+                    Uri = $"https://{VaultName}.vault.azure.net";
                 }
             }
-            _uri = _uri.TrimEnd(new char[] { '/' });
+            Uri = Uri.TrimEnd(new char[] { '/' });
+
+            Version = UpdateConfigSettingWithAppSettings(versionTag);
+            if (String.IsNullOrWhiteSpace(Version))
+                Version = null;
 
             if (config[connectionStringTag] != null)
             {
@@ -104,7 +122,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             // Connect to KeyVault
             try
             {
-                _kvClient = new SecretClient(new Uri(_uri), GetCredential());
+                _kvClient = new SecretClient(new Uri(Uri), GetCredential());
             }
             catch (Exception)
             {
@@ -112,8 +130,6 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                     throw;
                 _kvClient = null;
             }
-
-            _allKeys = new Lazy<List<string>>(() => GetAllKeys(), System.Threading.LazyThreadSafetyMode.ExecutionAndPublication);
         }
 
         /// <summary>
@@ -123,11 +139,24 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// <returns>The value corresponding to the given 'key' or null if no value is found.</returns>
         public override string GetValue(string key)
         {
-            // Azure Key Vault keys are case-insensitive, so this should be fine.
-            // Also, this is a synchronous method. And in single-threaded contexts like ASP.Net
-            // it can be bad/dangerous to block on async calls. So lets work some TPL voodoo
-            // to avoid potential deadlocks.
-            return Task.Run(async () => { return await GetValueAsync(key); }).Result?.Value;
+            VersionedKey vKey = new VersionedKey(key);
+
+            // Don't get versioned keys that don't match the builder version
+            if (Version != null && vKey.Version != Version)
+                return null;
+
+            // Only hit the network if we didn't preload, or if we know the key exists after preloading.
+            if (!Preload || _allKeys.Value.Contains(vKey.Key, StringComparer.OrdinalIgnoreCase))
+            {
+                // Azure Key Vault keys are case-insensitive, so this should be fine.
+                // vKey.Version here is either the same as this.Version or this.Version is null
+                // Also, this is a synchronous method. And in single-threaded contexts like ASP.Net
+                // it can be bad/dangerous to block on async calls. So lets work some TPL voodoo
+                // to avoid potential deadlocks.
+                return Task.Run(async () => { return await GetValueAsync(vKey.Key, vKey.Version); }).Result?.Value;
+            }
+
+            return null;
         }
 
         /// <summary>
@@ -149,7 +178,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             foreach (string key in _allKeys.Value)
             {
                 if (key.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-                    tasks.Add(Task.Run(() => GetValueAsync(key).ContinueWith(t =>
+                    tasks.Add(Task.Run(() => GetValueAsync(key, Version).ContinueWith(t =>
                     {
                         // Azure Key Vault keys are case-insensitive, so there shouldn't be any races here.
                         // Include version information. It will get filtered out later before updating config.
@@ -188,47 +217,32 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             return new VersionedKey(rawKey).Key;
         }
 
-        private async Task<KeyVaultSecret> GetValueAsync(string key)
+        private async Task<KeyVaultSecret> GetValueAsync(string key, string version)
         {
             if (_kvClient == null)
                 return null;
 
-            VersionedKey vKey = new VersionedKey(key);
-
-            // If we preloaded key names, check to see if the requested key is valid before making network request.
-            if (!_preload || _allKeys.Value.Contains(vKey.Key, StringComparer.OrdinalIgnoreCase))
+            try
             {
-                try
-                {
-                    string version = _version ?? vKey.Version;
-                    if (version != null)
-                    {
-                        KeyVaultSecret versionedSecret = await _kvClient.GetSecretAsync(vKey.Key, version);
-                        if (versionedSecret != null && versionedSecret.Properties.Enabled.GetValueOrDefault())
-                            return versionedSecret;
-                        return null;
-                    }
+                KeyVaultSecret secret = await _kvClient.GetSecretAsync(key, version);
 
-                    KeyVaultSecret secret = await _kvClient.GetSecretAsync(vKey.Key);
-                    if (secret != null && secret.Properties.Enabled.GetValueOrDefault())
-                        return secret;
+                if (secret != null && secret.Properties.Enabled.GetValueOrDefault())
+                    return secret;
+            }
+            catch (RequestFailedException rfex)
+            {
+                // Simply return null if the secret wasn't found
+                //if (rfex.ErrorCode == "SecretNotFound" || rfex.ErrorCode == "BadParameter")
+                // .ErrorCode doesn't get populated. :/
+                // "SecretNotFound" == 404
+                // "BadParameter" = 400
+                if (rfex.Status == 404 || rfex.Status == 400)
                     return null;
-                }
-                catch (RequestFailedException rfex)
-                {
-                    // Simply return null if the secret wasn't found
-                    //if (rfex.ErrorCode == "SecretNotFound" || rfex.ErrorCode == "BadParameter")
-                    // .ErrorCode doesn't get populated. :/
-                    // "SecretNotFound" == 404
-                    // "BadParameter" = 400
-                    if (rfex.Status == 404 || rfex.Status == 400)
-                        return null;
 
-                    // If there was a permission issue or some other error, let the exception bubble
-                    // FYI: kve.Body.Error.Code == "Forbidden" :: No Rights, or secret is disabled.
-                    if (!IsOptional)
-                        throw;
-                }
+                // If there was a permission issue or some other error, let the exception bubble
+                // FYI: kve.Body.Error.Code == "Forbidden" :: No Rights, or secret is disabled.
+                if (!IsOptional)
+                    throw;
             }
 
             return null;
@@ -239,12 +253,12 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             List<string> keys = new List<string>(); // KeyVault keys are case-insensitive. There won't be case-duplicates. List<> should be fine.
 
             // Don't go loading all the keys if we can't, or if we were told not to
-            if (_kvClient == null || !_preload)
+            if (_kvClient == null || !Preload)
                 return keys;
 
             try
             {
-                foreach (SecretProperties secretProps in _kvClient.GetPropertiesOfSecrets())
+                foreach (var secretProps in _kvClient.GetPropertiesOfSecrets())
                 {
                     // Don't include disabled secrets
                     if (!secretProps.Enabled.GetValueOrDefault())
@@ -262,7 +276,17 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                 if (!IsOptional)
                     throw;
             }
+            catch (AggregateException ae)
+            {
+                ae.Handle((ex) =>
+                {
+                    if (ex is RequestFailedException rfex && rfex.ErrorCode == "Forbidden")
+                        return true;    // This is handled. Continue on, eventually returning 'keys'.
 
+                    // All other exceptions will look at IsOptional
+                    return IsOptional;
+                });
+            }
             return keys;
         }
 

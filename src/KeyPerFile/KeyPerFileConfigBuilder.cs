@@ -87,19 +87,45 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// <returns>The value corresponding to the given 'key' or null if no value is found.</returns>
         public override string GetValue(string key)
         {
-            string filename = key;
-            if (!String.IsNullOrEmpty(KeyDelimiter))
-                filename = filename.Replace(KeyDelimiter, Path.DirectorySeparatorChar.ToString());
-
-            if (!String.IsNullOrWhiteSpace(IgnorePrefix))
+            if (String.IsNullOrEmpty(KeyDelimiter))
             {
-                foreach (var pathPart in filename.Split(new char[] { Path.DirectorySeparatorChar })) {
-                    if (pathPart.StartsWith(IgnorePrefix, StringComparison.OrdinalIgnoreCase))
-                        return null;
-                }
+                // Single level lookup
+                return ShouldIgnore(key) ? null : ReadValueFromFile(Path.Combine(DirectoryPath, key));
             }
 
-            return ReadValueFromFile(Path.Combine(DirectoryPath, filename));
+            // In multi-level, we have to break into path parts and search the directory tree to ensure no conflicts.
+            string filename = FindValueFileRecursive(DirectoryPath, key);
+            return ReadValueFromFile(filename);
+        }
+
+        private string FindValueFileRecursive(string dir, string key)
+        {
+            string filename = null;
+
+            // Is there a matching file in the current directory?
+            if (!ShouldIgnore(key))
+            {
+                string f = Path.Combine(dir, key);
+                if (File.Exists(f))
+                    filename = f;
+            }
+
+            // Can we find a file in some sub-directory that also matches the given key?
+            int index = key.IndexOf(KeyDelimiter, 0);
+            while (index > 0)   // Yes. '> 0'. We do not want to recurse on ourselves.
+            {
+                string subdirFile = FindValueFileRecursive(Path.Combine(dir, key.Substring(0, index)), key.Substring(index + KeyDelimiter.Length));
+                if (subdirFile != null)
+                {
+                    if (filename != null)
+                        throw new ArgumentException("Duplicate key found.");
+
+                    filename = subdirFile;
+                }
+                index = key.IndexOf(KeyDelimiter, index + KeyDelimiter.Length);
+            }
+
+            return filename;
         }
 
         private IDictionary<string, string> ReadAllValues(string root, string prefix, IDictionary<string, string> values)
@@ -115,7 +141,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             {
                 foreach (var sub in di.EnumerateDirectories())
                 {
-                    if (!String.IsNullOrWhiteSpace(IgnorePrefix) && sub.Name.StartsWith(IgnorePrefix, StringComparison.OrdinalIgnoreCase))
+                    if (ShouldIgnore(sub.Name))
                         continue;
 
                     ReadAllValues(sub.FullName, sub.Name + KeyDelimiter, values);
@@ -124,7 +150,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
             foreach (var file in di.EnumerateFiles())
             {
-                if (!String.IsNullOrWhiteSpace(IgnorePrefix) && file.Name.StartsWith(IgnorePrefix, StringComparison.OrdinalIgnoreCase))
+                if (ShouldIgnore(file.Name))
                     continue;
 
                 string key = prefix + file.Name;
@@ -145,6 +171,14 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                 val = val.Substring(0, val.Length - Environment.NewLine.Length);
 
             return val;
+        }
+
+        private bool ShouldIgnore(string key)
+        {
+            if (key == null)
+                return true;
+
+            return (!String.IsNullOrWhiteSpace(IgnorePrefix) && key.StartsWith(IgnorePrefix, StringComparison.OrdinalIgnoreCase));
         }
     }
 }

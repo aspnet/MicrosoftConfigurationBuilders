@@ -1,0 +1,12 @@
+{
+  "appSettings:conflict": "root of conflict",
+  "appSettings": {
+    "conflict": "conflicted complex value"
+  },
+
+  "customAppSettings:arrayConflict:0": "root of custom conflict",
+  "customAppSettings": {
+    "arrayConflict": [ 1, 2, 3 ],
+    "arrayConflict:1": "internal array conflict"
+  }
+}

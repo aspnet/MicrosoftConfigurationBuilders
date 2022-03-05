@@ -1,7 +1,7 @@
-﻿using Microsoft.Configuration.ConfigurationBuilders;
-using System;
+﻿using System;
 using System.IO;
 using System.Reflection;
+using Microsoft.Configuration.ConfigurationBuilders;
 using Xunit;
 
 namespace Test
@@ -11,6 +11,10 @@ namespace Test
         [Fact]
         public void Utils_MapPath()
         {
+            // Not running in ASP.Net
+            var exception = Record.Exception(() => Utils.MapPath("\"{Very*invalid\\..\\..\\..\\%path&"));
+            Assert.NotNull(exception);
+
             // Rooted paths don't change
             Assert.Equal(@"C:\Windows\System32", Utils.MapPath(@"C:\Windows\System32"));
             Assert.Equal(@"/Windows", Utils.MapPath(@"/Windows"));
@@ -42,13 +46,38 @@ namespace Test
             FakeAspNet(false);
         }
 
+        [Fact]
+        public void Utils_MapPath_OpenConfig()
+        {
+            var cfg = TestHelper.LoadMultiLevelConfig("empty.config", "customAppSettings.config");
+            var appSettings = cfg.AppSettings;
+
+            // Not running in ASP.Net
+            var exception = Record.Exception(() => Utils.MapPath("\"{Very*invalid\\..\\..\\..\\%path&", appSettings));
+            Assert.NotNull(exception);
+
+            // Rooted paths don't change
+            Assert.Equal(@"C:\Windows\System32", Utils.MapPath(@"C:\Windows\System32", appSettings));
+            Assert.Equal(@"/Windows", Utils.MapPath(@"/Windows", appSettings));
+            Assert.Equal(@"\Windows", Utils.MapPath(@"\Windows", appSettings));
+
+            // Relative paths are relative to the config file
+            string configDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "testConfigFiles");
+            Assert.Equal(Path.GetFullPath(Path.Combine(configDir, @"foo\bar\baz")), Utils.MapPath(@"foo\bar\baz", appSettings));
+            Assert.Equal(Path.GetFullPath(Path.Combine(configDir, @"..\foo\..\baz")), Utils.MapPath(@"..\foo\..\baz", appSettings));
+
+            // Home-relative paths
+            string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            Assert.Equal(baseDir, Utils.MapPath(@"~\", appSettings));
+            Assert.Equal(baseDir, Utils.MapPath(@"~/", appSettings));
+            Assert.Equal(Path.Combine(baseDir, @"hello"), Utils.MapPath(@"~/hello", appSettings));
+            Assert.Equal(Path.Combine(baseDir, @"good-bye\"), Utils.MapPath(@"~\good-bye\", appSettings));
+        }
+
         private void FakeAspNet(bool isAspNet)
         {
             // Make sure Utils is static inited.
             Utils.MapPath(@"\");
-
-            // Utils also depends on HostingEnvironment to do the map path
-            //bool whoCares = System.Web.Hosting.HostingEnvironment.IsHosted;
 
             // Set that IsAspNet flag appropriately
             Type utils = typeof(Utils);

@@ -19,7 +19,8 @@ namespace Test
             //Arrange
             var builder = new SlowInitConfigBuilder();
             builder.Initialize("test", new NameValueCollection() { { "mode", "Token" } });
-            var appSettings = GetAppSettings();
+            var appSettings = new AppSettingsSection();
+            appSettings.Settings.Add("${TestKey1}", "expandTestValue");
 
             //Act
             var task = Task.Run(() => builder.ProcessConfigurationSection(appSettings));
@@ -78,14 +79,6 @@ namespace Test
                 }
                 return sourceValues.Where(s => s.Key.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)).ToList();
             }
-        }
-
-        // TODO - move this (and BaseTests.GetAppSettings) to a common util class
-        AppSettingsSection GetAppSettings()
-        {
-            AppSettingsSection appSettings = new AppSettingsSection();
-            appSettings.Settings.Add("${TestKey1}", "expandTestValue");
-            return appSettings;
         }
     }
 }

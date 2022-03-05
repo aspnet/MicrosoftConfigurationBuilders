@@ -20,19 +20,29 @@ namespace Test
         [Fact]
         public void Environment_GetValue()
         {
-            CommonBuilderTests.GetValue(new EnvironmentConfigBuilder(), "EnvironmentBuilder");
-            CommonBuilderTests.GetValue_Prefix1(new EnvironmentConfigBuilder(), "EnvironmentBuilderPrefix1");
-            CommonBuilderTests.GetValue_Prefix2(new EnvironmentConfigBuilder(), "EnvironmentBuilderPrefix2");
-            CommonBuilderTests.GetValue_Prefix3(new EnvironmentConfigBuilder(), "EnvironmentBuilderPrefix3");
+            CommonBuilderTests.GetValue(() => new EnvironmentConfigBuilder(), "EnvGetValue");
         }
 
         [Fact]
         public void Environment_GetAllValues()
         {
-            CommonBuilderTests.GetAllValues(new EnvironmentConfigBuilder(), "EnvironmentBuilder");
-            CommonBuilderTests.GetAllValues_Prefix1(new EnvironmentConfigBuilder(), "EnvironmentBuilderPrefix1");
-            CommonBuilderTests.GetAllValues_Prefix2(new EnvironmentConfigBuilder(), "EnvironmentBuilderPrefix2");
-            CommonBuilderTests.GetAllValues_Prefix3(new EnvironmentConfigBuilder(), "EnvironmentBuilderPrefix3");
+            CommonBuilderTests.GetAllValues(() => new EnvironmentConfigBuilder(), "EnvGetAll");
+        }
+
+        // ======================================================================
+        //   Environment Parameters
+        // ======================================================================
+        [Fact]
+        public void Environment_DefaultSettings()
+        {
+            var builder = TestHelper.CreateBuilder<EnvironmentConfigBuilder>(() => new EnvironmentConfigBuilder(), "EnvDefault");
+
+            // Enabled
+            Assert.Equal(KeyValueEnabled.Optional, builder.Enabled);
+
+            // CharacterMap
+            Assert.Single(builder.CharacterMap);
+            Assert.Equal("__", builder.CharacterMap[":"]);
         }
     }
 }

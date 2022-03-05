@@ -28,6 +28,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// (Set to ${UserSecretsId} to reference the similarly named project property in Visual Studio environments.
         /// </summary>
         public string UserSecretsId { get; protected set; }
+
         /// <summary>
         /// Gets or sets a path to the secrets file to be used.
         /// </summary>
@@ -49,8 +50,8 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             string secretsFile = UpdateConfigSettingWithAppSettings(userSecretsFileTag);
             if (String.IsNullOrWhiteSpace(secretsFile))
             {
-                string secretsId = UpdateConfigSettingWithAppSettings(userSecretsIdTag);
-                secretsFile = GetSecretsFileFromId(secretsId);
+                UserSecretsId = UpdateConfigSettingWithAppSettings(userSecretsIdTag);
+                secretsFile = GetSecretsFileFromId(UserSecretsId);
             }
 
             UserSecretsFile = Utils.MapPath(secretsFile, CurrentSection);
@@ -102,6 +103,8 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                 // The magic file should be deployed in our codebase
                 string codebase = System.Reflection.Assembly.GetExecutingAssembly().CodeBase;
                 string localpath = new Uri(codebase).LocalPath;
+                if (!File.Exists(localpath + ".UserSecretsId.txt"))
+                    return null;
                 string magicId = File.ReadAllText(localpath + ".UserSecretsId.txt");
 
                 if (!String.IsNullOrWhiteSpace(magicId))
