@@ -50,8 +50,6 @@
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Content Include="App_Data\settings.json" />
-    <Content Include="App_Data\expandTest.json" />
-    <Content Include="App_Data\secrets.xml" />
     <Content Include="default.aspx" />
     <Content Include="Web.config">
       <SubType>Designer</SubType>

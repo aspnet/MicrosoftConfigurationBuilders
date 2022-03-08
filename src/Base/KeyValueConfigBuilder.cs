@@ -73,7 +73,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         private bool _escapeValues = false;
 
         /// <summary>
-        /// Gets or sets a regular expression used for matching tokens in raw xml during Greedy substitution.
+        /// Gets or sets a regular expression used for matching tokens during 'Token' substitution.
         /// </summary>
         public string TokenPattern { get { EnsureInitialized(); return _tokenPattern; } protected set { _tokenPattern = value; } }
         //private string _tokenPattern = @"\$\{(\w+)\}";

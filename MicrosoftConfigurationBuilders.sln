@@ -68,6 +68,31 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleWebApp", "samples\Sam
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AzureAppConfig", "src\AzureAppConfig\AzureAppConfig.csproj", "{3F1BB24A-355F-49E7-B396-6AA2EB5DDA0E}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SampleItems", "SampleItems", "{D19CD6DC-9E7A-4933-93B0-F4EC0E8AA075}"
+	ProjectSection(SolutionItems) = preProject
+		samples\SampleItems\secrets.xml = samples\SampleItems\secrets.xml
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "KeyPerFileRoot", "KeyPerFileRoot", "{DFB1983C-B754-403E-AECC-ED3D4C9DC42A}"
+	ProjectSection(SolutionItems) = preProject
+		samples\SampleItems\KeyPerFileRoot\ignore.KPF-Setting3 = samples\SampleItems\KeyPerFileRoot\ignore.KPF-Setting3
+		samples\SampleItems\KeyPerFileRoot\KPF-Setting1 = samples\SampleItems\KeyPerFileRoot\KPF-Setting1
+		samples\SampleItems\KeyPerFileRoot\KPF-Setting2 = samples\SampleItems\KeyPerFileRoot\KPF-Setting2
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SubFeatures", "SubFeatures", "{B2D778B6-6E0A-4ED1-B1E3-7C85DD976F69}"
+	ProjectSection(SolutionItems) = preProject
+		samples\SampleItems\KeyPerFileRoot\SubFeatures\ignore.KPF-SubFeatureC = samples\SampleItems\KeyPerFileRoot\SubFeatures\ignore.KPF-SubFeatureC
+		samples\SampleItems\KeyPerFileRoot\SubFeatures\KPF-SubFeatureA = samples\SampleItems\KeyPerFileRoot\SubFeatures\KPF-SubFeatureA
+		samples\SampleItems\KeyPerFileRoot\SubFeatures\KPF-SubFeatureB = samples\SampleItems\KeyPerFileRoot\SubFeatures\KPF-SubFeatureB
+	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SampleWebJob", "samples\SampleWebJob\SampleWebJob.csproj", "{18D8B490-1CBC-4783-B6D7-D1A88E832224}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleConsoleApp", "samples\SampleConsoleApp\SampleConsoleApp.csproj", "{0DBFA194-1632-40C0-A072-C59A9280412B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleSectionHandlers", "samples\SampleSectionHandlers\SampleSectionHandlers.csproj", "{B3F1C0AD-957B-4453-A830-F104FE368BC4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -114,12 +139,30 @@ Global
 		{3F1BB24A-355F-49E7-B396-6AA2EB5DDA0E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3F1BB24A-355F-49E7-B396-6AA2EB5DDA0E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3F1BB24A-355F-49E7-B396-6AA2EB5DDA0E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{18D8B490-1CBC-4783-B6D7-D1A88E832224}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{18D8B490-1CBC-4783-B6D7-D1A88E832224}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{18D8B490-1CBC-4783-B6D7-D1A88E832224}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{18D8B490-1CBC-4783-B6D7-D1A88E832224}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0DBFA194-1632-40C0-A072-C59A9280412B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0DBFA194-1632-40C0-A072-C59A9280412B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0DBFA194-1632-40C0-A072-C59A9280412B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0DBFA194-1632-40C0-A072-C59A9280412B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B3F1C0AD-957B-4453-A830-F104FE368BC4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B3F1C0AD-957B-4453-A830-F104FE368BC4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B3F1C0AD-957B-4453-A830-F104FE368BC4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B3F1C0AD-957B-4453-A830-F104FE368BC4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{590892DD-F842-4E7C-9400-4C6451C16B1A} = {2F759F48-7F89-4811-8F94-380BCCC83C69}
+		{D19CD6DC-9E7A-4933-93B0-F4EC0E8AA075} = {2F759F48-7F89-4811-8F94-380BCCC83C69}
+		{DFB1983C-B754-403E-AECC-ED3D4C9DC42A} = {D19CD6DC-9E7A-4933-93B0-F4EC0E8AA075}
+		{B2D778B6-6E0A-4ED1-B1E3-7C85DD976F69} = {DFB1983C-B754-403E-AECC-ED3D4C9DC42A}
+		{18D8B490-1CBC-4783-B6D7-D1A88E832224} = {2F759F48-7F89-4811-8F94-380BCCC83C69}
+		{0DBFA194-1632-40C0-A072-C59A9280412B} = {2F759F48-7F89-4811-8F94-380BCCC83C69}
+		{B3F1C0AD-957B-4453-A830-F104FE368BC4} = {2F759F48-7F89-4811-8F94-380BCCC83C69}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6380A53F-A088-4D0B-B415-C8D16222F022}

@@ -1,0 +1,32 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net471</TargetFramework>
+    <IsWebJobProject>true</IsWebJobProject>
+    <WebJobName>$(AssemblyName)</WebJobName>
+    <WebJobType>Continuous</WebJobType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
+    <PackageReference Include="System.Spatial" Version="5.8.4" />
+    <PackageReference Include="Microsoft.Data.Edm" Version="5.8.4" />
+    <PackageReference Include="Microsoft.Data.OData" Version="5.8.4" />
+    <PackageReference Include="Microsoft.Data.Services.Client" Version="5.8.4" />
+    <PackageReference Include="Microsoft.WindowsAzure.ConfigurationManager" Version="3.2.1" />
+    <PackageReference Include="WindowsAzure.Storage" Version="7.0.0" />
+    <PackageReference Include="Microsoft.Azure.WebJobs.Core" Version="1.1.2" />    
+    <PackageReference Include="Microsoft.Azure.WebJobs" Version="1.1.2" />
+    <PackageReference Include="Microsoft.Azure.KeyVault.Core" Version="1.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Base\Base.csproj" />
+    <ProjectReference Include="..\..\src\Environment\Environment.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="System.Configuration" />
+  </ItemGroup>
+</Project>
