@@ -15,7 +15,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <SampleProject Include="samples\SampleSectionHandlers\SampleSectionHandlers.csproj" />
+    <SampleProject Include="samples\SampleConsoleApp\SampleConsoleApp.csproj" />
     <SampleProject Include="samples\SampleWebApp\SampleWebApp.csproj" />
+    <SampleProject Include="samples\SampleWebJob\SampleWebJob.csproj" />
   </ItemGroup>
 
   <ItemGroup>

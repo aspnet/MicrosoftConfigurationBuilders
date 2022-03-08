@@ -42,8 +42,11 @@
     <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml" />
+    <Reference Include="System.Xml.Linq" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AzureAppConfigTests.cs" />
+    <Compile Include="AzureTests.cs" />
     <Compile Include="TestHelper.cs" />
     <Compile Include="RecursionTests.cs" />
     <Compile Include="CommonBuilderTests.cs" />
@@ -57,6 +60,14 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\src\AzureAppConfig\AzureAppConfig.csproj">
+      <Project>{3f1bb24a-355f-49e7-b396-6aa2eb5dda0e}</Project>
+      <Name>AzureAppConfig</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\src\Azure\Azure.csproj">
+      <Project>{345c5437-4990-45dc-be34-6e37aa05d8d2}</Project>
+      <Name>Azure</Name>
+    </ProjectReference>
     <ProjectReference Include="..\..\src\Base\Base.csproj">
       <Project>{f382fbf8-146d-4968-a199-90d37f9ef9a7}</Project>
       <Name>Base</Name>
@@ -79,6 +90,9 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <None Include="testConfigFiles\customAppSettings.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="testConfigFiles\empty.config">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
@@ -92,6 +106,12 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="testConfigFiles\instance-machine.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="testConfigFiles\simpleJsonConflict.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="testConfigFiles\simpleJsonTest.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>

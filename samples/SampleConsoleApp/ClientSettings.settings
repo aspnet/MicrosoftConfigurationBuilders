@@ -1,0 +1,15 @@
+﻿<?xml version='1.0' encoding='utf-8'?>
+<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="SampleConsoleApp" GeneratedClassName="Settings1">
+  <Profiles />
+  <Settings>
+    <Setting Name="FirstTestSetting" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">First test of applicationSettings.</Value>
+    </Setting>
+    <Setting Name="WINDIR" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">Will be replaced by Environment.</Value>
+    </Setting>
+    <Setting Name="proCEssOR_archITECture" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">Will be replaced by Environment.</Value>
+    </Setting>
+  </Settings>
+</SettingsFile>

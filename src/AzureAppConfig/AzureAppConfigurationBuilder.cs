@@ -31,12 +31,36 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         public const string useKeyVaultTag = "useAzureKeyVault";
         #pragma warning restore CS1591 // No xml comments for tag literals.
 
-        private Uri _endpoint;
-        private string _connectionString;
-        private string _keyFilter;
-        private string _labelFilter;
-        private DateTimeOffset _dateTimeFilter;
-        private bool _useKeyVault = false;
+        /// <summary>
+        /// Gets or sets the Uri of the config store to connect to.
+        /// </summary>
+        public string Endpoint { get; protected set; }
+
+        /// <summary>
+        /// Alternative to the preferred <see cref="Endpoint"/>, gets or sets a connection string used to connect to the config store.
+        /// </summary>
+        public string ConnectionString { get; protected set; }
+
+        /// <summary>
+        /// Gets or sets a 'Key Filter' to use when searching for config values.
+        /// </summary>
+        public string KeyFilter { get; protected set; }
+
+        /// <summary>
+        /// Gets or sets a 'Label Filter' to restrict the set of config values searched.
+        /// </summary>
+        public string LabelFilter { get; protected set; }
+
+        /// <summary>
+        /// Gets or sets a 'DateTime Filter' to query for config state as it existed at the given time.
+        /// </summary>
+        public DateTimeOffset AcceptDateTime { get; protected set; }
+
+        /// <summary>
+        /// Specifies whether this builder is allowed to connect to Azure Key Vault for chained secret lookup. (Default: false)
+        /// </summary>
+        public bool UseAzureKeyVault { get; protected set; } = false;
+
         private ConcurrentDictionary<Uri, SecretClient> _kvClientCache;
         private ConfigurationClient _client;
 
@@ -56,9 +80,9 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             if (Enabled == KeyValueEnabled.Disabled) return;
 
             // keyFilter
-            _keyFilter = UpdateConfigSettingWithAppSettings(keyFilterTag);
-            if (String.IsNullOrWhiteSpace(_keyFilter))
-                _keyFilter = null;
+            KeyFilter = UpdateConfigSettingWithAppSettings(keyFilterTag);
+            if (String.IsNullOrWhiteSpace(KeyFilter))
+                KeyFilter = null;
 
             // labelFilter
             // Place some restrictions on label filter, similar to the .net core provider.
@@ -66,37 +90,47 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             // one label is the "empty" label. Doing so will remove the decision making process
             // from this builders hands about which key/value/label tuple to choose when there
             // are multiple.
-            _labelFilter = UpdateConfigSettingWithAppSettings(labelFilterTag);
-            if (String.IsNullOrWhiteSpace(_labelFilter)) {
-                _labelFilter = null;
+            LabelFilter = UpdateConfigSettingWithAppSettings(labelFilterTag);
+            if (String.IsNullOrWhiteSpace(LabelFilter)) {
+                LabelFilter = null;
             }
-            else if (_labelFilter.Contains('*') || _labelFilter.Contains(',')) {
+            else if (LabelFilter.Contains('*') || LabelFilter.Contains(',')) {
                 throw new ArgumentException("The characters '*' and ',' are not supported in label filters.", labelFilterTag);
             }
 
             // acceptDateTime
-            _dateTimeFilter = DateTimeOffset.TryParse(UpdateConfigSettingWithAppSettings(dateTimeFilterTag), out _dateTimeFilter) ? _dateTimeFilter : DateTimeOffset.MinValue;
+            AcceptDateTime = (UpdateConfigSettingWithAppSettings(dateTimeFilterTag) != null) ? DateTimeOffset.Parse(config[dateTimeFilterTag]) : AcceptDateTime;
 
             // Azure Key Vault Integration
-            _useKeyVault = (UpdateConfigSettingWithAppSettings(useKeyVaultTag) != null) ? Boolean.Parse(config[useKeyVaultTag]) : _useKeyVault;
-            if (_useKeyVault)
+            UseAzureKeyVault = (UpdateConfigSettingWithAppSettings(useKeyVaultTag) != null) ? Boolean.Parse(config[useKeyVaultTag]) : UseAzureKeyVault;
+            if (UseAzureKeyVault)
                 _kvClientCache = new ConcurrentDictionary<Uri, SecretClient>(EqualityComparer<Uri>.Default);
 
 
-            // Always allow 'connectionString' to override black magic. But we expect this to be null most of the time.
-            _connectionString = UpdateConfigSettingWithAppSettings(connectionStringTag);
-            if (String.IsNullOrWhiteSpace(_connectionString))
+            // Moving to align with other Azure builders, rely on Azure Identities before connection strings
+            Endpoint = UpdateConfigSettingWithAppSettings(endpointTag);
+            if (!String.IsNullOrWhiteSpace(Endpoint))
             {
-                _connectionString = null;
-
-                // Use Endpoint instead
-                string uri = UpdateConfigSettingWithAppSettings(endpointTag);
-                if (!String.IsNullOrWhiteSpace(uri))
+                try
+                {
+                    var uri = new Uri(Endpoint);
+                    _client = new ConfigurationClient(uri, GetCredential());
+                }
+                catch (Exception ex)
+                {
+                    if (!IsOptional)
+                        throw new ArgumentException($"Exception encountered while creating connection to Azure App Configuration store.", ex);
+                }
+            }
+            // Don't fall back on connection string unless endpoint was not even specified.
+            else
+            {
+                ConnectionString = UpdateConfigSettingWithAppSettings(connectionStringTag);
+                if (!String.IsNullOrWhiteSpace(ConnectionString))
                 {
                     try
                     {
-                        _endpoint = new Uri(uri);
-                        _client = new ConfigurationClient(_endpoint, GetCredential());
+                        _client = new ConfigurationClient(ConnectionString);
                     }
                     catch (Exception ex)
                     {
@@ -106,20 +140,8 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                 }
                 else
                 {
+                    // Getting here means neither endpoint nor connectionString were given
                     throw new ArgumentException($"An endpoint URI or connection string must be provided for connecting to Azure App Configuration service via the '{endpointTag}' or '{connectionStringTag}' attribute.");
-                }
-            }
-            else
-            {
-                // If we get here, then we should try to connect with a connection string.
-                try
-                {
-                    _client = new ConfigurationClient(_connectionString);
-                }
-                catch (Exception ex)
-                {
-                    if (!IsOptional)
-                        throw new ArgumentException($"Exception encountered while creating connection to Azure App Configuration store.", ex);
                 }
             }
 
@@ -133,7 +155,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             // same set of values from the AppConfig service for every value. Let's only do this once and
             // cache the entire set to make those calls to GetValueInternal read from the cache instead of
             // hitting the service every time.
-            if (_keyFilter != null && Mode != KeyValueMode.Greedy)
+            if (KeyFilter != null && Mode != KeyValueMode.Greedy)
                 EnsureGreedyInitialized();
         }
 
@@ -175,7 +197,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             // could result in finding a value... but we shouldn't, because the requested key does not
             // match the keyFilter - otherwise it would already be in the cache. Avoid the trouble and
             // shortcut return nothing in this case.
-            if (_keyFilter != null)
+            if (KeyFilter != null)
                 return null;
 
             // Azure Key Vault keys are case-insensitive, so this should be fine.
@@ -211,13 +233,13 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
             SettingSelector selector = new SettingSelector { KeyFilter = key };
 
-            if (_labelFilter != null)
+            if (LabelFilter != null)
             {
-                selector.LabelFilter = _labelFilter;
+                selector.LabelFilter = LabelFilter;
             }
-            if (_dateTimeFilter > DateTimeOffset.MinValue)
+            if (AcceptDateTime > DateTimeOffset.MinValue)
             {
-                selector.AcceptDateTime = _dateTimeFilter;
+                selector.AcceptDateTime = AcceptDateTime;
             }
             // TODO: Reduce bandwidth by limiting the fields we retrieve.
             // Currently, content type doesn't get delivered, even if we add it to the selection. This prevents KeyVault recognition.
@@ -236,7 +258,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                     if (current == null)
                         return null;
 
-                    if (_useKeyVault && current is SecretReferenceConfigurationSetting secretReference)
+                    if (UseAzureKeyVault && current is SecretReferenceConfigurationSetting secretReference)
                     {
                         try
                         {
@@ -272,17 +294,17 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                 return data;
 
             SettingSelector selector = new SettingSelector();
-            if (_keyFilter != null)
+            if (KeyFilter != null)
             {
-                selector.KeyFilter = _keyFilter;
+                selector.KeyFilter = KeyFilter;
             }
-            if (_labelFilter != null)
+            if (LabelFilter != null)
             {
-                selector.LabelFilter = _labelFilter;
+                selector.LabelFilter = LabelFilter;
             }
-            if (_dateTimeFilter > DateTimeOffset.MinValue)
+            if (AcceptDateTime > DateTimeOffset.MinValue)
             {
-                selector.AcceptDateTime = _dateTimeFilter;
+                selector.AcceptDateTime = AcceptDateTime;
             }
             // TODO: Reduce bandwidth by limiting the fields we retrieve.
             // Currently, content type doesn't get delivered, even if we add it to the selection. This prevents KeyVault recognition.
@@ -302,8 +324,12 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                         ConfigurationSetting setting = enumerator.Current;
                         string configValue = setting.Value;
 
+                        // Move on to the next if the prefix doesn't match
+                        if (!String.IsNullOrEmpty(prefix) && !setting.Key.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                            continue;
+
                         // If it's a key vault reference, go fetch the value from key vault
-                        if (_useKeyVault && setting is SecretReferenceConfigurationSetting secretReference)
+                        if (UseAzureKeyVault && setting is SecretReferenceConfigurationSetting secretReference)
                         {
                             try
                             {
@@ -325,7 +351,8 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                 }
                 finally
                 {
-                    await enumerator.DisposeAsync();
+                    if (enumerator != null)
+                        await enumerator.DisposeAsync();
                 }
             }
             catch (Exception e) when (IsOptional && ((e.InnerException is System.Net.Http.HttpRequestException) || (e.InnerException is UnauthorizedAccessException))) { }

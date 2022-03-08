@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Collections.Specialized;
 using Microsoft.Configuration.ConfigurationBuilders;
 using Xunit;
@@ -11,7 +10,8 @@ namespace Test
     {
         public static NameValueCollection CommonKeyValuePairs = new NameValueCollection() {
             { "TestKey", "TestValue1" },
-            { "Prefix_TestKey", "testvalue2" }
+            { "Prefix-TestKey", "testvalue2" },
+            { "Value-Needs-Escaping", "Value \'with\" question@ble C#ar&ct*rs <in> it." }
         };
 
         // ======================================================================
@@ -20,136 +20,130 @@ namespace Test
         //      - Does not get what is not there.
         //      - Is NOT case-sensitive.
         //      - Does not care about prefix or stripPrefix.
+        //      - Does not do any character encoding/escaping.
+        //      - Does not care about charMap.
         // ======================================================================
 
-        public static void GetValue(KeyValueConfigBuilder builder, string name, NameValueCollection attrs = null)
+        public static void GetValue(Func<KeyValueConfigBuilder> builderFactory, string name, NameValueCollection settings = null, bool caseSensitive = false)
         {
-            builder.Initialize(name, attrs ?? new NameValueCollection());
+            NameValueCollection customSettings, baseSettings = settings ?? new NameValueCollection();
+            KeyValueConfigBuilder builder = TestHelper.CreateBuilder(builderFactory, name, baseSettings);
 
             // Gets what is there.
             Assert.Equal(CommonKeyValuePairs["TestKey"], builder.GetValue("TestKey"));
 
             // Does not get what is not there.
-            Assert.Null(builder.GetValue("This_Value_Does_Not_Exist"));
+            Assert.Null(builder.GetValue("This-Value-Does-Not-Exist"));
 
             // Is NOT case-sensitive.
-            Assert.Equal(CommonKeyValuePairs["TestKey"], builder.GetValue("testkey"));
-        }
-
-        public static void GetValue_Prefix1(KeyValueConfigBuilder builder, string name, NameValueCollection attrs = null)
-        {
-            attrs = attrs ?? new NameValueCollection();
-            attrs.Add("prefix", "Prefix_");
-            builder.Initialize(name, attrs);
+            if (!caseSensitive)
+                Assert.Equal(CommonKeyValuePairs["TestKey"], builder.GetValue("testkey"));
+            // Or maybe it is for some reason. (Looking at you Azure App Config.)
+            else
+                Assert.Null(builder.GetValue("testkey"));
 
             // Does not care about prefix...
+            customSettings = new NameValueCollection(baseSettings);
+            customSettings.Add("prefix", "Prefix-");
+            builder = TestHelper.CreateBuilder(builderFactory, name, customSettings);
             Assert.Equal(CommonKeyValuePairs["TestKey"], builder.GetValue("TestKey"));
-            Assert.Equal(CommonKeyValuePairs["Prefix_TestKey"], builder.GetValue("Prefix_TestKey"));
-        }
+            Assert.Equal(CommonKeyValuePairs["Prefix-TestKey"], builder.GetValue("Prefix-TestKey"));
 
-        public static void GetValue_Prefix2(KeyValueConfigBuilder builder, string name, NameValueCollection attrs = null)
-        {
-            attrs = attrs ?? new NameValueCollection();
-            attrs.Add("prefix", "Prefix_");
-            attrs.Add("stripPrefix", "true");
-            builder.Initialize(name, attrs);
-
-            // or stripPrefix...
+            // ...or stripPrefix...
+            customSettings = new NameValueCollection(baseSettings);
+            customSettings.Add("prefix", "Prefix-");
+            customSettings.Add("stripPrefix", "true");
+            builder = TestHelper.CreateBuilder(builderFactory, name, customSettings);
             Assert.Equal(CommonKeyValuePairs["TestKey"], builder.GetValue("TestKey"));
-            Assert.Equal(CommonKeyValuePairs["Prefix_TestKey"], builder.GetValue("Prefix_TestKey"));
-        }
+            Assert.Equal(CommonKeyValuePairs["Prefix-TestKey"], builder.GetValue("Prefix-TestKey"));
 
-        public static void GetValue_Prefix3(KeyValueConfigBuilder builder, string name, NameValueCollection attrs = null)
-        {
-            attrs = attrs ?? new NameValueCollection();
-            attrs.Add("stripPrefix", "true");
-            builder.Initialize(name, attrs);
-
-            // even if there is no prefix given.
+            // ...even if there is no prefix given.
+            customSettings = new NameValueCollection(baseSettings);
+            customSettings.Add("stripPrefix", "true");
+            builder = TestHelper.CreateBuilder(builderFactory, name, customSettings);
             Assert.Equal(CommonKeyValuePairs["TestKey"], builder.GetValue("TestKey"));
-            Assert.Equal(CommonKeyValuePairs["Prefix_TestKey"], builder.GetValue("Prefix_TestKey"));
-        }
+            Assert.Equal(CommonKeyValuePairs["Prefix-TestKey"], builder.GetValue("Prefix-TestKey"));
 
+            // Does not escape values.
+            customSettings = new NameValueCollection(baseSettings);
+            customSettings.Add("escapeExpandedValues", "true");
+            builder = TestHelper.CreateBuilder(builderFactory, name, customSettings);
+            Assert.Equal(CommonKeyValuePairs["TestKey"], builder.GetValue("TestKey"));
+            Assert.Equal(CommonKeyValuePairs["Prefix-TestKey"], builder.GetValue("Prefix-TestKey"));
+            Assert.Equal(CommonKeyValuePairs["Value-Needs-Escaping"], builder.GetValue("Value-Needs-Escaping"));
+
+            // Does not care about charMap.
+            customSettings = new NameValueCollection(baseSettings);
+            customSettings.Add("charMap", "e=@");
+            builder = TestHelper.CreateBuilder(builderFactory, name, customSettings);
+            Assert.Equal(CommonKeyValuePairs["TestKey"], builder.GetValue("TestKey"));
+            Assert.Null(builder.GetValue("T@stK@y"));
+            Assert.Equal(CommonKeyValuePairs["Prefix-TestKey"], builder.GetValue("Prefix-TestKey"));
+            Assert.Null(builder.GetValue("Pr@fix-T@stK@y"));
+        }
 
         // ======================================================================
         //   GetAllValues
-        //      - Has existing values
+        //      - Has existing values.
         //      - Does not contain what is not there.
         // ======================================================================
-        public static void GetAllValues(KeyValueConfigBuilder builder, string name, NameValueCollection attrs = null)
+        public static void GetAllValues(Func<KeyValueConfigBuilder> builderFactory, string name, NameValueCollection settings = null)
         {
-            builder.Initialize(name, attrs ?? new NameValueCollection());
+            NameValueCollection customSettings, baseSettings = settings ?? new NameValueCollection();
+            KeyValueConfigBuilder builder = TestHelper.CreateBuilder(builderFactory, name, baseSettings);
 
+            // Has all the test values.
             var allValues = builder.GetAllValues("");
-
-            // Has all the test values
-            Assert.Equal(CommonKeyValuePairs["TestKey"], GetValueFromCollection(allValues, "TestKey"));
-            Assert.Equal(CommonKeyValuePairs["Prefix_TestKey"], GetValueFromCollection(allValues, "Prefix_TestKey"));
+            foreach (var key in CommonKeyValuePairs.AllKeys)
+                Assert.Equal(CommonKeyValuePairs[key], TestHelper.GetValueFromCollection(allValues, key));
 
             // Does not contain what is not there.
-            // This would be a super wierd one to fail.
-            Assert.Null(GetValueFromCollection(allValues, "This_Value_Does_Not_Exist"));
-        }
+            Assert.Null(TestHelper.GetValueFromCollection(allValues, "This-Value-Does-Not-Exist"));
 
-        public static void GetAllValues_Prefix1(KeyValueConfigBuilder builder, string name, NameValueCollection attrs = null)
-        {
-            attrs = attrs ?? new NameValueCollection();
-            attrs.Add("prefix", "Prefix_");
-            builder.Initialize(name, attrs);
+            // =============================================================================
+            // Works with Prefix
+            customSettings = new NameValueCollection(baseSettings);
+            customSettings.Add("prefix", "Prefix-");
+            builder = TestHelper.CreateBuilder(builderFactory, name, customSettings);
+            allValues = builder.GetAllValues("Prefix-");
 
-            var allValues = builder.GetAllValues("Prefix_");
-
-            // Has all the test values
-            Assert.Equal(CommonKeyValuePairs["Prefix_TestKey"], GetValueFromCollection(allValues, "Prefix_TestKey"));
+            // Has all the test values.
+            Assert.Equal(CommonKeyValuePairs["Prefix-TestKey"], TestHelper.GetValueFromCollection(allValues, "Prefix-TestKey"));
 
             // Does not contain what is not there.
-            Assert.Null(GetValueFromCollection(allValues, "TestKey"));
-        }
+            Assert.Null(TestHelper.GetValueFromCollection(allValues, "TestKey"));
 
-        public static void GetAllValues_Prefix2(KeyValueConfigBuilder builder, string name, NameValueCollection attrs = null)
-        {
-            attrs = attrs ?? new NameValueCollection();
-            attrs.Add("prefix", "Prefix_");
-            attrs.Add("stripPrefix", "true");
-            builder.Initialize(name, attrs);
+            // =========================================================================================
+            // Works with Prefix... and Strip has no effect (KVCB base handles all stripping tasks.)
+            customSettings = new NameValueCollection(baseSettings);
+            customSettings.Add("prefix", "Prefix-");
+            customSettings.Add("stripPrefix", "true");
+            builder = TestHelper.CreateBuilder(builderFactory, name, customSettings);
+            allValues = builder.GetAllValues("Prefix-");
 
-            // stripPrefix does not affect GetAllValues, as the KVCB base handles all prefix-stripping tasks.
-            var allValues = builder.GetAllValues("Prefix_");
-
-            // Has all the test values
-            Assert.Equal(CommonKeyValuePairs["Prefix_TestKey"], GetValueFromCollection(allValues, "Prefix_TestKey"));
+            // Has all the test values.
+            Assert.Equal(CommonKeyValuePairs["Prefix-TestKey"], TestHelper.GetValueFromCollection(allValues, "Prefix-TestKey"));
 
             // Does not contain what is not there.
-            Assert.Null(GetValueFromCollection(allValues, "TestKey"));
-        }
+            Assert.Null(TestHelper.GetValueFromCollection(allValues, "TestKey"));
 
-        public static void GetAllValues_Prefix3(KeyValueConfigBuilder builder, string name, NameValueCollection attrs = null)
-        {
-            attrs = attrs ?? new NameValueCollection();
-            attrs.Add("stripPrefix", "true");
-            builder.Initialize(name, attrs);
+            // =========================================================================================
+            // Does not escape values.
+            customSettings = new NameValueCollection(baseSettings);
+            customSettings.Add("escapeExpandedValues", "true");
+            builder = TestHelper.CreateBuilder(builderFactory, name, customSettings);
+            allValues = builder.GetAllValues("");
+            foreach (var key in CommonKeyValuePairs.AllKeys)
+                Assert.Equal(CommonKeyValuePairs[key], TestHelper.GetValueFromCollection(allValues, key));
 
-            var allValues = builder.GetAllValues("");
-
-            // Has all the test values
-            Assert.Equal(CommonKeyValuePairs["TestKey"], GetValueFromCollection(allValues, "TestKey"));
-            Assert.Equal(CommonKeyValuePairs["Prefix_TestKey"], GetValueFromCollection(allValues, "Prefix_TestKey"));
-        }
-
-
-
-
-        // ======================================================================
-        //  Helpers
-        // ======================================================================
-        private static string GetValueFromCollection(ICollection<KeyValuePair<string, string>> collection, string key)
-        {
-            foreach (var kvp in collection)
-            {
-                if (kvp.Key.Equals(key, StringComparison.OrdinalIgnoreCase))
-                    return kvp.Value;
-            }
-            return null;
+            // Does not care about charMap.
+            customSettings = new NameValueCollection(baseSettings);
+            customSettings.Add("charMap", "e=@");
+            builder = TestHelper.CreateBuilder(builderFactory, name, customSettings);
+            allValues = builder.GetAllValues("");
+            foreach (var key in CommonKeyValuePairs.AllKeys)
+                Assert.Equal(CommonKeyValuePairs[key], TestHelper.GetValueFromCollection(allValues, key));
+            Assert.Null(TestHelper.GetValueFromCollection(allValues, "T@stK@y"));
         }
     }
 }

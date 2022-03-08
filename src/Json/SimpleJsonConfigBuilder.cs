@@ -49,6 +49,13 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
             _allSettings = new Dictionary<string, Dictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
 
+            // JsonMode
+            if (UpdateConfigSettingWithAppSettings(jsonModeTag) != null)
+            {
+                // We want an exception here if 'jsonMode' is specified but unrecognized.
+                JsonMode = (SimpleJsonConfigBuilderMode)Enum.Parse(typeof(SimpleJsonConfigBuilderMode), config[jsonModeTag], true);
+            }
+
             // JsonFile
             string jsonFile = UpdateConfigSettingWithAppSettings(jsonFileTag);
             if (String.IsNullOrWhiteSpace(jsonFile))
@@ -67,14 +74,6 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
                 throw new ArgumentException($"Json file does not exist.");
             }
-
-            // JsonMode
-            if (UpdateConfigSettingWithAppSettings(jsonModeTag) != null)
-            {
-                // We want an exception here if 'jsonMode' is specified but unrecognized.
-                JsonMode = (SimpleJsonConfigBuilderMode)Enum.Parse(typeof(SimpleJsonConfigBuilderMode), config[jsonModeTag], true);
-            }
-
 
             // Now load up all the data for easy referencing later
             JsonDocument document;
@@ -118,7 +117,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
         public override ConfigurationSection ProcessConfigurationSection(ConfigurationSection configSection)
         {
-            _currentSection = configSection.SectionInformation.Name;
+            _currentSection = configSection.SectionInformation.SectionName;
             return base.ProcessConfigurationSection(configSection);
         }
 #pragma warning restore CS1591 // No xml comments for overrides that should not be called directly.

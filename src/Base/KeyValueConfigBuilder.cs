@@ -73,7 +73,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         private bool _escapeValues = false;
 
         /// <summary>
-        /// Gets or sets a regular expression used for matching tokens in raw xml during Greedy substitution.
+        /// Gets or sets a regular expression used for matching tokens during 'Token' substitution.
         /// </summary>
         public string TokenPattern { get { EnsureInitialized(); return _tokenPattern; } protected set { _tokenPattern = value; } }
         //private string _tokenPattern = @"\$\{(\w+)\}";
@@ -180,7 +180,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             }
 
             // At this point, we have our 'Enabled' choice. If we are disabled, we can stop right here.
-            if (Enabled == KeyValueEnabled.Disabled) return;
+            if (_enabled == KeyValueEnabled.Disabled) return;
 
             // Use pre-assigned defaults if not specified. Non-freeform options should throw on unrecognized values.
             _mode = (UpdateConfigSettingWithAppSettings(modeTag) != null) ? (KeyValueMode)Enum.Parse(typeof(KeyValueMode), config[modeTag], true) : _mode;
@@ -249,7 +249,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                         {
                             foreach (KeyValuePair<string, string> kvp in GetAllValues(prefix))
                             {
-                                _cachedValues.Add(kvp);
+                                _cachedValues.Add(TrimPrefix(kvp.Key, prefix), kvp.Value);
                             }
                             _greedyInitialized = true;
                         }
@@ -321,9 +321,8 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                         if (kvp.Value != null)
                         {
                             // Here, kvp.Key is not from the config file, so it might not be correctly cased. Get the correct casing for UpdateKey.
-                            string oldKey = TrimPrefix(kvp.Key);
-                            string newKey = UpdateKey(handler.TryGetOriginalCase(oldKey));
-                            handler.InsertOrUpdate(newKey, kvp.Value, oldKey);
+                            string newKey = UpdateKey(handler.TryGetOriginalCase(kvp.Key));
+                            handler.InsertOrUpdate(newKey, kvp.Value, kvp.Key);
                         }
                     }
                 }
@@ -396,12 +395,14 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             }
         }
 
-        private string TrimPrefix(string fullString)
+        private string TrimPrefix(string fullString, string prefix = null)
         {
-            if (!StripPrefix || !fullString.StartsWith(KeyPrefix, StringComparison.OrdinalIgnoreCase))
+            prefix = prefix ?? KeyPrefix;
+
+            if (!StripPrefix || !fullString.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
                 return fullString;
 
-            return fullString.Substring(KeyPrefix.Length);
+            return fullString.Substring(prefix.Length);
         }
 
         // Maybe this could be virtual? Simple xml escaping should be enough for most folks.
@@ -428,12 +429,16 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
                 foreach (string pairing in pairs)
                 {
-                    // Remember to un-escape any ','s first
+                    // Remember to un-escape any ','s first, and do then escape escaped '='
                     var mapping = pairing.Replace("\x30", ",").Replace("==", "\x30").Split(coupler, 2, StringSplitOptions.RemoveEmptyEntries);
 
                     // If we have a 'mapping' that does not have two parts, this is an error
                     if (mapping.Length < 2)
                         throw new ArgumentException("Mapping should be a ',' delimited list of strings paired with '='. Use double characters to escape ',' and '='.", charMapTag);
+
+                    // Remember to un-escape any '='s first
+                    mapping[0] = mapping[0].Replace("\x30", "=");
+                    mapping[1] = mapping[1].Replace("\x30", "=");
 
                     charmap.Add(mapping[0], mapping[1]);
                 }

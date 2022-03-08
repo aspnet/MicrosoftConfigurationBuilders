@@ -1,11 +1,11 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See the License.txt file in the project root for full license information.
 
-using System.Configuration;
-using System.Collections.Generic;
-using System.Configuration.Provider;
-using System.Collections.Specialized;
 using System;
+using System.Collections.Generic;
+using System.Collections.Specialized;
+using System.Configuration;
+using System.Configuration.Provider;
 
 namespace Microsoft.Configuration.ConfigurationBuilders
 {
@@ -76,7 +76,10 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         }
 
 
+#pragma warning disable IDE0051 // Remove unused private members
+        // We call this depending on section type via reflection in SectionHandlerSection.GetSectionHandler()
         private void Initialize(string name, T configSection, NameValueCollection config)
+#pragma warning restore IDE0051 // Remove unused private members
         {
             ConfigSection = configSection;
             Initialize(name, config);

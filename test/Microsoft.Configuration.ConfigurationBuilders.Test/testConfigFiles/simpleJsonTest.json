@@ -1,0 +1,54 @@
+{
+  // Comments are not allowed per the Json spec...
+  // ...but System.Text.Json should handle these gracefully.
+  "rootString": "From Json Root",
+  "rootBoolean": true,
+  "rootInteger": 42,
+  "rootArrayOfStrings": [ "one", "two", "three" ],
+  "rootArrayOfBooleans": [ true, false ],
+  "rootArrayOfIntegers": [ 7, 8, 9 ],
+  "rootMixedArray": [ true, 2, "three" ],
+  "rootEmptyArray": [],
+  "rootNull": null,
+
+  // AppSettings section
+  "appSettings": {
+    "asString": "From appSettings",
+    "asBoolean": true,
+    "asInteger": 1977,
+    "asArrayOfStrings": [ "four", "five", "six" ],
+    "asArrayOfBooleans": [ false, false ],
+    "asArrayOfIntegers": [ 3, 1, 4, 15 ],
+    "asMixedArray": [ false, 0, "not true" ],
+    "asEmptyArray": [],
+    "asNull": null,
+    // This is complex
+    "asComplex": {
+      // Which is why
+      "cpxString": "From complex part of appSettings",
+      "cpxBoolean": true,
+      "cpxInteger": 801,
+      // it has
+      "cpxArrayOfStrings": [ "foo", "bar", "baz" ],
+      "cpxArrayOfBooleans": [ true, true ],
+      "cpxArrayOfIntegers": [ 35, 5 ],
+      // many
+      "cpxMixedArray": [ true, 1, "yes" ],
+      "cpxEmptyArray": [],
+      "cpxNull": null
+      // comments.
+    }
+  },
+
+  // Custom Setting section
+  "customAppSettings": {
+    "jsonCustomString": "Custom Setting from Json",
+    "jsonCustomInteger": 5,
+    "jsonCustomArray": [ 1, 2, 3 ],
+    "jsonCustomComplex": {
+      "setting1": "Complex Setting 1",
+      "setting2": "Complex Setting 2",
+      "jsonArrayOfSettings": [ "one", "two", "three" ]
+    }
+  }
+}
