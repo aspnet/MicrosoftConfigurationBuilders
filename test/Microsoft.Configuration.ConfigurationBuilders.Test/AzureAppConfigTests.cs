@@ -45,7 +45,7 @@ namespace Test
         private readonly string kvUriRegex = "{\"uri\":\".+\"}";
 
 
-        public static bool AppConfigTestsEnabled => true;
+        public static bool AppConfigTestsEnabled => false;
 
         static AzureAppConfigTests()
         {

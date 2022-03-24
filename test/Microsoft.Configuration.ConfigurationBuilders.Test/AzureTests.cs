@@ -38,7 +38,7 @@ namespace Test
         private readonly string customVersionOld;
         private readonly string customVersionNotExist = "abcVersionDoesNotExistXyz";
 
-        public static bool AzureTestsEnabled => true;
+        public static bool AzureTestsEnabled => false;
 
         public AzureTests()
         {
