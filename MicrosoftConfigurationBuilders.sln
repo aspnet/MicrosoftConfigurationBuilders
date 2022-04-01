@@ -93,6 +93,15 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleConsoleApp", "samples
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleSectionHandlers", "samples\SampleSectionHandlers\SampleSectionHandlers.csproj", "{B3F1C0AD-957B-4453-A830-F104FE368BC4}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{905D083F-6414-4DEA-9779-76C8A2518F8D}"
+	ProjectSection(SolutionItems) = preProject
+		docs\CustomConfigBuilders.md = docs\CustomConfigBuilders.md
+		docs\FAQ.md = docs\FAQ.md
+		docs\Intro.md = docs\Intro.md
+		docs\KeyValueConfigBuilders.md = docs\KeyValueConfigBuilders.md
+		docs\SectionHandlers.md = docs\SectionHandlers.md
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
