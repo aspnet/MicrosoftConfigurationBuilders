@@ -80,7 +80,7 @@ some of the most frequent along with answers that are hopefully helpful.
 >
 >  But all is not lost. The "Application Settings" feature injects all it's values into the environment of
 >  the service. So while using ConfigBuilders might interfere with the automatic injection of those values,
->  you can also use ConfigBuilders to pull those values back in. See [this issue comment](#133#issuecomment-1049520479)
+>  you can also use ConfigBuilders to pull those values back in. See [this comment on issue #133](https://github.com/aspnet/MicrosoftConfigurationBuilders/issues/133#issuecomment-1049520479)
 >  for more details.
 </details>
 
