@@ -13,7 +13,7 @@ scenarios.
 For more information about Configuration Builders and the features and builders in this project in particular, please refer to the docs
 linked here:
 
-  * [Introduction to Configuration Builders in .Net](docs/intro.md)
+  * [Introduction to Configuration Builders in .Net](docs/Intro.md)
   * [Key/Value Config Builders](docs/KeyValueConfigBuilders.md)
   * [Implementing Custom Key/Value Config Builders](docs/CustomConfigBuilders.md)
   * [Section Handlers](docs/SectionHandlers.md)
