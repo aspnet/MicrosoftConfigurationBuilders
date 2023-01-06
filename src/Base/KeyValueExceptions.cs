@@ -18,29 +18,50 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             // level.
             if (ex is ConfigurationErrorsException ceex)
             {
-                var inner = new KeyValueConfigException($"'{cb.Name}' {msg} ==> {ceex.InnerException?.Message ?? ceex.Message}", ex.InnerException);
-                return new KeyValueConfigWrappedException(ceex.Message, inner);
+                var inner = new KeyValueConfigBuilderException($"'{cb.Name}' {msg} ==> {ceex.InnerException?.Message ?? ceex.Message}", ex.InnerException);
+                return new KeyValueConfigurationErrorsException(ceex.Message, inner);
             }
 
-            return new KeyValueConfigException($"'{cb.Name}' {msg}: {ex.Message}", ex);
+            var ff = new KeyValueConfigBuilderException();
+            return new KeyValueConfigBuilderException($"'{cb.Name}' {msg}: {ex.Message}", ex);
         }
 
-        public static bool IsKeyValueConfigException(Exception ex) => (ex is KeyValueConfigException) || (ex is KeyValueConfigWrappedException);
+        // We only want to wrap the original exception. Once we wrap it, just keep raising the wrapped
+        // exception so we don't create an endless chain of exception wrappings that are not helpful when
+        // being surfaced in a YSOD or similar. Use this helper to determine if wrapping is needed.
+        public static bool IsKeyValueConfigException(Exception ex) => (ex is KeyValueConfigBuilderException) || (ex is KeyValueConfigurationErrorsException);
     }
 
     // There are two different exception types here because the .Net config system treats
     // ConfigurationErrorsExceptions differently. It considers it to be a pre-wrapped and ready for
-    // presentation exception. Other exceptions get wrapped by the config system.
+    // presentation exception. Other exceptions get wrapped by the config system. We don't want
+    // to lose that "pre-wrapped-ness" if the exception has already been through .Net config.
 
+    /// <summary>
+    /// An exception that wraps the root failure due to non-config exceptions while processing Key Value Config Builders.
+    /// </summary>
     [Serializable]
-    internal class KeyValueConfigException : Exception
+    public class KeyValueConfigBuilderException : Exception
     {
-        public KeyValueConfigException(string msg, Exception inner) : base(msg, inner) { }
+        /// <summary>
+        /// Initializes a new instance of the <see cref="KeyValueConfigBuilderException"/> class.
+        /// </summary>
+        public KeyValueConfigBuilderException() : base() { }
+
+        internal KeyValueConfigBuilderException(string msg, Exception inner) : base(msg, inner) { }
     }
 
+    /// <summary>
+    /// An exception that wraps the root failure due to config exceptions while processing Key Value Config Builders.
+    /// </summary>
     [Serializable]
-    internal class KeyValueConfigWrappedException : ConfigurationErrorsException
+    public class KeyValueConfigurationErrorsException : ConfigurationErrorsException
     {
-        public KeyValueConfigWrappedException(string msg, Exception inner) : base(msg, inner) { }
+        /// <summary>
+        /// Initializes a new instance of the <see cref="KeyValueConfigurationErrorsException"/> class.
+        /// </summary>
+        public KeyValueConfigurationErrorsException() : base() { }
+
+        internal KeyValueConfigurationErrorsException(string msg, Exception inner) : base(msg, inner) { }
     }
 }
