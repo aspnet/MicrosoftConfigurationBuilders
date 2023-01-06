@@ -61,7 +61,7 @@ namespace SampleSectionHandlers
             ConfigSection.Settings.CopyTo(allSettings, 0);
 
             foreach (SettingElement setting in allSettings)
-                yield return Tuple.Create(setting.Name, setting.Value?.ToString(), (object)setting);
+                yield return Tuple.Create(setting.Name, setting.Value?.ValueXml?.InnerXml, (object)setting);
         }
 
         /// <summary>
