@@ -22,6 +22,15 @@ some of the most frequent along with answers that are hopefully helpful.
 >  To make things simpler across the board, 'Expand' mode was replaced with 'Token' mode which should
 >  operate in a fairly similar manner with the added benefit of being less prone to producing invalid
 >  XML to muck things up. :smiley:
+>
+> <sup><sub>
+> If you really, really need that raw plain-text processing because it's not possible to write an
+> `ISectionHandler` for your particular section, or because you have taken full advantage of building
+> xml through the use of token expansion that doesn't conform to the convenient mental paradigm of
+> only placing tokens within obvious key/value places of existing well-formed xml... you can try
+> [this wrapper approach](../samples/SamplesLib/ExpandWrapper.cs) as is demonstrated in the
+> [SampleConsoleApp](../samples/SampleConsoleApp/App.config#L36-L39).
+> </sub></sub>
 </details>
 
 <a name="newhandler"></a>
@@ -47,7 +56,7 @@ some of the most frequent along with answers that are hopefully helpful.
 >  isn't really a standard .Net configuration section like it appears to be on first glance. The classes
 >  that support ApplicationSettings provide a strict and strongly typed window into what looks like a
 >  standard configuration section in your app.config file. While we can easily write a section handler
->  for the `ClientSettingsSection` ([example](../samples/SampleSectionHandlers/ClientSettingsSectionHandler.cs))
+>  for the `ClientSettingsSection` ([example](../samples/SamplesLib/ClientSettingsSectionHandler.cs))
 >  it won't integrate into the ApplicationSettings framework seamlessly like one might expect. The
 >  ApplicationSetting framework has already determined the number and names (including casing, which
 >  is problematic in 'Greedy' mode) of all the settings it will present before the base configuration
@@ -55,7 +64,7 @@ some of the most frequent along with answers that are hopefully helpful.
 >  mode, and you can't override existing values in 'Greedy' mode if you don't properly match
 >  casing - despite the fact that ApplicationSettings is supposed to be case-insensitive.
 >
->  If you wish, you can use the [sample section handler](../samples/SampleSectionHandlers/ClientSettingsSectionHandler.cs)
+>  If you wish, you can use the [sample section handler](../samples/SamplesLib/ClientSettingsSectionHandler.cs)
 >  to process ApplicationSettings in your application, but know that the use case is rather limited.
 >  It will work in 'Strict' mode... and maybe require some prodding to force the ApplicationSettings
 >  framework to forget the settings it's seen before and decide to look back into the config file to

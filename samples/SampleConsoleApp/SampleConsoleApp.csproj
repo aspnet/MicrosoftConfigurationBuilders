@@ -62,10 +62,6 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\SampleSectionHandlers\SampleSectionHandlers.csproj">
-      <Project>{b3f1c0ad-957b-4453-a830-f104fe368bc4}</Project>
-      <Name>SampleSectionHandlers</Name>
-    </ProjectReference>
     <ProjectReference Include="..\..\src\Base\Base.csproj">
       <Project>{f382fbf8-146d-4968-a199-90d37f9ef9a7}</Project>
       <Name>Base</Name>
@@ -85,6 +81,10 @@
     <ProjectReference Include="..\..\src\UserSecrets\UserSecrets.csproj">
       <Project>{c60d6cbb-d513-4692-81a6-0be5d45e4702}</Project>
       <Name>UserSecrets</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\SamplesLib\SamplesLib.csproj">
+      <Project>{baa5eb76-5a85-48d6-9e8f-a01a309a2879}</Project>
+      <Name>SamplesLib</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

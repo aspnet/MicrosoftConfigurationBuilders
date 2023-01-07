@@ -91,8 +91,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SampleWebJob", "samples\Sam
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleConsoleApp", "samples\SampleConsoleApp\SampleConsoleApp.csproj", "{0DBFA194-1632-40C0-A072-C59A9280412B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleSectionHandlers", "samples\SampleSectionHandlers\SampleSectionHandlers.csproj", "{B3F1C0AD-957B-4453-A830-F104FE368BC4}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{905D083F-6414-4DEA-9779-76C8A2518F8D}"
 	ProjectSection(SolutionItems) = preProject
 		docs\CustomConfigBuilders.md = docs\CustomConfigBuilders.md
@@ -101,6 +99,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{905D083F-6
 		docs\KeyValueConfigBuilders.md = docs\KeyValueConfigBuilders.md
 		docs\SectionHandlers.md = docs\SectionHandlers.md
 	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SamplesLib", "samples\SamplesLib\SamplesLib.csproj", "{BAA5EB76-5A85-48D6-9E8F-A01A309A2879}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -156,10 +156,10 @@ Global
 		{0DBFA194-1632-40C0-A072-C59A9280412B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0DBFA194-1632-40C0-A072-C59A9280412B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0DBFA194-1632-40C0-A072-C59A9280412B}.Release|Any CPU.Build.0 = Release|Any CPU
-		{B3F1C0AD-957B-4453-A830-F104FE368BC4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B3F1C0AD-957B-4453-A830-F104FE368BC4}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B3F1C0AD-957B-4453-A830-F104FE368BC4}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{B3F1C0AD-957B-4453-A830-F104FE368BC4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BAA5EB76-5A85-48D6-9E8F-A01A309A2879}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BAA5EB76-5A85-48D6-9E8F-A01A309A2879}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BAA5EB76-5A85-48D6-9E8F-A01A309A2879}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BAA5EB76-5A85-48D6-9E8F-A01A309A2879}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -171,7 +171,7 @@ Global
 		{B2D778B6-6E0A-4ED1-B1E3-7C85DD976F69} = {DFB1983C-B754-403E-AECC-ED3D4C9DC42A}
 		{18D8B490-1CBC-4783-B6D7-D1A88E832224} = {2F759F48-7F89-4811-8F94-380BCCC83C69}
 		{0DBFA194-1632-40C0-A072-C59A9280412B} = {2F759F48-7F89-4811-8F94-380BCCC83C69}
-		{B3F1C0AD-957B-4453-A830-F104FE368BC4} = {2F759F48-7F89-4811-8F94-380BCCC83C69}
+		{BAA5EB76-5A85-48D6-9E8F-A01A309A2879} = {2F759F48-7F89-4811-8F94-380BCCC83C69}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6380A53F-A088-4D0B-B415-C8D16222F022}
