@@ -17,8 +17,8 @@ namespace Test
 
         static TestHelper()
         {
-            kvWrapperType = typeof(KeyValueConfigBuilder).Assembly.GetType("Microsoft.Configuration.ConfigurationBuilders.KeyValueConfigWrappedException");
-            kvExceptionType = typeof(KeyValueConfigBuilder).Assembly.GetType("Microsoft.Configuration.ConfigurationBuilders.KeyValueConfigException");
+            kvWrapperType = typeof(KeyValueConfigBuilder).Assembly.GetType("Microsoft.Configuration.ConfigurationBuilders.KeyValueConfigurationErrorsException");
+            kvExceptionType = typeof(KeyValueConfigBuilder).Assembly.GetType("Microsoft.Configuration.ConfigurationBuilders.KeyValueConfigBuilderException");
             ensureInitialized = typeof(KeyValueConfigBuilder).GetMethod("EnsureInitialized", BindingFlags.NonPublic | BindingFlags.Instance);
         }
 
