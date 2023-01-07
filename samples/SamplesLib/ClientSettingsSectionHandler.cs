@@ -5,7 +5,7 @@ using System.Linq;
 using System.Xml;
 using Microsoft.Configuration.ConfigurationBuilders;
 
-namespace SampleSectionHandlers
+namespace SamplesLib
 {
     /// <summary>
     /// A class that can be used by <see cref="KeyValueConfigBuilder"/>s to apply key/value config pairs to <see cref="ClientSettingsSection"/>.

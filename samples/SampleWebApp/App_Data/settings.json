@@ -25,5 +25,10 @@
       "setting2": "Complex Setting 2",
       "jsonArrayOfSettings": [ "one", "two", "three" ]
     }
+  },
+
+  "expandedSettings": {
+    "expandedSetting1": "<add key=\"oldExpandMode\" value=\"Is dead.\" />",
+    "expandedSetting2": "<add key=\"longLiving\" value=\"Old Expand Mode!\" />"
   }
 }

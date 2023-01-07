@@ -22,7 +22,7 @@ linked here:
 
 <a name="updates"></a>
 ### V3 Updates:
-  * :warning: ***Breaking Change*** - `Expand` mode is gone. It has been [replaced by `Token` mode](docs/KeyValueConfigBuilders.md#token).#TODO verify link (and #enabled and #charmap link)
+  * :warning: ***Breaking Change*** - `Expand` mode is gone. It has been [replaced by `Token` mode](docs/KeyValueConfigBuilders.md#mode).
   * `Utils.MapPath` - This was somewhat broken in ASP.Net scenarios previously. It should now reliably go against `Server.MapPath()` in ASP.Net scenarios. It has
         also been updated to fall back against the directory of the config file being processed when resolving the app root in the case of a `Configuration`
         object being created by `ConfigurationManager.OpenConfiguration*` API's rather than being part of a fully-initialized runtime configuration stack.

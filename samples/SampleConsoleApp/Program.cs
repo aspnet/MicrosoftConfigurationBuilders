@@ -27,6 +27,16 @@ namespace SampleConsoleApp
             Console.WriteLine("");
             Console.WriteLine("");
 
+            Console.WriteLine("---------- Expanded Settings ----------");
+            var expandedSettings = ConfigurationManager.GetSection("expandedSettings") as NameValueCollection;
+            foreach (string setting in expandedSettings.Keys)
+            {
+                Console.WriteLine($"{setting}\t{expandedSettings[setting]}");
+            }
+
+            Console.WriteLine("");
+            Console.WriteLine("");
+
             Console.WriteLine("---------- Client Application Settings ----------");
             Console.WriteLine("Note: These _might_ be inaccurate due to the additional layers of building and caching that the");
             Console.WriteLine("\tClient Application Settings framework uses. Read more about the Settings architecture");
