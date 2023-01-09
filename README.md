@@ -28,8 +28,9 @@ linked here:
         object being created by `ConfigurationManager.OpenConfiguration*` API's rather than being part of a fully-initialized runtime configuration stack.
   * Json use has migrated to use `System.Text.Json` instead of `Newtonsoft.Json`.
   * The [Azure Config Builders](#azure-config-builders) have been updated to require a newer minimum version of `Azure.Identity` by default which allows for more
-        methods of connecting to Azure, such as **User-Assigned Managed Identity**, or **Client Certificate-based** via environment variables. An overload named
-        `GetCredential` has also been added for users who need something more custom than upgrading `Azure.Identity` can easily provide.
+        methods of connecting to Azure, such as **User-Assigned Managed Identity**, or **Client Certificate-based** via environment variables. Also a pair of overloads
+        (`GetCredential` and `GetSecretClientOptions/GetConfigurationClientOptions`) have been added for users who need something more than `DefaultAzureCredential`
+        with default client options can provide.
   * Added *RecursionGuard* to help detect and prevent situations where a `ConfigurationBuilder` accessing values from a `ConfigurationSection` other than the one
         which it is currently processing could result in stack overflow.
   * `optional` attribute is obsolete => [`enabled`](docs/KeyValueConfigBuilders.md#enabled) attribute which provides more versatility. (The `optional` attribute is still parsed and recognized in the absence

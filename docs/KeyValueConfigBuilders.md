@@ -184,6 +184,10 @@ to read the necessary options for these methods via environment variables. Build
 their Azure credential for these builders can extend and override the `GetCredential()` method of either builder to supply the correct
 `TokenCredential` for connecting to Azure.
 
+In a similar vein to `GetCredential()`, builders who need finer control over the way it connects to Azure, the `GetConfigurationClientOptions()`
+and `GetSecretClientOptions()` virtual methods have been added to the Azure config builders to support special scenarios. (For
+example, connecting to Azure through a proxy.)
+
 NOTE: These packages both currently depend on version ***1.2*** of the `Azure.Identity` nuget package. This version was chosen because
 it has a fairly comprehensive list of capabilities for `DefaultAzureCredential` but also is a relatively early version of this SDK package.
 This way these builders won't be responsible for forcing unwanted package upgrades when not necessary. However, `DefaultAzureCredential`
