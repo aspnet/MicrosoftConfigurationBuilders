@@ -114,7 +114,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                 try
                 {
                     var uri = new Uri(Endpoint);
-                    _client = new ConfigurationClient(uri, GetCredential());
+                    _client = new ConfigurationClient(uri, GetCredential(), GetConfigurationClientOptions());
                 }
                 catch (Exception ex)
                 {
@@ -225,6 +225,12 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// </summary>
         /// <returns>A token credential.</returns>
         protected virtual TokenCredential GetCredential() => new DefaultAzureCredential();
+        
+        /// <summary>
+        /// Gets a <see cref="ConfigurationClientOptions"/> to initialize the Key Vault SecretClient with. This defaults to <see cref="null"/>.
+        /// </summary>
+        /// <returns>A token credential.</returns>
+        protected virtual ConfigurationClientOptions GetConfigurationClientOptions() => null;
 
         private async Task<string> GetValueAsync(string key)
         {
