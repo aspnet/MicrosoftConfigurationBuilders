@@ -44,38 +44,50 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             if (configSection == null)
                 return null;
 
+            SectionHandlersSection handlerSection = GetSectionHandlersSection(configSection);
 
-            if (!(ConfigurationManager.GetSection(handlerSectionName) is SectionHandlersSection handlerSection))
+            if (handlerSection != null)
             {
-                handlerSection = new SectionHandlersSection();
-                handlerSection.InitializeDefault();
-            }
-
-            // Look at each handler to see if it works on this section. Reverse order so last match wins.
-            // .IsSubclassOf() requires an exact type match. So SectionHandler<BaseConfigSectionType> won't work.
-            Type sectionHandlerGenericTemplate = typeof(SectionHandler<>);
-            Type sectionHandlerDesiredType = sectionHandlerGenericTemplate.MakeGenericType(configSection.GetType());
-            for (int i = handlerSection.Handlers.Count; i-- > 0; )
-            {
-                Type handlerType = Type.GetType(handlerSection.Handlers[i].Type);
-                if (handlerType != null && handlerType.IsSubclassOf(sectionHandlerDesiredType))
+                // Look at each handler to see if it works on this section. Reverse order so last match wins.
+                // .IsSubclassOf() requires an exact type match. So SectionHandler<BaseConfigSectionType> won't work.
+                Type sectionHandlerGenericTemplate = typeof(SectionHandler<>);
+                Type sectionHandlerDesiredType = sectionHandlerGenericTemplate.MakeGenericType(configSection.GetType());
+                for (int i = handlerSection.Handlers.Count; i-- > 0;)
                 {
-                    if (Activator.CreateInstance(handlerType) is ISectionHandler handler)
+                    Type handlerType = Type.GetType(handlerSection.Handlers[i].Type);
+                    if (handlerType != null && handlerType.IsSubclassOf(sectionHandlerDesiredType))
                     {
-                        ProviderSettings settings = handlerSection.Handlers[i];
-                        NameValueCollection clonedParams = new NameValueCollection(settings.Parameters.Count);
-                        foreach (string key in settings.Parameters)
-                            clonedParams[key] = settings.Parameters[key];
+                        if (Activator.CreateInstance(handlerType) is ISectionHandler handler)
+                        {
+                            ProviderSettings settings = handlerSection.Handlers[i];
+                            NameValueCollection clonedParams = new NameValueCollection(settings.Parameters.Count);
+                            foreach (string key in settings.Parameters)
+                                clonedParams[key] = settings.Parameters[key];
 
-                        MethodInfo init = sectionHandlerDesiredType.GetMethod("Initialize", BindingFlags.NonPublic | BindingFlags.Instance);
-                        init.Invoke(handler, new object[] { settings.Name, configSection, clonedParams });
+                            MethodInfo init = sectionHandlerDesiredType.GetMethod("Initialize", BindingFlags.NonPublic | BindingFlags.Instance);
+                            init.Invoke(handler, new object[] { settings.Name, configSection, clonedParams });
 
-                        return handler;
+                            return handler;
+                        }
                     }
                 }
             }
 
             throw new Exception($"Error in Configuration: Cannot find ISectionHandler for '{configSection.SectionInformation.Name}' section.");
+        }
+
+        private static SectionHandlersSection GetSectionHandlersSection(ConfigurationSection currentSection)
+        {
+            SectionHandlersSection handlersSection = (currentSection?.CurrentConfiguration?.GetSection(handlerSectionName) as SectionHandlersSection)
+                                ?? (ConfigurationManager.GetSection(handlerSectionName) as SectionHandlersSection);
+
+            if (handlersSection == null)
+            {
+                handlersSection = new SectionHandlersSection();
+                handlersSection.InitializeDefault();
+            }
+
+            return handlersSection;
         }
     }
 }
