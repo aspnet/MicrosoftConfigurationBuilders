@@ -29,7 +29,7 @@ some of the most frequent along with answers that are hopefully helpful.
 > xml through the use of token expansion that doesn't conform to the convenient mental paradigm of
 > only placing tokens within obvious key/value places of existing well-formed xml... you can try
 > [this wrapper approach](../samples/SamplesLib/ExpandWrapper.cs) as is demonstrated in the
-> [SampleConsoleApp](../samples/SampleConsoleApp/App.config#L36-L39).
+> [SampleConsoleApp](https://github.com/aspnet/MicrosoftConfigurationBuilders/blob/1bdc2388f139c046e1c58bcc147c875d5c918785/samples/SampleConsoleApp/App.config#L50-L53).
 > </sub></sub>
 </details>
 
