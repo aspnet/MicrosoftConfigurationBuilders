@@ -212,4 +212,120 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             return base.TryGetOriginalCase(requestedKey);
         }
     }
+
+    /// <summary>
+    /// A class that can be used by <see cref="KeyValueConfigBuilder"/>s to apply key/value config pairs to <see cref="ConnectionStringsSection"/>
+    /// with special 'tagging' to allow updating both the 'connectionString' attribute as well as the 'providerName' attribute.
+    /// </summary>
+    public class ConnectionStringsSectionHandler2 : SectionHandler<ConnectionStringsSection>
+    {
+        private const string connStrNameTag = ":connectionString";
+        private const string providerNameTag = ":providerName";
+
+        private class CSSH2State { public bool UpdateName; public ConnectionStringSettings CS; }
+
+        /// <summary>
+        /// Updates an existing connection string attribute in the assigned <see cref="SectionHandler{T}.ConfigSection"/> with a new name and a new value. The old
+        /// connection string setting can be located using the <paramref name="oldItem"/> parameter. If an old connection string is not found, a new connection
+        /// string should be inserted.
+        /// </summary>
+        /// <param name="newKey">The updated key name for the connection string. May be post-fixed with attribute tag.</param>
+        /// <param name="newValue">The updated value for the connection string.</param>
+        /// <param name="oldKey">The old key name for the connection string, or null. May be post-fixed with attribute tag.</param>
+        /// <param name="oldItem">A reference to the old <see cref="ConnectionStringSettings"/> object obtained by <see cref="KeysValuesAndState"/>, or null.</param>
+        public override void InsertOrUpdate(string newKey, string newValue, string oldKey = null, object oldItem = null)
+        {
+            string tag;
+            (oldKey, tag) = SplitTag(oldKey);
+            (newKey, _) = SplitTag(newKey);
+
+            CSSH2State state = oldItem as CSSH2State;
+            ConnectionStringSettings cs = state?.CS ?? ConfigSection.ConnectionStrings[oldKey] ?? new ConnectionStringSettings();
+
+            // Make sure there are no entries using the old or new name other than this one
+            ConfigSection.ConnectionStrings.Remove(oldKey);
+            ConfigSection.ConnectionStrings.Remove(newKey);
+
+            // Update values and re-add to the collection (no state means 'Greedy' mode where we do want to update)
+            if (state == null || state.UpdateName)
+                cs.Name = newKey;
+            if (tag == providerNameTag)
+                cs.ProviderName = newValue;
+            else
+                cs.ConnectionString = newValue;
+            ConfigSection.ConnectionStrings.Add(cs);
+        }
+
+        /// <summary>
+        /// Gets an <see cref="IEnumerable{T}"/> for iterating over the key/value pairs contained in the assigned <see cref="SectionHandler{T}.ConfigSection"/>. />
+        /// </summary>
+        /// <returns>An enumerator over tuples where the values of the tuple are the existing name for each connection string, the value of 
+        /// the connection string or the value of the provider name, and a reference to the <see cref="ConnectionStringSettings"/> object itself
+        /// which will be returned to us as a reference state object when updating the config record.</returns>
+        public override IEnumerable<Tuple<string, string, object>> KeysValuesAndState()
+        {
+            // The ConnectionStrings collection may change on us while we enumerate. :/
+            ConnectionStringSettings[] connStrs = new ConnectionStringSettings[ConfigSection.ConnectionStrings.Count];
+            ConfigSection.ConnectionStrings.CopyTo(connStrs, 0);
+
+            foreach (ConnectionStringSettings cs in connStrs)
+            {
+                // Greedy mode doesn't enumerate here. It just goes direct to 'InsertOrUpdate', which preserves non-tagged
+                //  behavior via null-tag awareness.
+                // Strict mode will need us to lookup a non-tagged value in addition to tagged values in order to
+                //  remain as compatible as possible with the simple old model.
+                // Token mode is trickier. See step-by-step notes.
+
+                string originalName = cs.Name;
+                string originalCS = cs.ConnectionString;
+
+                // In 'Token' mode, this will replace tokens in 'name' and 'connectionString'.
+                yield return Tuple.Create(originalName, originalCS, (object)new CSSH2State() { UpdateName = true, CS = cs }) ;
+
+                // In 'Token' mode, this will re-replace tokens in 'connectionString' only. Conceptually a no-op, except we
+                //  don't know which mode we're in so we can't technically skip this re-replacement. We also can't skip this step because
+                //  it is required for 'Strict' mode. (It will also re-lookup tokens in 'name', but we are able to skip replacing those
+                //  here, since using _this_ tagged 'name' string might not be faithful to the original non-tagged 'name'.)
+                // Also, re-lookups for tokens should be cached and free, since the tokens inside the 'name' didn't change when tagged.
+                yield return Tuple.Create(originalName + connStrNameTag, originalCS, (object)new CSSH2State() { UpdateName = false, CS = cs });
+
+                // In 'Token' mode, this will replace tokens in 'providerName' only. Same deal with 'name' as the previous step. However,
+                //  the tag on the original name is important, as that is the only way we will know to work on 'providerName' instead of 'name'
+                //  in 'InsertOrUpdate'.
+                yield return Tuple.Create(originalName + providerNameTag, cs.ProviderName, (object)new CSSH2State() { UpdateName = false, CS = cs });
+            }
+        }
+
+        /// <summary>
+        /// Attempt to lookup the original key casing so it can be preserved during greedy updates which would otherwise lose
+        /// the original casing in favor of the casing used in the config source.
+        /// </summary>
+        /// <param name="requestedKey">The key to find original casing for.</param>
+        /// <returns>A string containing the key with original casing from the config section, or the key as passed in if no match
+        /// can be found.</returns>
+        public override string TryGetOriginalCase(string requestedKey)
+        {
+            if (!String.IsNullOrWhiteSpace(requestedKey))
+            {
+                var connStr = ConfigSection.ConnectionStrings[requestedKey];
+                if (connStr != null)
+                    return connStr.Name;
+            }
+
+            return base.TryGetOriginalCase(requestedKey);
+        }
+
+        private (string, string) SplitTag(string key)
+        {
+            if (key != null)
+            {
+                if (key.EndsWith(connStrNameTag))
+                    return (key.Remove(key.Length - connStrNameTag.Length), connStrNameTag);
+                else if (key.EndsWith(providerNameTag))
+                    return (key.Remove(key.Length - providerNameTag.Length), providerNameTag);
+            }
+
+            return (key, null);
+        }
+    }
 }

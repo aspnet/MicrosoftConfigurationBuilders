@@ -14,6 +14,10 @@
     "jsonConnectionString1": "CS1 From ConnectionStrings Json object",
     "specialFeature": {
       "connStr": "Special feature CS From ConnectionStrings Json object"
+    },
+    "jsonAdvConnStr": {
+      "connectionString": "Advanced ConnectionString",
+      "providerName": "Advanced ProviderName"
     }
   },
 

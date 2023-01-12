@@ -14,9 +14,9 @@
         }
         Response.Write("</table><br/><br/>");
 
-        Response.Write("<table border=1><tr><th colspan=2><h2>Connection Strings</h2></th></tr>");
+        Response.Write("<table border=1><tr><th colspan=3><h2>Connection Strings</h2></th></tr>");
         foreach (ConnectionStringSettings cs in WebConfigurationManager.ConnectionStrings) {
-            Response.Write("<tr><td>" + HttpUtility.HtmlEncode(cs.Name) + "</td><td>" + HttpUtility.HtmlEncode(cs.ConnectionString) + "</td></tr>");
+            Response.Write("<tr><td>" + HttpUtility.HtmlEncode(cs.Name) + "</td><td>" + HttpUtility.HtmlEncode(cs.ConnectionString) + "</td><td>" + HttpUtility.HtmlEncode(cs.ProviderName) + "</td></tr>");
         }
         Response.Write("</table><br/><br/>");
 
