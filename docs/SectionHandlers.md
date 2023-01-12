@@ -115,7 +115,7 @@ One thing to note is that the mechanism for associating a key/value lookup with 
 is a simple post-fix to the key. This makes this feature incompatible with versioned keys in Azure Key Vault. Most other cases should
 just work as they did before, with a little extra magic cleanliness when you start using this feature.
 
-An example of this new behavior from `ConnectionStringsSectionHandler2` can be seen in the [SampleConsoleApp](samples/SampleConsoleApp/App.config#L37-L46).
-Or in the [test project](https://github.com/aspnet/MicrosoftConfigurationBuilders/blob/main/test/Microsoft.Configuration.ConfigurationBuilders.Test/ConnectionStringsSectionHandler2Tests.cs).
-The [SampleWebApp](samples/SampleWebApp/Web.config#L38-L41) does not use the new section handler, but it does include some notes about how
+An example of this new behavior from `ConnectionStringsSectionHandler2` can be seen in the [SampleConsoleApp](https://github.com/aspnet/MicrosoftConfigurationBuilders/blob/1bdc2388f139c046e1c58bcc147c875d5c918785/samples/SampleConsoleApp/App.config#L37-L46).
+Or in the [test project](https://github.com/aspnet/MicrosoftConfigurationBuilders/blob/1bdc2388f139c046e1c58bcc147c875d5c918785/test/Microsoft.Configuration.ConfigurationBuilders.Test/ConnectionStringsSectionHandler2Tests.cs).
+The [SampleWebApp](https://github.com/aspnet/MicrosoftConfigurationBuilders/blob/1bdc2388f139c046e1c58bcc147c875d5c918785/samples/SampleWebApp/Web.config#L38-L41) does not use the new section handler, but it does include some notes about how
 it's resulting connection string collection would look different if it did.
