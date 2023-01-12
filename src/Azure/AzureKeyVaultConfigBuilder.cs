@@ -169,7 +169,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// Gets a <see cref="SecretClientOptions"/> to initialize the Key Vault SecretClient with. This defaults to <see cref="null"/>.
         /// </summary>
         /// <returns>A token credential.</returns>
-        protected virtual SecretClientOptions GetSecretClientOptions() => null;
+        protected virtual SecretClientOptions GetSecretClientOptions() => new SecretClientOptions();
         
         
 
