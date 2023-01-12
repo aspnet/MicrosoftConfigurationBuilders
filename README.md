@@ -39,6 +39,11 @@ linked here:
   * Character Mapping - Some config builders have had an internal mapping of characters that might exist in keys in the config file but are illegal in keys at the
         source. As more scenarios come to light and individual prefrences are not always unanimous, V3 instead adds the [`charMap`](docs/KeyValueConfigBuilders.md#charmap) attribute to allow this character
         mapping to work with all **KeyValueConfigBuilders** and to be handled in an easily configurable manner.
+  * `ConnectionStringsSectionHandler2` - A new section handler for the `<connectionStrings>` section has been included in the base package. This new handler will
+        allow updating of both the 'connectionString' attribute as well as the 'providerName' attribute. It does require the builders and source of config data to be
+        aware of this new ability though. The default section handler for the `<connectionStrings>` section has not been updated and remains as it was in previous
+        versions, so apps wishing to take advantage of the new handler will have to wire it up in their config. More details can be found in the
+        [SectionHandlers documentation](docs/SetionHandlers.md#ConnectionStringsSectionHandler2).
 
 ### V2 Updates:
   * Azure App Configuration Support - There is a [new builder](docs/KeyValueConfigBuilders.md#azureappconfigurationbuilder) for drawing values from the new Azure App Configuration service.

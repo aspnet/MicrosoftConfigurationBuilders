@@ -86,3 +86,36 @@ compiled in a separate assembly in the 'bin' directory. For example:
   </handlers>
 </Microsoft.Configuration.ConfigurationBuilders.SectionHandlers>
 ```
+
+## ConnectionStringsSectionHandler2
+Version 3 of this package suite includes a new section handler for the `<connectionStrings>` section. For maximum compatibility, the
+old section handler is still used by default. Here we will explain how to use this new section handler and how to replace the old one.
+
+The new `ConnectionStringsSectionHandler2` works pretty much like it's non-numbered predecessor. The main difference is, when it
+enumerates through the list of connection strings in the section, it will ask builders to look for values that match
+"&lt;name&gt;:connectionString" and "&lt;name&gt;:providerName" in addition to just "&lt;name&gt;". When updating or inserting
+new `ConnectionStringSettings` items into the configuration collection, values that come from tagged keys will go to the
+appropriate attribute. Values that are found without a tagged key update the 'connectionString' property as they did before.
+
+```xml
+    <connectionStrings configBuilders="StrictBuilder">
+        <add name="strict-cs" connectionString="Will get the value of 'strict-cs' or 'strict-cs:connectionString'"
+                              providerName="Will only get the value of 'strict-cs:providerName'" />
+
+        <!-- Easy to imagine pulling these from a structured json file. -->
+        <add name="token-cs1" connectionString="${tokenCS:connectionString}"
+                              providerName="${tokenCS:providerName}" />
+        <!-- But token mode can be messy. -->
+        <add name="token-cs2" connectionString="${token-names-not-important}"
+                              providerName="${they-can-even-be-tagged-wrong:connectionString}" />
+    </connectionStrings>
+```
+
+One thing to note is that the mechanism for associating a key/value lookup with a specific attribute of connection string entries
+is a simple post-fix to the key. This makes this feature incompatible with versioned keys in Azure Key Vault. Most other cases should
+just work as they did before, with a little extra magic cleanliness when you start using this feature.
+
+An example of this new behavior from `ConnectionStringsSectionHandler2` can be seen in the [SampleConsoleApp](samples/SampleConsoleApp/App.config#L37-L46).
+Or in the [test project](https://github.com/aspnet/MicrosoftConfigurationBuilders/blob/main/test/Microsoft.Configuration.ConfigurationBuilders.Test/ConnectionStringsSectionHandler2Tests.cs).
+The [SampleWebApp](samples/SampleWebApp/Web.config#L38-L41) does not use the new section handler, but it does include some notes about how
+it's resulting connection string collection would look different if it did.

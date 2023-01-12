@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Configuration;
+using System.IO;
 using System.Reflection;
 using System.Xml;
 using Microsoft.Configuration.ConfigurationBuilders;
@@ -192,6 +193,38 @@ namespace Test
             filemap.ExeConfigFilename = configFile;
 
             return ConfigurationManager.OpenMappedExeConfiguration(filemap, ConfigurationUserLevel.None);
+        }
+
+        public static Configuration LoadConfigFromString(ref string config)
+        {
+            string ignore = null;
+            return LoadConfigFromString(ref config, ref ignore);
+        }
+
+        public static Configuration LoadConfigFromString(ref string machineConfig, ref string appConfig)
+        {
+            string mcFileName = null;
+            string acFileName = null;
+
+            if (!String.IsNullOrEmpty(machineConfig))
+            {
+                mcFileName = Path.GetTempFileName();
+                FileInfo mcfi = new FileInfo(mcFileName);
+                mcfi.Attributes = FileAttributes.Temporary;
+                File.WriteAllText(mcFileName, machineConfig);
+            }
+            machineConfig = mcFileName;
+
+            if (!String.IsNullOrEmpty(appConfig))
+            {
+                acFileName = Path.GetTempFileName();
+                FileInfo acfi = new FileInfo(acFileName);
+                acfi.Attributes = FileAttributes.Temporary;
+                File.WriteAllText(acFileName, appConfig);
+            }
+            appConfig = acFileName;
+
+            return LoadMultiLevelConfig(mcFileName, acFileName);
         }
     }
 }

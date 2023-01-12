@@ -17,6 +17,17 @@ namespace SampleConsoleApp
             Console.WriteLine("");
             Console.WriteLine("");
 
+            Console.WriteLine("---------- Connection Strings (Advanced Sample) ----------");
+            Console.WriteLine("Name                     ConnectionString                                  ProviderName");
+            Console.WriteLine("------------------------+-------------------------------------------------+--------------------------------------------------");
+            foreach (ConnectionStringSettings cs in ConfigurationManager.ConnectionStrings)
+            {
+                Console.WriteLine($"{cs.Name.PadRight(25)}{cs.ConnectionString.PadRight(50)}{cs.ProviderName}");
+            }
+
+            Console.WriteLine("");
+            Console.WriteLine("");
+
             Console.WriteLine("---------- Custom Settings ----------");
             var customSettings = ConfigurationManager.GetSection("customSettings") as NameValueCollection;
             foreach (string setting in customSettings.Keys)

@@ -1,0 +1,33 @@
+{
+  // Comments are not allowed per the Json spec...
+  // ...but System.Text.Json should handle these gracefully.
+
+  "connStr1": "Just a single string at the root",
+  "connStr2": {
+    "randomAttr": "A random attribute isn't actually ignored",
+    "connectionString": "A value for cs2 from the root",
+    "providerName": "A value for cs2 provider name from the root"
+  },
+  "connStr3": {
+    "connectionString": "A value for cs3 from the root - no provider name"
+  },
+  "connStr4:connectionString": "Yes, we can fake it like this in the root",
+  "aNameFromJson": "Contains_a_${token_value}",
+  "Contains_a_${token_value}": "Weird double replaced value but not token",
+
+  // ConnectionStrings section
+  "connectionStrings": {
+    "connStr1": {
+      "randomAttr": "Remember this is a flat key/value config source - this random is its own key/value",
+      "connectionString": "A value for cs1 from the CS subsection",
+      "providerName": "A value for cs1 provider name from the CS subsection"
+    },
+    "connStr2": {
+      "connectionString": "A value for cs2 from the CS subsection - no provider name"
+    },
+    "connStr3": "Just a simple CS from the CS subsection",
+    "connectionString": "This is weird",
+    "providerName": "Brought to you by weird",
+    "token_value": "NOT_A_TOKEN_ANYMORE"
+  }
+}
