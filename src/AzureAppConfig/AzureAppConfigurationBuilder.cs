@@ -230,7 +230,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// Gets a <see cref="ConfigurationClientOptions"/> to initialize the Key Vault SecretClient with. This defaults to <see cref="null"/>.
         /// </summary>
         /// <returns>A token credential.</returns>
-        protected virtual ConfigurationClientOptions GetConfigurationClientOptions() => null;
+        protected virtual ConfigurationClientOptions GetConfigurationClientOptions() => new ConfigurationClientOptions();
 
         private async Task<string> GetValueAsync(string key)
         {
