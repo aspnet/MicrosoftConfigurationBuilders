@@ -45,7 +45,13 @@ namespace Test
         private readonly string kvUriRegex = "{\"uri\":\".+\"}";
 
 
-        public static bool AppConfigTestsEnabled => false;
+        // Update this to true to enable AzConfig tests.
+        public static bool AppConfigTestsEnabled => true;
+        // Update this to true if the structure of the config store matches what is described below.
+        // OTOH, if the 'history' of the entries has been lost (cleared after 7 or 30 days depending
+        // on the subscription plan) then only the most recent values remain and test verification
+        // will neccessarily be different. Set this to false if 'history' has been cleared away.
+        public static bool AzConfigHistoryInTact => false;
 
         static AzureAppConfigTests()
         {
@@ -368,12 +374,21 @@ namespace Test
                 if (oldTimes)
                 {
                     Assert.Equal(untouched ?? "altCaseTestValue", appSettings.Settings["casetestsetting"]?.Value);
-                    Assert.Equal("oldTestValue", appSettings.Settings["testSetting"]?.Value);
+                    if (AzConfigHistoryInTact)
+                    {
+                        Assert.Equal("oldTestValue", appSettings.Settings["testSetting"]?.Value);
+                        Assert.Matches(kvregex ?? kva_value_old, appSettings.Settings["keyVaultSetting"]?.Value);
+                        Assert.Matches(kvregex ?? kvb_value, appSettings.Settings["superKeyVaultSetting"]?.Value);
+                    }
+                    else
+                    {
+                        Assert.Equal(untouched, appSettings.Settings["testSetting"]?.Value);
+                        Assert.Equal(untouched, appSettings.Settings["keyVaultSetting"]?.Value);
+                        Assert.Equal(untouched, appSettings.Settings["superKeyVaultSetting"]?.Value);
+                    }
                     Assert.Equal(untouched, appSettings.Settings["newTestSetting"]?.Value);
                     Assert.Equal("oldSuperValue", appSettings.Settings["superTestSetting"]?.Value);
-                    Assert.Matches(kvregex ?? kva_value_old, appSettings.Settings["keyVaultSetting"]?.Value);
-                    Assert.Matches(kvregex ?? kvb_value, appSettings.Settings["superKeyVaultSetting"]?.Value);
-                    Assert.Equal(greedy ? 5 : 6, appSettings.Settings.Count);    // "newTestSetting" is staged "in the xml" when not greedy.
+                    Assert.Equal(greedy ? (AzConfigHistoryInTact ? 5 : 2) : 6, appSettings.Settings.Count);    // "newTestSetting" is staged "in the xml" when not greedy.
                 }
                 else
                 {
@@ -396,8 +411,11 @@ namespace Test
                     Assert.Equal(untouched, appSettings.Settings["newTestSetting"]?.Value);
                     Assert.Equal("oldSuperValue", appSettings.Settings["superTestSetting"]?.Value);
                     Assert.Equal(untouched, appSettings.Settings["keyVaultSetting"]?.Value);
-                    Assert.Matches(kvregex ?? kvb_value, appSettings.Settings["superKeyVaultSetting"]?.Value);
-                    Assert.Equal(greedy ? 3 : 6, appSettings.Settings.Count);
+                    if (AzConfigHistoryInTact)
+                        Assert.Matches(kvregex ?? kvb_value, appSettings.Settings["superKeyVaultSetting"]?.Value);
+                    else
+                        Assert.Equal(untouched, appSettings.Settings["superKeyVaultSetting"]?.Value);
+                    Assert.Equal(greedy ? (AzConfigHistoryInTact ? 3 : 2) : 6, appSettings.Settings.Count);
                 }
                 else
                 {
@@ -416,12 +434,20 @@ namespace Test
                 if (oldTimes)
                 {
                     Assert.Equal(untouched ?? "altCaseTestValue", appSettings.Settings["casetestsetting"]?.Value);
-                    Assert.Equal("altTestValue", appSettings.Settings["testSetting"]?.Value);
+                    if (AzConfigHistoryInTact)
+                    {
+                        Assert.Equal("altTestValue", appSettings.Settings["testSetting"]?.Value);
+                        Assert.Matches(kvregex ?? kva_value_new, appSettings.Settings["keyVaultSetting"]?.Value);
+                    }
+                    else
+                    {
+                        Assert.Equal(untouched, appSettings.Settings["testSetting"]?.Value);
+                        Assert.Equal(untouched, appSettings.Settings["keyVaultSetting"]?.Value);
+                    }
                     Assert.Equal(untouched, appSettings.Settings["newTestSetting"]?.Value);
                     Assert.Equal(untouched, appSettings.Settings["superTestSetting"]?.Value);
-                    Assert.Matches(kvregex ?? kva_value_new, appSettings.Settings["keyVaultSetting"]?.Value);
                     Assert.Equal(untouched, appSettings.Settings["superKeyVaultSetting"]?.Value);
-                    Assert.Equal(greedy ? 3 : 6, appSettings.Settings.Count);
+                    Assert.Equal(greedy ? (AzConfigHistoryInTact ? 3 : 1): 6, appSettings.Settings.Count);
                 }
                 else
                 {
