@@ -46,7 +46,7 @@ namespace Test
 
 
         // Update this to true to enable AzConfig tests.
-        public static bool AppConfigTestsEnabled => true;
+        public static bool AppConfigTestsEnabled => false;
         // Update this to true if the structure of the config store matches what is described below.
         // OTOH, if the 'history' of the entries has been lost (cleared after 7 or 30 days depending
         // on the subscription plan) then only the most recent values remain and test verification
