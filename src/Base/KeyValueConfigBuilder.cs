@@ -215,6 +215,17 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                 });
             }
 
+            // Try to use CurrentConfiguration before falling back to ConfigurationManager. Otherwise OpenConfiguration()
+            // scenarios won't work because we're looking in the wrong processes AppSettings.
+            else if (CurrentSection?.CurrentConfiguration?.AppSettings is AppSettingsSection currentAppSettings)
+            {
+                configValue = Regex.Replace(configValue, _tokenPattern, (m) =>
+                {
+                    string settingName = m.Groups[1].Value;
+                    return (currentAppSettings.Settings[settingName]?.Value ?? m.Groups[0].Value);
+                });
+            }
+
             // All other config sections can just go through ConfigurationManager to get app settings though. :)
             else
             {
