@@ -40,6 +40,12 @@
         <NuGetContent Include="..\ConfigurationBuilders.Base.nupkg\shared\tools\Net471\pp\*.ps1">
           <Destination>tools\Net471\</Destination>
         </NuGetContent>
+        <NuGetContent Include="$(RepositoryRoot)\src\packages\assets\Readme-Azure.md">
+          <Destination>docs\Readme.md</Destination>
+        </NuGetContent>
+        <NuGetContent Include="$(RepositoryRoot)\src\packages\assets\dotnet-icon.png">
+          <Destination>images\dotnet-icon.png</Destination>
+        </NuGetContent>
     </ItemGroup>
     <Import Project="$(RepositoryRoot)Tools\NuGetProj.targets"/>
 </Project>

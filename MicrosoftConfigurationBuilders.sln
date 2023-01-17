@@ -102,6 +102,17 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{905D083F-6
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SamplesLib", "samples\SamplesLib\SamplesLib.csproj", "{BAA5EB76-5A85-48D6-9E8F-A01A309A2879}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "nuget-docs", "nuget-docs", "{1F8C44D6-1DF2-4CB0-9A93-AC6BF61034E5}"
+	ProjectSection(SolutionItems) = preProject
+		src\packages\assets\Readme-Azure.md = src\packages\assets\Readme-Azure.md
+		src\packages\assets\Readme-AzureAppConfig.md = src\packages\assets\Readme-AzureAppConfig.md
+		src\packages\assets\Readme-Environment.md = src\packages\assets\Readme-Environment.md
+		src\packages\assets\Readme-Json.md = src\packages\assets\Readme-Json.md
+		src\packages\assets\Readme-KeyPerFile.md = src\packages\assets\Readme-KeyPerFile.md
+		src\packages\assets\Readme-UserSecrets.md = src\packages\assets\Readme-UserSecrets.md
+		src\packages\assets\Readme.md = src\packages\assets\Readme.md
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -172,6 +183,7 @@ Global
 		{18D8B490-1CBC-4783-B6D7-D1A88E832224} = {2F759F48-7F89-4811-8F94-380BCCC83C69}
 		{0DBFA194-1632-40C0-A072-C59A9280412B} = {2F759F48-7F89-4811-8F94-380BCCC83C69}
 		{BAA5EB76-5A85-48D6-9E8F-A01A309A2879} = {2F759F48-7F89-4811-8F94-380BCCC83C69}
+		{1F8C44D6-1DF2-4CB0-9A93-AC6BF61034E5} = {905D083F-6414-4DEA-9779-76C8A2518F8D}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6380A53F-A088-4D0B-B415-C8D16222F022}

@@ -34,6 +34,12 @@
         <NuGetContent Include="Content\Net471\config.uninstall.xdt">
             <Destination>content\Net471\web.config.uninstall.xdt</Destination>
         </NuGetContent>
+        <NuGetContent Include="$(RepositoryRoot)\src\packages\assets\Readme.md">
+            <Destination>docs\Readme.md</Destination>
+        </NuGetContent>
+        <NuGetContent Include="$(RepositoryRoot)\src\packages\assets\dotnet-icon.png">
+          <Destination>images\dotnet-icon.png</Destination>
+        </NuGetContent>
     </ItemGroup>
     <Import Project="$(RepositoryRoot)Tools\NuGetProj.targets"/>
 </Project>
