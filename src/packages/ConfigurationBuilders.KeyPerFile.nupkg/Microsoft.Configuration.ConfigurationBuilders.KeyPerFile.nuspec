@@ -11,11 +11,12 @@
     <summary>A basic key/value Configuration Builder for the .Net Framework that draws single values from plain text files using the filename as the key.</summary>
     <language>en-US</language>
     <projectUrl>https://github.com/aspnet/MicrosoftConfigurationBuilders</projectUrl>
-    <iconUrl>http://go.microsoft.com/fwlink/?LinkID=288859</iconUrl>
+    <icon>images\dotnet-icon.png</icon>
     <licenseUrl>https://licenses.nuget.org/MIT</licenseUrl>
     <license type="expression">MIT</license>
     <requireLicenseAcceptance>true</requireLicenseAcceptance>
-    <tags>Microsoft Configuration Builders - KeyPerFile</tags>
+    <readme>docs\Readme.md</readme>
+    <tags>Microsoft Configuration Builders KeyPerFile</tags>
 
     <dependencies>
       <dependency id="Microsoft.Configuration.ConfigurationBuilders.Base" version="$NuGetPackageBaseDependencyVersion$" />

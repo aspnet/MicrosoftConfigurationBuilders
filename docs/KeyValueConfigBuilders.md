@@ -149,7 +149,7 @@ actual secret file will be xml formatted - though this should be considered an i
 (If you need to share a secrets.json file with Core projects, you could consider using the `SimpleJsonConfigBuilder` below... but as with this
 builder, the json format for Core secrets is technically an implementation detail subject to change as well.)
 
-There are three additional configuration attributes for this config builder:
+There are two additional configuration attributes for this config builder:
   * `userSecretsId` - This is the preferred method for identifying an xml secrets file. It works similar to .Net Core, which uses a 'UserSecretsId' project
   property to store this identifier. (The string does not have to be a Guid. Just unique. The VS "Manage User Secrets" experience produces a Guid.) With this
   attribute, the `UserSecretsConfigBuilder` will look in a well-known local location (%APPDATA%\Microsoft\UserSecrets\\&lt;userSecretsId&gt;\secrets.xml in
@@ -199,7 +199,7 @@ features.
 ```xml
 <add name="AzureAppConfig"
     [@mode|@enabled="enabled"|@charMap|@prefix|@stripPrefix|tokenPattern|@escapeExpandedValues]
-    (@endpoint="https://your-appconfig-store.azconfig.io" | @connectionString="Endpoint=https://your-appconfig-store.azconfig.io;Id=XXXXXXXXXX;Secret=XXXXXXXXXX")
+    (@endpoint="https://your-appconfig-store.azconfig.io" | <del>@connectionString="Endpoint=https://your-appconfig-store.azconfig.io;Id=XXXXXXXXXX;Secret=XXXXXXXXXX"</del>)
     [@keyFilter="string"]
     [@labelFilter="label"]
     [@acceptDateTime="DateTimeOffset"]
@@ -214,8 +214,9 @@ features.
 wish to use this new service for managing your configuration, then use this AzureAppConfigurationBuilder. Either `endpoint` or `connectionString` are
 required, but all other attributes are optional. If both `endpoint` and `connectionString` are used, then preference is given to the connection string.
   * `endpoint` - This specifies the AppConfiguration store to connect to.
-  * `connectionString` - This specifies the AppConfiguration store to connect to, along with the Id and Secret necessary to access the service. Be careful
-	not to expose any secrets in your code, repos, or App Configuration stores if you use this method for connecting.
+  * ~~`connectionString`~~ - The recommendation is to use `endpoint` in conjunction with [DefaultAzureCredential](#azure-config-builders). ~~This specifies
+    the AppConfiguration store to connect to, along with the Id and Secret necessary to access the service. Be careful
+	not to expose any secrets in your code, repos, or App Configuration stores if you use this method for connecting.~~
   * `keyFilter` - Use this to select a set of configuration values matching a certain key pattern.
   * `labelFilter` - Only retrieve configuration values that match a certain label.
   * `acceptDateTime` - Instead of versioning ala Azure Key Vault, AppConfiguration uses timestamps. Use this attribute to go back in time
@@ -234,7 +235,7 @@ required, but all other attributes are optional. If both `endpoint` and `connect
     [@preloadSecretNames="true"]
     type="Microsoft.Configuration.ConfigurationBuilders.AzureKeyVaultConfigBuilder, Microsoft.Configuration.ConfigurationBuilders.Azure" />
 ```
-If your secrets are kept in Azure Key Vault, then this config builder is for you. There are three additional attributes for this config builder. The `vaultName`
+If your secrets are kept in Azure Key Vault, then this config builder is for you. There are four additional attributes for this config builder. The `vaultName`
 attribute (or `uri`) is required. Previous iterations of this config builder allowed for a `connectionString` as a way to supply credential information for connecting to
 Azure Key Vault. This method is no longer allowed as it is not a supported scenario for the current `Azure.Identity` SDK which is used for connecting
 to Azure services. Instead, this iteration of the config builder exclusively uses [DefaultAzureCredential](https://docs.microsoft.com/en-us/dotnet/api/azure.identity.defaultazurecredential)
@@ -296,7 +297,7 @@ begins with 'Simple.' Think of the backing json file as a basic dictionary, rath
 
 (A multi-level heirarchical file can be used. This provider will simply 'flatten' the depth by appending the property name at each level using ':' as a delimiter.)
 
-There are three additional attributes that can be used to configure this builder:
+There are two additional attributes that can be used to configure this builder:
   * `jsonFile` - A required attribute specifying the json file to draw from. The '~' character can be used at the start to reference the app root.
   * `jsonMode` - `[Flat|Sectional]`. 'Flat' is the default.
     - This attribute requires a little more explanation. It says above to think of the json file as a single flat key/value source. This is the usual that applies to

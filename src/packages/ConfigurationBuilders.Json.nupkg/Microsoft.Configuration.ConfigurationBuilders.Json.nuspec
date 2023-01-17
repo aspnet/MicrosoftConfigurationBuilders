@@ -11,10 +11,11 @@
     <summary>A basic key/value Configuration Builder for the .Net Framework that draws from a json file.</summary>
     <language>en-US</language>
     <projectUrl>https://github.com/aspnet/MicrosoftConfigurationBuilders</projectUrl>
-    <iconUrl>http://go.microsoft.com/fwlink/?LinkID=288859</iconUrl>
+    <icon>images\dotnet-icon.png</icon>
     <licenseUrl>https://licenses.nuget.org/MIT</licenseUrl>
     <license type="expression">MIT</license>
     <requireLicenseAcceptance>true</requireLicenseAcceptance>
+    <readme>docs\Readme.md</readme>
     <tags>Microsoft Configuration Builders Json</tags>
 
     <dependencies>

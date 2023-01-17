@@ -184,7 +184,11 @@ Common build targets overwrites.
     <RebuildDependsOn>Clean;Build</RebuildDependsOn>
   </PropertyGroup>
 
-  <Target Name="BeforeBuild" />
+  <Target Name="BeforeBuild">
+    <ItemGroup>
+      <NuGetContent Remove="@(NuGetContent)"/>
+    </ItemGroup>
+  </Target>
   <Target Name="Build" DependsOnTargets="$(BuildDependsOn)" />
   <Target Name="AfterBuild" />
 
