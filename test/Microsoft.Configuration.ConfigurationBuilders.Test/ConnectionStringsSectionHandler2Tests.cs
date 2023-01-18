@@ -12,39 +12,38 @@ namespace Test
     public class ConnectionStringsSectionHandler2Tests : IDisposable
     {
         private static readonly string cssh2ConfigTemplate = @"<?xml version=""1.0"" encoding=""utf-8"" ?>
-<configuration>
+            <configuration>
 
-  <configSections>
-    <section name=""connectionStrings"" type=""System.Configuration.ConnectionStringsSection, System.Configuration, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a"" restartOnExternalChanges=""false"" requirePermission=""false""/>
-    <section name=""configBuilders"" type=""System.Configuration.ConfigurationBuildersSection, System.Configuration, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a"" restartOnExternalChanges=""false"" requirePermission=""false"" />
-    <section name=""Microsoft.Configuration.ConfigurationBuilders.SectionHandlers"" type=""Microsoft.Configuration.ConfigurationBuilders.SectionHandlersSection, Microsoft.Configuration.ConfigurationBuilders.Base"" restartOnExternalChanges=""false"" requirePermission=""false"" />
-  </configSections>
+              <configSections>
+                <section name=""connectionStrings"" type=""System.Configuration.ConnectionStringsSection, System.Configuration, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a"" restartOnExternalChanges=""false"" requirePermission=""false""/>
+                <section name=""configBuilders"" type=""System.Configuration.ConfigurationBuildersSection, System.Configuration, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a"" restartOnExternalChanges=""false"" requirePermission=""false"" />
+                <section name=""Microsoft.Configuration.ConfigurationBuilders.SectionHandlers"" type=""Microsoft.Configuration.ConfigurationBuilders.SectionHandlersSection, Microsoft.Configuration.ConfigurationBuilders.Base"" restartOnExternalChanges=""false"" requirePermission=""false"" />
+              </configSections>
 
-  <Microsoft.Configuration.ConfigurationBuilders.SectionHandlers>
-    <handlers>
-      <remove name=""DefaultConnectionStringsHandler"" />
-      <add name=""NewConnectionStringsHandler"" type=""Microsoft.Configuration.ConfigurationBuilders.ConnectionStringsSectionHandler2, Microsoft.Configuration.ConfigurationBuilders.Base"" />
-    </handlers>
-  </Microsoft.Configuration.ConfigurationBuilders.SectionHandlers>
+              <Microsoft.Configuration.ConfigurationBuilders.SectionHandlers>
+                <handlers>
+                  <remove name=""DefaultConnectionStringsHandler"" />
+                  <add name=""NewConnectionStringsHandler"" type=""Microsoft.Configuration.ConfigurationBuilders.ConnectionStringsSectionHandler2, Microsoft.Configuration.ConfigurationBuilders.Base"" />
+                </handlers>
+              </Microsoft.Configuration.ConfigurationBuilders.SectionHandlers>
 
-  <configBuilders>
-    <builders>
-      ###DEFINED_BUILDERS###
-    </builders>
-  </configBuilders>
+              <configBuilders>
+                <builders>
+                  ###DEFINED_BUILDERS###
+                </builders>
+              </configBuilders>
 
-  <connectionStrings configBuilders=""###APPLIED_BUILDERS###"">
-    <add name=""connStr0"" connectionString=""pre-existing 0 connStr"" providerName=""should not be touched"" />
-    <add name=""connStr2"" connectionString=""pre-existing 2 connStr"" />
-    <add name=""connStr3"" connectionString=""pre-existing 3 connStr"" providerName=""pre-defined 3 pName"" />
-    <add name=""${aNameFromJson}"" connectionString=""${connStr2:connectionString}"" providerName=""${connStr3:connectionString}"" />
-    <add name=""aNameFromJson"" connectionString=""${token_value}"" providerName=""leave me alone"" />
-    <add name=""weird"" connectionString=""${aNameFromJson}"" />
-  </connectionStrings>
+              <connectionStrings configBuilders=""###APPLIED_BUILDERS###"">
+                <add name=""connStr0"" connectionString=""pre-existing 0 connStr"" providerName=""should not be touched"" />
+                <add name=""connStr2"" connectionString=""pre-existing 2 connStr"" />
+                <add name=""connStr3"" connectionString=""pre-existing 3 connStr"" providerName=""pre-defined 3 pName"" />
+                <add name=""${aNameFromJson}"" connectionString=""${connStr2:connectionString}"" providerName=""${connStr3:connectionString}"" />
+                <add name=""aNameFromJson"" connectionString=""${token_value}"" providerName=""leave me alone"" />
+                <add name=""weird"" connectionString=""${aNameFromJson}"" />
+              </connectionStrings>
 
-</configuration>";
+            </configuration>";
         private readonly string jsonTestFileName = Path.Combine(Environment.CurrentDirectory, "testConfigFiles", "simpleJsonConnStrTest.json");
-        private List<string> tempFilesToCleanup = new List<string>();
 
         [Fact]
         public void CSSH2_Strict()
@@ -283,6 +282,7 @@ namespace Test
 
 
 
+        private List<string> tempFilesToCleanup = new List<string>();
         private Configuration LoadConfigFromString(string configString)
         {
             string cfg = configString;

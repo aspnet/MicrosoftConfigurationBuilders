@@ -204,37 +204,23 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             if (!_lazyInitializeStarted || String.IsNullOrWhiteSpace(configValue))
                 return configValue;
 
-            // If we are processing appSettings in ProcessConfigurationSection(), then we can use that. Other config builders in
-            // the chain before us have already finished, so this is a relatively consistent and logical state to draw from.
-            if (CurrentSection is AppSettingsSection appSettings && CurrentSection.SectionInformation?.SectionName == "appSettings")
+            configValue = Regex.Replace(configValue, _tokenPattern, (m) =>
             {
-                configValue = Regex.Replace(configValue, _tokenPattern, (m) =>
-                {
-                    string settingName = m.Groups[1].Value;
+                string settingName = m.Groups[1].Value;
+
+                // If we are processing appSettings in ProcessConfigurationSection(), then we can use that. Other config builders in
+                // the chain before us have already finished, so this is a relatively consistent and logical state to draw from.
+                if (CurrentSection is AppSettingsSection appSettings && CurrentSection.SectionInformation?.SectionName == "appSettings")
                     return (appSettings.Settings[settingName]?.Value ?? m.Groups[0].Value);
-                });
-            }
 
-            // Try to use CurrentConfiguration before falling back to ConfigurationManager. Otherwise OpenConfiguration()
-            // scenarios won't work because we're looking in the wrong processes AppSettings.
-            else if (CurrentSection?.CurrentConfiguration?.AppSettings is AppSettingsSection currentAppSettings)
-            {
-                configValue = Regex.Replace(configValue, _tokenPattern, (m) =>
-                {
-                    string settingName = m.Groups[1].Value;
+                // Try to use CurrentConfiguration before falling back to ConfigurationManager. Otherwise OpenConfiguration()
+                // scenarios won't work because we're looking in the wrong processes AppSettings.
+                else if (CurrentSection?.CurrentConfiguration?.AppSettings is AppSettingsSection currentAppSettings)
                     return (currentAppSettings.Settings[settingName]?.Value ?? m.Groups[0].Value);
-                });
-            }
 
-            // All other config sections can just go through ConfigurationManager to get app settings though. :)
-            else
-            {
-                configValue = Regex.Replace(configValue, _tokenPattern, (m) =>
-                {
-                    string settingName = m.Groups[1].Value;
-                    return (ConfigurationManager.AppSettings[settingName] ?? m.Groups[0].Value);
-                });
-            }
+                // All other config sections can just go through ConfigurationManager to get app settings though. :)
+                return (ConfigurationManager.AppSettings[settingName] ?? m.Groups[0].Value);
+            });
 
             _config[configName] = configValue;
             return configValue;
