@@ -23,7 +23,7 @@
             Release:	Third for Info and Package.
          Update package and file without touching assembly, except for major releases.
     -->
-    <BuildQuality Condition="'$(BuildQuality)' == ''">preview1</BuildQuality>
+    <BuildQuality Condition="'$(BuildQuality)' == ''">preview2</BuildQuality>
     <VersionStartYear>2022</VersionStartYear>
     <VersionMajor>3</VersionMajor>
     <VersionMinor>0</VersionMinor>
