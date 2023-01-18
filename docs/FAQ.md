@@ -149,22 +149,36 @@ some of the most frequent along with answers that are hopefully helpful.
 
 <a name="vstyperes"></a>
 <details>
-  <summary><b>Why do I get an error in Visual Studio when I switch my web app to use IIS instead of IISExpress?</b></summary>
+  <summary><b>Why do I get an error from Visual Studio when using my config builder?<br/>Or why does using IIS instead of IISExpress produce an error in Visual Studio?</b></summary>
   
->  Many reasons. The gist of the situation is this... When you switch your web application to run in IIS
->  instead of IISExpress, Visual Studio tries to read your config file to parse connection strings. I
->  believe it's looking for 'LocalDB', but that's not really important. Your web app's config file is
->  obviously not part of the process configuration for devenv.exe, so VS opens it via
->  `ConfigurationManager.OpenConfiguration()` or something similar. Prior to V3, this was likely to
->  result in failures in many of these key/value config builders if they were applied to the
->  `<connectionStrings>` section.
+>  There are many factors at play here. For the IIS/IISExpress scenario in particular (and likely
+>  most other scenarios where VS pops up an error dialog complaining about a failure to execute
+>  a config builder) the gist of the situation is this... When you switch your web application
+>  to run in IIS instead of IISExpress, Visual Studio tries to read your config file to parse
+>  connection strings. Obviously your applications's config file is not loaded as the active
+>  configuration for the Visual Studio (devenv.exe) process. So Visual Studio has to open it via
+>  `ConfigurationManager.OpenConfiguration()` or something similar in order to read the settings
+>  it needs.
 >
->  In V3, we handle the `ConfigurationManager.OpenConfiguration()` scenario better, but we can still
->  get tripped up by the insanely complicated way Visual Studio manages reference binding. As a result,
->  there may be version mis-matches when trying to load some builders. The Azure builders seem particularly
->  vulnerable to this. I haven't found a good way to deal with this.
+>  Versions 1 and 2 of these builders assumed they were always working on the active process
+>  config, and would go directly to `ConfigurationManager` to look up things like appSettings,
+>  builder definitions, or section handler configuration. This was likely to result in failures
+>  when working on a config section that was created in an `OpenConfiguration()` scenario,
+>  because the appSettings (or builder definition, etc) that we need probably doesn't exist
+>  in the active processes configuration. Rather, they probably exist in the `Configuration`
+>  object that was created by the call to `OpenConfiguration()`.
 >
->  **However,** even though the error appears in a scary dialog box, it does not affect the behavior of
->  your application. When running/debugging your app on local IIS, the config builders are still able to
->  execute as expected.
+>  Version 3 fixes this error, so these config builders should be more resilient in "OpenConfig()"
+>  scenarios.
+>
+>  However, Visual Studio still complicates things by using it's own custom assembly-resolving
+>  and binding algorithms. As a result, VS might not be able to find the assembly that contains
+>  the builder trying to run. Or more likely (as I've seen is the case with the 'Azure' config
+>  builders here), Visual Studio already has a version of a dependent library loaded, and when the
+>  config builder asks for a different version, a binding failure can arise. I haven't found a
+>  good way to deal with this.
+>
+>  **However,** even though the error appears in a scary dialog box, it should not affect the
+>  behavior of your application. When running/debugging your app on local IIS, the config builders
+>  are still able to execute at runtime as expected.
 </details>
