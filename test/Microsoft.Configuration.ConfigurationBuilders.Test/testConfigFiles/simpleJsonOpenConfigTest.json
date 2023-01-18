@@ -1,0 +1,19 @@
+{
+  // Comments are not allowed per the Json spec...
+  // ...but System.Text.Json should handle these gracefully.
+
+  "appSettings": {
+    "strictSetting": "newStrictValue",
+    "greedySetting": "newGreedyValue",
+    "csJsonEnabled": "not-enabled-cause-exception"
+  },
+
+  // ConnectionStrings section
+  "connectionStrings": {
+    "connStr1": "old-style connStr only",
+    "connStr2": {
+      "connectionString": "A value for cs2 from the CS subsection",
+      "providerName": "A value for cs2 provider name from the CS subsection"
+    }
+  }
+}

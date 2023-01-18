@@ -47,6 +47,7 @@
   <ItemGroup>
     <Compile Include="AzureAppConfigTests.cs" />
     <Compile Include="AzureTests.cs" />
+    <Compile Include="OpenConfigTests.cs" />
     <Compile Include="ConnectionStringsSectionHandler2Tests.cs" />
     <Compile Include="TestHelper.cs" />
     <Compile Include="RecursionTests.cs" />
@@ -110,6 +111,9 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="testConfigFiles\simpleJsonConflict.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="testConfigFiles\simpleJsonOpenConfigTest.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="testConfigFiles\simpleJsonConnStrTest.json">
