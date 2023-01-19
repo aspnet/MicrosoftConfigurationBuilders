@@ -1,8 +1,6 @@
 # Implementing More Key/Value Config Builders
 
-If you don't see a config builder here that suits your needs, you can write your own. Referencing the `Basic` nuget package for this project will get you the base upon which
-all of these builders inherit. Most of the heavy-ish lifting and consistent behavior across key/value config builders comes from this base. Take a look at the code for more
-detail, but in many cases implementing a custom key/value config builder in this same vein is as easy as inheriting the base, and implementing two basic methods.
+If you don't see a config builder here that suits your needs, you can write your own. Referencing the `Basic` nuget package for this project will get you the base upon which all of these builders inherit. Most of the heavy-ish lifting and consistent behavior across key/value config builders comes from this base. Take a look at the code for more detail, but in many cases implementing a custom key/value config builder in this same vein is as easy as inheriting the base, and implementing two basic methods.
 ```CSharp
 using Microsoft.Configuration.ConfigurationBuilders;
 
