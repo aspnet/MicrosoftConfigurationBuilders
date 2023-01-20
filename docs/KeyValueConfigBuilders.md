@@ -85,7 +85,8 @@ Although most initialization parameters can take advantage of this flexibility, 
 
 
 ## Config Builders In This Project
-*Note about following codeboxes: Parameters inside `[]`s are optional. Parameters grouped in `()`s are mutually exclusive. Parameters beginning with `@` allow appSettings substitution. The first line of parameters are common to all builders and optional. Their meaning and use are [documented above](#introduction-to-keyvalue-config-builders) and they are grouped on one line for brevity. Whenever a builder has a different default value for a given parameter, the differing default is also listed.
+> **Note**
+> Parameters inside `[]`s are optional. Parameters grouped in `()`s are mutually exclusive. Parameters beginning with `@` allow appSettings substitution. The first line of parameters are common to all builders and optional. Their meaning and use are [documented above](#introduction-to-keyvalue-config-builders) and they are grouped on one line for brevity. Whenever a builder has a different default value for a given parameter, the differing default is also listed.
 
 ### EnvironmentConfigBuilder
 ```xml
@@ -94,7 +95,8 @@ Although most initialization parameters can take advantage of this flexibility, 
     type="Microsoft.Configuration.ConfigurationBuilders.EnvironmentConfigBuilder, Microsoft.Configuration.ConfigurationBuilders.Environment" />
 ```
 This is the most basic of the config builders. It draws its values from Environment, and it does not have any additional configuration options.
-  * __NOTE:__ In a Windows container environment, variables set at run time are only injected into the EntryPoint process environment. Applications that run as a service or a non-EntryPoint process will not pick up these variables unless they are otherwise injected through some mechanism in the container. For [IIS](https://github.com/Microsoft/iis-docker/pull/41)/[ASP.Net](https://github.com/Microsoft/aspnet-docker)-based containers, the current version of [ServiceMonitor.exe](https://github.com/Microsoft/iis-docker/pull/41) handles this in the *DefaultAppPool* only. Other Windows-based container variants may need to develop their own injection mechanism for non-EntryPoint processes.
+> **Note**
+> In a Windows container environment, variables set at run time are only injected into the EntryPoint process environment. Applications that run as a service or a non-EntryPoint process will not pick up these variables unless they are otherwise injected through some mechanism in the container. For [IIS](https://github.com/Microsoft/iis-docker/pull/41)/[ASP.Net](https://github.com/Microsoft/aspnet-docker)-based containers, the current version of [ServiceMonitor.exe](https://github.com/Microsoft/iis-docker/pull/41) handles this in the *DefaultAppPool* only. Other Windows-based container variants may need to develop their own injection mechanism for non-EntryPoint processes.
 
 ### UserSecretsConfigBuilder
 ```xml
@@ -127,8 +129,7 @@ Both builders make use of [`DefaultAzureCredential`](https://docs.microsoft.com/
 
 In a similar vein to `GetCredential()`, builders who need finer control over the way it connects to Azure, the `GetConfigurationClientOptions()` and `GetSecretClientOptions()` virtual methods have been added to the Azure config builders to support special scenarios. (For example, connecting to Azure through a proxy.)
 
->:information_source: [NOTE]
->
+> **Note**
 > These packages both currently depend on version ***1.2*** of the `Azure.Identity` nuget package. This version was chosen because it has a fairly comprehensive list of capabilities for `DefaultAzureCredential` but also is a relatively early version of this SDK package. This way these builders won't be responsible for forcing unwanted package upgrades when not necessary. However, `DefaultAzureCredential` [frequently picks up new capabilies](https://github.com/Azure/azure-sdk-for-net/blob/main/sdk/identity/Azure.Identity/CHANGELOG.md), and users are encouraged to manually update the version of `Azure.Identity` their application uses if they want to take advantage of new features.
 
 #### AzureAppConfigurationBuilder
@@ -142,8 +143,7 @@ In a similar vein to `GetCredential()`, builders who need finer control over the
     [@useAzureKeyVault="bool"]
     type="Microsoft.Configuration.ConfigurationBuilders.AzureAppConfigurationBuilder, Microsoft.Configuration.ConfigurationBuilders.AzureAppConfiguration" />
 ```
->:information_source: [NOTE]
->
+> **Note**
 > When connecting to an Azure App Configuration store, the identity that is being used must be assigned either the `Azure App Configuration Data Reader` role or the `Azure App Configuration Data Owner` role. Otherwise the config builder will encounter a "403 Forbidden" response from Azure and throw an exception if not `optional`.
 
 [AppConfiguration](https://docs.microsoft.com/en-us/azure/azure-app-configuration/overview) is a new offering from Azure. If you wish to use this new service for managing your configuration, then use this AzureAppConfigurationBuilder. Either `endpoint` or `connectionString` are required, but all other attributes are optional. If both `endpoint` and `connectionString` are used, then preference is given to the connection string.
@@ -169,8 +169,7 @@ If your secrets are kept in Azure Key Vault, then this config builder is for you
   * `version` - Azure Key Vault provides a versioning feature for secrets. If this is specified, the builder will only retrieve secrets matching this version.
   * `preloadSecretNames` - By default, this builder will query __all__ the key names in the key vault when it is initialized to improve performance. If this is a concern, set this attribute to 'false', and secrets will be retrieved one at a time. This could also be useful if the vault allows "Get" access but not "List" access. (NOTE: Disabling preload is incompatible with Greedy mode.)
 
->:information_source: [NOTE]
->
+> **Note**
 > Azure Key Vault uses random per-secret Guid assignments for versioning, which makes specifying a secret `version` tag on this builder rather limiting, as it will only ever update one config value. To make version handling more useful, V2 of this builder takes advantage of the new key-updating feature to allow users to specify version tags in key names rather than on the config builder declaration. That way, the same builder can handle multiple keys with specific versions instead of needing to redefine multiple builders. When requesting a specific version for a particular key, the key name in the original config file should look like __`keyName/versionId`__. The AzureKeyVaultConfigBuilder will only substitue values for 'keyName' if the specified 'versionId' exists in the vault. When that happens, the AzureKeyVaultConfigBuilder will remove the `/versionId` from the original key, and the resulting config section will only contain `keyName`. For example:
 > ```xml
 > <appSettings configBuilders="AzureKeyVault">
