@@ -34,13 +34,6 @@
     <NuGetPackageBaseDependencyVersion>$(VersionMajor).$(VersionMinor).$(VersionRelease)</NuGetPackageBaseDependencyVersion>
   </PropertyGroup>
 
-  <!-- Azure App Config is versioned 1 behind everyone else. -->
-  <PropertyGroup Label="Azure App Config adjustments" Condition="$(MSBuildProjectName.Contains('AzureAppConfig'))">
-    <VersionMajor>$([MSBuild]::Subtract($(VersionMajor), 1))</VersionMajor>
-    <NuGetPackageVersion>$(VersionMajor).$(VersionMinor).$(VersionRelease)</NuGetPackageVersion>
-    <!-- Leave <NuGetPackageBaseDependencyVersion> untouched. -->
-  </PropertyGroup>
-
   <!-- Add release type for non-RTM releases. -->
   <PropertyGroup Label="Prerelease version adjustments" Condition="'$(BuildQuality)' != 'rtm'">
     <VersionRelease>$(VersionRelease)-$(BuildQuality)</VersionRelease>
