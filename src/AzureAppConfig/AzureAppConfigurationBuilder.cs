@@ -22,14 +22,14 @@ namespace Microsoft.Configuration.ConfigurationBuilders
     /// </summary>
     public class AzureAppConfigurationBuilder : KeyValueConfigBuilder
     {
-        #pragma warning disable CS1591 // No xml comments for tag literals.
+#pragma warning disable CS1591 // No xml comments for tag literals.
         public const string endpointTag = "endpoint";
         public const string connectionStringTag = "connectionString";
         public const string keyFilterTag = "keyFilter";
         public const string labelFilterTag = "labelFilter";
         public const string dateTimeFilterTag = "acceptDateTime";
         public const string useKeyVaultTag = "useAzureKeyVault";
-        #pragma warning restore CS1591 // No xml comments for tag literals.
+#pragma warning restore CS1591 // No xml comments for tag literals.
 
         /// <summary>
         /// Gets or sets the Uri of the config store to connect to.
@@ -221,10 +221,16 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         }
 
         /// <summary>
-        /// Gets a <see cref="TokenCredential"/> to authenticate with App Configuration. This defaults to <see cref="DefaultAzureCredential"/>.
+        /// Gets a <see cref="TokenCredential"/> to authenticate with App Configuration including Key-Value references to Key Vault. This defaults to <see cref="DefaultAzureCredential"/>.
         /// </summary>
         /// <returns>A token credential.</returns>
         protected virtual TokenCredential GetCredential() => new DefaultAzureCredential();
+
+        /// <summary>
+        /// Gets a <see cref="SecretClientOptions"/> to initialize the Key Vault SecretClient with. This defaults to a new <see cref="SecretClientOptions"/>.
+        /// </summary>
+        /// <returns>A token credential.</returns>
+        protected virtual SecretClientOptions GetSecretClientOptions() => new SecretClientOptions();
 
         /// <summary>
         /// Gets a <see cref="ConfigurationClientOptions"/> to initialize the Key Vault SecretClient with. This defaults to a new <see cref="ConfigurationClientOptions"/>.
@@ -384,7 +390,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
         private SecretClient GetSecretClient(KeyVaultSecretIdentifier identifier)
         {
-            return _kvClientCache.GetOrAdd(identifier.VaultUri, uri => new SecretClient(identifier.VaultUri, new DefaultAzureCredential()));
+            return _kvClientCache.GetOrAdd(identifier.VaultUri, uri => new SecretClient(identifier.VaultUri, GetCredential(), GetSecretClientOptions()));
         }
     }
 }
