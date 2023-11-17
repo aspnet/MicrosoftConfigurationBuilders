@@ -22,14 +22,14 @@ namespace Microsoft.Configuration.ConfigurationBuilders
     /// </summary>
     public class AzureAppConfigurationBuilder : KeyValueConfigBuilder
     {
-#pragma warning disable CS1591 // No xml comments for tag literals.
+        #pragma warning disable CS1591 // No xml comments for tag literals.
         public const string endpointTag = "endpoint";
         public const string connectionStringTag = "connectionString";
         public const string keyFilterTag = "keyFilter";
         public const string labelFilterTag = "labelFilter";
         public const string dateTimeFilterTag = "acceptDateTime";
         public const string useKeyVaultTag = "useAzureKeyVault";
-#pragma warning restore CS1591 // No xml comments for tag literals.
+        #pragma warning restore CS1591 // No xml comments for tag literals.
 
         /// <summary>
         /// Gets or sets the Uri of the config store to connect to.
