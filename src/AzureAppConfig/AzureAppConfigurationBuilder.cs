@@ -221,21 +221,22 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         }
 
         /// <summary>
-        /// Gets a <see cref="TokenCredential"/> to authenticate with App Configuration including Key-Value references to Key Vault. This defaults to <see cref="DefaultAzureCredential"/>.
+        /// Gets a <see cref="TokenCredential"/> to authenticate with App Configuration including Key-Value references to Azure Key Vault. This defaults to <see cref="DefaultAzureCredential"/>.
         /// </summary>
         /// <returns>A token credential.</returns>
         protected virtual TokenCredential GetCredential() => new DefaultAzureCredential();
 
         /// <summary>
-        /// Gets a <see cref="SecretClientOptions"/> to initialize the Key Vault SecretClient with. This defaults to a new <see cref="SecretClientOptions"/>.
+        /// Gets a <see cref="SecretClientOptions"/> to initialize the Key Vault <see cref="SecretClient"/> with. This defaults to a new <see cref="SecretClientOptions"/>.
         /// </summary>
-        /// <returns>A token credential.</returns>
+        /// <returns>A <see cref="SecretClientOptions"/> instance.</returns>
+        /// <remarks>The <see cref="SecretClient"/> is used here to read Azure App Configuration key-value references to Azure Key Vault.</remarks>
         protected virtual SecretClientOptions GetSecretClientOptions() => new SecretClientOptions();
 
         /// <summary>
-        /// Gets a <see cref="ConfigurationClientOptions"/> to initialize the Key Vault SecretClient with. This defaults to a new <see cref="ConfigurationClientOptions"/>.
+        /// Gets a <see cref="ConfigurationClientOptions"/> to initialize <see cref="ConfigurationClient"/> with. This defaults to a new <see cref="ConfigurationClientOptions"/>.
         /// </summary>
-        /// <returns>A token credential.</returns>
+        /// <returns>A <see cref="ConfigurationClientOptions"/> instance.</returns>
         protected virtual ConfigurationClientOptions GetConfigurationClientOptions() => new ConfigurationClientOptions();
 
         private async Task<string> GetValueAsync(string key)
