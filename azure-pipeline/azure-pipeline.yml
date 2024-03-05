@@ -1,0 +1,144 @@
+# This Yaml Document has been converted by ESAI Yaml Pipeline Conversion Tool.
+# Please make sure to check all the converted content, it is your team's responsibility to make sure that the pipeline is still valid and functions as expected.
+# The SBOM tasks have been removed because they are not required for the unofficial template.
+# You can manually enable SBOM in the unofficial template if needed, othewise its automatically enabled when using official template. https://eng.ms/docs/cloud-ai-platform/devdiv/one-engineering-system-1es/1es-docs/1es-pipeline-templates/features/sbom
+# This pipeline will be extended to the MicroBuild template
+# The Task 'PublishBuildArtifacts@1' has been converted to an output named 'Publish Artifact: Nuget packages' in the templateContext section.
+trigger: none
+resources:
+  repositories:
+  - repository: self
+    type: git
+    ref: refs/heads/main
+  - repository: MicroBuildTemplate
+    type: git
+    name: 1ESPipelineTemplates/MicroBuildTemplate
+    ref: refs/tags/release
+name: $(Date:yyyyMMdd).$(Rev:r)
+variables:
+- name: EnableNuGetPackageRestore
+  value: true
+- name: Packaging.EnableSBOMSigning
+  value: true
+- name: SkipAzureAppConfigProj
+  value: false
+- name: SkipAzureProj
+  value: false
+- name: SkipEnvironmentProj
+  value: false
+- name: SkipJsonProj
+  value: false
+- name: SkipKeyPerFileProj
+  value: false
+- name: SkipPackageRestore
+  value: true
+- name: SkipUserSecretsProj
+  value: false
+- name: TeamName
+  value: Asp.Net
+extends:
+  template: azure-pipelines/MicroBuild.1ES.Official.yml@MicroBuildTemplate
+  parameters:
+    sdl:
+      sourceAnalysisPool:
+        name: AzurePipelines-EO
+        image: 1ESPT-Windows2022
+        os: windows
+    customBuildTags:
+    - ES365AIMigrationTooling
+    stages:
+    - stage: stage
+      jobs:
+      - job: Phase_1
+        displayName: Phase 1
+        timeoutInMinutes: 120
+        cancelTimeoutInMinutes: 1
+        pool:
+          name: VSEngSS-MicroBuild2022-1ES
+        templateContext:
+          mb:
+            signing:
+              enabled: true
+          outputs:
+          - output: pipelineArtifact
+            displayName: 'Publish Artifact: Nuget packages'
+            targetPath: $(Build.SourcesDirectory)\.binaries\Packages\Release
+            artifactName: Nuget packages
+        steps:
+        - checkout: self
+          clean: true
+          fetchTags: true
+          persistCredentials: True
+        - task: NuGetToolInstaller@0
+          displayName: Use NuGet 5.4.0
+          inputs:
+            versionSpec: 5.4.0
+            checkLatest: true
+        - task: NuGetCommand@2
+          displayName: NuGet custom
+          inputs:
+            command: custom
+            arguments: install MicroBuild.Core -version 0.3.0 -OutputDirectory .\packages -source https://devdiv.pkgs.visualstudio.com/DefaultCollection/_packaging/MicroBuildToolset/nuget/v3/index.json
+        - task: NuGetCommand@2
+          displayName: NuGet restore
+          inputs:
+            solution: MicrosoftConfigurationBuilders.sln
+        - task: MSBuild@1
+          displayName: Build solution MicrosoftConfigurationBuilders.msbuild
+          inputs:
+            solution: MicrosoftConfigurationBuilders.msbuild
+            msbuildVersion: 17.0
+            msbuildArchitecture: x64
+            configuration: Release
+            msbuildArguments: /p:GitCommit=%BUILD_SOURCEVERSION% /p:GitCommitLink="https://github.com/aspnet/MicrosoftConfigurationBuilders/commit/%BUILD_SOURCEVERSION%" /p:SignType=real /p:SignAssembly=true /verbosity:n
+            clean: true
+            createLogFile: true
+            logFileVerbosity: detailed
+          timeoutInMinutes: 120
+        - task: CopyFiles@2
+          displayName: Stage dll's for verification
+          inputs:
+            SourceFolder: $(Build.SourcesDirectory)\.binaries\bin\Release
+            Contents: Microsoft.Configuration.ConfigurationBuilders.*.dll
+            TargetFolder: $(Build.SourcesDirectory)\.binaries\verify\dlls
+            CleanTargetFolder: true
+            OverWrite: true
+        - task: CopyFiles@2
+          displayName: Stage nupkg's for verification
+          inputs:
+            SourceFolder: $(Build.SourcesDirectory)\.binaries\Packages\Release
+            Contents: |
+              Microsoft.Configuration.ConfigurationBuilders.*.nupkg
+              !*.symbols.nupkg
+            TargetFolder: $(Build.SourcesDirectory)\.binaries\verify\packages
+            CleanTargetFolder: true
+            OverWrite: true
+        - task: ms-vseng.MicroBuildShipTasks.7c429315-71ba-4cb3-94bb-f829c95f7915.MicroBuildCodesignVerify@1
+          displayName: Verify Signed Binaries
+          inputs:
+            TargetFolder: $(Build.SourcesDirectory)\.binaries\verify\dlls
+            ExcludeFolders: .git MicroBuild apiscan
+        - task: ms-vseng.MicroBuildShipTasks.7c429315-71ba-4cb3-94bb-f829c95f7915.MicroBuildCodesignVerify@1
+          displayName: Verify Signed Packages
+          inputs:
+            TargetFolder: $(Build.SourcesDirectory)\.binaries\verify\packages
+            WhiteListPathForCerts: tools/.verif.whitelist
+            ExcludeFolders: .git MicroBuild decomp *.xml
+        - task: CmdLine@2
+          displayName: Map ConnectionString for ApiScan
+          inputs:
+            script: |
+              @echo off
+              REM Per the documentation here - https://docs.microsoft.com/en-us/azure/devops/pipelines/process/variables?view=azure-devops&tabs=classic%2Cbatch#set-variables-in-scripts
+              REM
+              REM We can set/update pipeline variables using the syntax used below. That way we can use a script task to
+              REM pull secrets into the environment for APIScan to use, since the ApiScan task does not have an 'Environment'
+              REM section for mapping secrets in classic pipelines.
+              REM
+              REM Make sure the pipeline secret variable 'AzureServicesAuthConnectionString' is set. It's format is like
+              REM   "runAs=App;AppId={AppId};TenantId={TenantId};AppKey={ClientSecret}"
+              REM The values for that connStr can be found in the Tellurium Key Vault.
+              @echo ##vso[task.setvariable variable=AzureServicesAuthConnectionString]%MappedConnectionString%
+          continueOnError: true
+          env:
+            MappedConnectionString: $(AzureServicesAuthConnectionStringSecret)
