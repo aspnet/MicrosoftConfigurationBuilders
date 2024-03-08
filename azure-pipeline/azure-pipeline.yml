@@ -54,7 +54,7 @@ extends:
         timeoutInMinutes: 120
         cancelTimeoutInMinutes: 1
         pool:
-          name: VSEngSS-MicroBuild2022-1ES
+          name: VSEngSS-MicroBuild2019-1ES
         templateContext:
           mb:
             signing:
