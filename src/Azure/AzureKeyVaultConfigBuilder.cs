@@ -166,9 +166,9 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         protected virtual TokenCredential GetCredential() => new DefaultAzureCredential();
 
         /// <summary>
-        /// Gets a <see cref="SecretClientOptions"/> to initialize the Key Vault SecretClient with. This defaults to a new <see cref="SecretClientOptions"/>.
+        /// Gets a <see cref="SecretClientOptions"/> to initialize the Key Vault <see cref="SecretClient"/> with. This defaults to a new <see cref="SecretClientOptions"/>.
         /// </summary>
-        /// <returns>A token credential.</returns>
+        /// <returns>SecretClientOptions instance.</returns>
         protected virtual SecretClientOptions GetSecretClientOptions() => new SecretClientOptions();
         
         
