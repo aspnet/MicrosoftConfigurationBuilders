@@ -5,6 +5,12 @@
 # This pipeline will be extended to the MicroBuild template
 # The Task 'PublishBuildArtifacts@1' has been converted to an output named 'Publish Artifact: Nuget packages' in the templateContext section.
 trigger: none
+schedules:
+- cron: "0 0 14 * *"
+  branches:
+    include:
+    - main
+  always: true
 resources:
   repositories:
   - repository: self
@@ -40,6 +46,8 @@ extends:
   template: azure-pipelines/MicroBuild.1ES.Official.yml@MicroBuildTemplate
   parameters:
     sdl:
+      policheck:
+        enable: true
       sourceAnalysisPool:
         name: AzurePipelines-EO
         image: 1ESPT-Windows2022
@@ -97,8 +105,6 @@ extends:
             createLogFile: true
             logFileVerbosity: detailed
           timeoutInMinutes: 120
-          # to delete
-          continueOnError: true
         - task: CopyFiles@2
           displayName: Stage dll's for verification
           inputs:
@@ -107,8 +113,6 @@ extends:
             TargetFolder: $(Build.SourcesDirectory)\.binaries\verify\dlls
             CleanTargetFolder: true
             OverWrite: true
-          # to delete
-          continueOnError: true
         - task: CopyFiles@2
           displayName: Stage nupkg's for verification
           inputs:
@@ -119,38 +123,27 @@ extends:
             TargetFolder: $(Build.SourcesDirectory)\.binaries\verify\packages
             CleanTargetFolder: true
             OverWrite: true
-          # to delete
-          continueOnError: true
         - task: ms-vseng.MicroBuildShipTasks.7c429315-71ba-4cb3-94bb-f829c95f7915.MicroBuildCodesignVerify@1
           displayName: Verify Signed Binaries
           inputs:
             TargetFolder: $(Build.SourcesDirectory)\.binaries\verify\dlls
             ExcludeFolders: .git MicroBuild apiscan
-          # to delete
-          continueOnError: true
         - task: ms-vseng.MicroBuildShipTasks.7c429315-71ba-4cb3-94bb-f829c95f7915.MicroBuildCodesignVerify@1
           displayName: Verify Signed Packages
           inputs:
             TargetFolder: $(Build.SourcesDirectory)\.binaries\verify\packages
             WhiteListPathForCerts: tools/.verif.whitelist
             ExcludeFolders: .git MicroBuild decomp *.xml
-          # to delete
-          continueOnError: true
-        - task: CmdLine@2
-          displayName: Map ConnectionString for ApiScan
+        # Following article on https://dev.azure.com/devdiv/DevDiv/_wiki/wikis/DevDiv.wiki/25351/APIScan-step-by-step-guide-to-setting-up-a-Pipeline
+        # No longer need the old format, and following guideline to use (ApiScanClientId)
+        - task: APIScan@2
+          displayName: Run APIScan
           inputs:
-            script: |
-              @echo off
-              REM Per the documentation here - https://docs.microsoft.com/en-us/azure/devops/pipelines/process/variables?view=azure-devops&tabs=classic%2Cbatch#set-variables-in-scripts
-              REM
-              REM We can set/update pipeline variables using the syntax used below. That way we can use a script task to
-              REM pull secrets into the environment for APIScan to use, since the ApiScan task does not have an 'Environment'
-              REM section for mapping secrets in classic pipelines.
-              REM
-              REM Make sure the pipeline secret variable 'AzureServicesAuthConnectionString' is set. It's format is like
-              REM   "runAs=App;AppId={AppId};TenantId={TenantId};AppKey={ClientSecret}"
-              REM The values for that connStr can be found in the Tellurium Key Vault.
-              @echo ##vso[task.setvariable variable=AzureServicesAuthConnectionString]%MappedConnectionString%
-          continueOnError: true
+            softwareFolder: '$(Build.SourcesDirectory)\.binaries\verify\dlls'
+            softwareName: 'Microsoft.Configuration.ConfigurationBuilders.*'
+            softwareVersionNum: '*'
+            softwareBuildNum: '$(Build.BuildId)'
+            symbolsFolder: '$(Build.SourcesDirectory)\.binaries\bin\Release;SRV*http://symweb'
+            verbosityLevel: 'none'
           env:
-            MappedConnectionString: $(AzureServicesAuthConnectionStringSecret)
+            AzureServicesAuthConnectionString: RunAs=App;AppId=$(ApiScanClientId)
