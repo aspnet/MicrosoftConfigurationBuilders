@@ -384,7 +384,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
         private SecretClient GetSecretClient(KeyVaultSecretIdentifier identifier)
         {
-            return _kvClientCache.GetOrAdd(identifier.VaultUri, uri => new SecretClient(identifier.VaultUri, new DefaultAzureCredential()));
+            return _kvClientCache.GetOrAdd(identifier.VaultUri, uri => new SecretClient(identifier.VaultUri, GetCredential()));
         }
     }
 }
