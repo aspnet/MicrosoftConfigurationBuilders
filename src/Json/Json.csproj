@@ -55,6 +55,10 @@
     <PackageReference Include="System.Text.Json">
       <Version>4.7.1</Version>
     </PackageReference>
+    <!-- This was a transitive dependency, lifted to top-level for component governance reasons. -->
+    <PackageReference Include="System.Text.Encodings.Web">
+      <Version>4.7.2</Version>
+    </PackageReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

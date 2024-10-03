@@ -20,8 +20,8 @@
 
     <dependencies>
       <dependency id="Microsoft.Configuration.ConfigurationBuilders.Base" version="$NuGetPackageBaseDependencyVersion$" />
-      <dependency id="Azure.Security.KeyVault.Secrets" version="4.0.0" />
-      <dependency id="Azure.Identity" version="1.2.1" />
+      <dependency id="Azure.Security.KeyVault.Secrets" version="4.4.0" />
+      <dependency id="Azure.Identity" version="1.11.4" />
     </dependencies>
   </metadata>
 </package>
