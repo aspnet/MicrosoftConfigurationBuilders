@@ -21,6 +21,7 @@
     <dependencies>
       <dependency id="Microsoft.Configuration.ConfigurationBuilders.Base" version="$NuGetPackageBaseDependencyVersion$" />
       <dependency id="System.Text.Json" version="4.7.1" />
+      <dependency id="System.Text.Encodings.Web" version="4.7.2" />
     </dependencies>
   </metadata>
 </package>
