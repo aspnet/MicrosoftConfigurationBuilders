@@ -9,7 +9,7 @@ Project global versioning targets.
   <!-- NOTE: The VersionFileAttribute ItemGroup can be used to add assembly-level attributes to the generated version file, ex:
   <VersionFileAttribute Include="[assembly: System.Diagnostics.CodeAnalysis.SuppressMessage(&quot;Microsoft.Usage&quot;, &quot;CA2243:AttributeStringLiteralsShouldParseCorrectly&quot;, Justification = &quot;Justification here&quot;)]" />
   -->
-  
+
   <PropertyGroup>
     <VersionFileGenerationEnabled Condition="'$(VersionFileGenerationEnabled)' == '' AND '$(MSBuildProjectExtension)' == '.csproj'">true</VersionFileGenerationEnabled>
     <VersionFileGenerationEnabled Condition="'$(VersionFileGenerationEnabled)' == ''">false</VersionFileGenerationEnabled>
@@ -19,27 +19,22 @@ Project global versioning targets.
     <VersionStartYear Condition="'$(VersionStartYear)' == ''">INVALID_VersionStartYear</VersionStartYear>
     <VersionMajor Condition="'$(VersionMajor)' == ''">INVALID_VersionMajor</VersionMajor>
     <VersionMinor Condition="'$(VersionMinor)' == ''">INVALID_VersionMinor</VersionMinor>
-    <VersionBuild Condition="'$(VersionBuild)' == '' OR '$(VersionBuild)' == '0'">$([MSBuild]::Add(1, $([MSBuild]::Subtract($([System.DateTime]::Now.Year), $(VersionStartYear)))))$([System.DateTime]::Now.ToString("MMdd"))</VersionBuild>
-    <VersionRevision Condition="'$(VersionRevision)' == ''">0</VersionRevision>
     <VersionRelease Condition="'$(VersionRelease)' == ''">0</VersionRelease>
+    <VersionRevision Condition="'$(VersionRevision)' == ''">0</VersionRevision>
+    <VersionBuild Condition="'$(VersionBuild)' == '' OR '$(VersionBuild)' == '0'">$([MSBuild]::Add(1, $([MSBuild]::Subtract($([System.DateTime]::Now.Year), $(VersionStartYear)))))$([System.DateTime]::Now.ToString("MMdd"))</VersionBuild>
   </PropertyGroup>
 
   <!-- Comptued parameters -->
 
   <PropertyGroup>
     <AssemblyVersion>$(VersionMajor).$(VersionMinor).0.$(VersionRevision)</AssemblyVersion>
-    <AssemblyFileVersion>$(VersionMajor).$(VersionMinor).$(VersionBuild).$(VersionRevision)</AssemblyFileVersion>
-    <AssemblyInfoVersion Condition="'$(VersionRelease)' != ''">$(VersionMajor).$(VersionMinor).$(VersionRelease)-$(VersionBuild)</AssemblyInfoVersion>
-    <AssemblyInfoVersion Condition="'$(AssemblyInfoVersion)' == ''">$(AssemblyFileVersion)</AssemblyInfoVersion>
+    <AssemblyFileVersion>$(VersionMajor).$(VersionMinor).$(VersionRelease).$(VersionBuild)</AssemblyFileVersion>
     <AssemblyVersionFile>$(IntermediateOutputPath)$(MSBuildProjectName).version.cs</AssemblyVersionFile>
   </PropertyGroup>
 
   <PropertyGroup>
     <NuGetPackageVersion Condition="'$(NuGetPackageVersion)' == ''">$(VersionMajor).$(VersionMinor).$(VersionRelease)</NuGetPackageVersion>
-  </PropertyGroup>
-
-  <PropertyGroup>
-    <SatelliteContractVersion Condition="'$(SatelliteContractVersion)' == ''">$(AssemblyVersion)</SatelliteContractVersion>
+    <NuGetPackageVersion Condition="'$(BuildQuality)' != 'rtm'">$(NuGetPackageVersion)-$(BuildQuality)</NuGetPackageVersion>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(VersionFileGenerationEnabled)' == 'true'">
@@ -71,7 +66,22 @@ Project global versioning targets.
   </PropertyGroup>
   <Target Name="GenerateVersionFile" DependsOnTargets="$(GenerateVersionFileDependsOn)" />
 
-  <Target Name="GenerateVersionFileCore" Condition="'$(ShouldGenerateVersionFile)' == 'true'">
+  <Target Name="EnsureGitInfo" Condition="'$(GitCommit)' == ''">
+    <Exec Command="git describe --match= --always --dirty --abbrev=40" ConsoleToMSBuild="true" IgnoreExitCode="false" ContinueOnError="true" >
+      <Output PropertyName="GitDescribeOutput" TaskParameter="ConsoleOutput" />
+      <Output PropertyName="GitDescribeExit" TaskParameter="ExitCode" />
+    </Exec>
+    <PropertyGroup Condition="'$(GitDescribeExit)' == '0'">
+      <GitCommit>$(GitDescribeOutput)</GitCommit>
+    </PropertyGroup>
+  </Target>
+
+  <Target Name="GenerateVersionFileCore" Condition="'$(ShouldGenerateVersionFile)' == 'true'" DependsOnTargets="EnsureGitInfo">
+    <PropertyGroup>
+      <AssemblyInfoVersion Condition="'$(GitCommit)' != ''">$(VersionMajor).$(VersionMinor).$(VersionRelease)+$(GitCommit)</AssemblyInfoVersion>
+      <AssemblyInfoVersion Condition="'$(AssemblyInfoVersion)' == '' AND '$(VersionBuild)' != ''">$(VersionMajor).$(VersionMinor).$(VersionRelease)-$(VersionBuild)</AssemblyInfoVersion>
+      <AssemblyInfoVersion Condition="'$(AssemblyInfoVersion)' == ''">$(AssemblyFileVersion)</AssemblyInfoVersion>
+    </PropertyGroup>
     <ItemGroup>
       <LinesToWrite Include="// $(SourceFileCopyright)" Condition="'$(SourceFileCopyright)' != ''"/>
       <LinesToWrite Include="// &lt;auto-generated&gt;" />
