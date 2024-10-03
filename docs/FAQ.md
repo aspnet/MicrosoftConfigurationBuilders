@@ -35,7 +35,7 @@ some of the most frequent along with answers that are hopefully helpful.
 
 <a name="aspnet-wcf"></a>
 <details>
-  <summary><b>Can I use these builders on the `<system.web>` or `<system.serviceModel>` sections?</b></summary>
+  <summary><b>Can I use these builders on the `&lt;system.web&gt;` or `&lt;system.serviceModel&gt;` sections?</b></summary>
 
   > Sort of. Technically, configuration builders cannot be applied to the `system.web` and `system.serviceModel`
   > sections because they are not truly `ConfigurationSection`s. Rather, they are `ConfigurationSectionGroup`s -
@@ -46,7 +46,7 @@ some of the most frequent along with answers that are hopefully helpful.
   >
   > However, these `ConfigurationGroup`s obviously contain a set of `ConfigurationSection`s - and you can
   > apply a `ConfigurationBuilder` to those sections. For example, to apply a custom "ReferenceAssemblyInjection"
-  > builder to the `<system.web/compilation>` section, you would simply apply it to that section
+  > builder to the `&lt;system.web/compilation&gt;` section, you would simply apply it to that section
   > like this:
   > ```xml
   > <system.web>
@@ -62,9 +62,9 @@ some of the most frequent along with answers that are hopefully helpful.
 
 <a name="webserver"></a>
 <details>
-  <summary><b>Can you use these builders on the `<system.webServer>` section?</b></summary>
+  <summary><b>Can you use these builders on the `&lt;system.webServer&gt;` section?</b></summary>
 
-  > No. The `<system.webServer>` section is declared as an `IgnoreSection` in the .Net configuration system.
+  > No. The `&lt;system.webServer&gt;` section is declared as an `IgnoreSection` in the .Net configuration system.
   > Therefore, the .Net config system does not process it at all, and the `ConfigurationBuilder` system never
   > kicks into action for this section.
 </details>
