@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Specialized;
 using System.Configuration;
-
+using System.Diagnostics;
 using Azure;
 using Azure.Identity;
 using Azure.Security.KeyVault.Secrets;
@@ -32,55 +32,123 @@ namespace Test
 
     public class AzureTests
     {
-        private readonly string commonKeyVault;
-        private readonly string customKeyVault;
-        private readonly string customVersionCurrent;
-        private readonly string customVersionOld;
-        private readonly string customVersionNotExist = "abcVersionDoesNotExistXyz";
+        private static readonly string placeholderKeyVault = "placeholder-KeyVault";
+        private static readonly string commonKeyVault;
+        private static readonly string customKeyVault;
+        private static readonly string customVersionCurrent;
+        private static readonly string customVersionOld;
+        private static readonly string customVersionNotExist = "abcVersionDoesNotExistXyz";
+        private static Exception StaticCtorException;
 
-        public static bool AzureTestsEnabled => false;
+        public static bool AzureTestsEnabled
+        {
+            get
+            {
+                // Convenience for local development. Leave this commented when committing.
+                //return false;
 
+                // If we have connection info, consider these tests enabled.
+                if (String.IsNullOrWhiteSpace(commonKeyVault))
+                    return false;
+                if (String.IsNullOrWhiteSpace(customKeyVault))
+                    return false;
+                return true;
+            }
+        }
+
+        static AzureTests()
+        {
+            commonKeyVault = Environment.GetEnvironmentVariable("Microsoft.Configuration.ConfigurationBuilders.Test.AKV.Common");
+            customKeyVault = Environment.GetEnvironmentVariable("Microsoft.Configuration.ConfigurationBuilders.Test.AKV.Custom");
+
+            // If tests are disabled, there is no need to do anything in here.
+            if (!AzureTestsEnabled) { return; }
+
+            try
+            {
+                // The Common KeyVault gets verified/filled out, but is assumed to already exist.
+                SecretClient commonClient = new SecretClient(new Uri($"https://{commonKeyVault}.vault.azure.net"), new DefaultAzureCredential());
+                foreach (string key in CommonBuilderTests.CommonKeyValuePairs)
+                {
+                    EnsureCurrentSecret(commonClient, key, CommonBuilderTests.CommonKeyValuePairs[key]);
+                }
+
+                // The Custom KeyVault also gets verified/filled out and also is assumed to already exist.
+                //      mapped-test-key == mappedValue
+                //      versioned-key == versionedValue-Current
+                //                       versionedValue-Older
+                // The actual version string of the versioned key does not matter. Just have at least two enabled versions.
+                SecretClient customClient = new SecretClient(new Uri($"https://{customKeyVault}.vault.azure.net"), new DefaultAzureCredential());
+                EnsureCurrentSecret(customClient, "mapped-test-key", "mappedValue");
+                // Secrets that get created in the absence of the correct key/value are the active version by default. Be sure to
+                // check for the expected active value last.
+                var vSecret = EnsureActiveSecret(customClient, "versioned-key", "versionedValue-Older");
+                customVersionOld = vSecret.Properties.Version;
+                vSecret = EnsureCurrentSecret(customClient, "versioned-key", "versionedValue-Current");
+                customVersionCurrent = vSecret.Properties.Version;
+            }
+            catch (Exception ex)
+            {
+                StaticCtorException = ex;
+            }
+        }
         public AzureTests()
         {
-            // The Common KeyVault gets verified/filled out, but is assumed to already exist.
-            commonKeyVault = Environment.GetEnvironmentVariable("Microsoft.Configuration.ConfigurationBuilders.Test.AKV.Common");
-            SecretClient commonClient = new SecretClient(new Uri($"https://{commonKeyVault}.vault.azure.net"), new DefaultAzureCredential());
-            foreach (string key in CommonBuilderTests.CommonKeyValuePairs)
-            {
-                try
-                {
-                    var secret = commonClient.GetSecret(key).Value;
+            // Errors in the static constructor get swallowed by the testrunner. :(
+            // But this hacky method will bubble up any exceptions we encounter there.
+            if (StaticCtorException != null)
+                throw new Exception("Static ctor encountered an exception:", StaticCtorException);
+        }
 
-                    // Make sure it's not hidden
+        internal static KeyVaultSecret EnsureActiveSecret(SecretClient client, string key, string value)
+        {
+            try
+            {
+                foreach (var prop in client.GetPropertiesOfSecretVersions(key))
+                {
+                    var secret = client.GetSecret(key, prop.Version).Value;
+
+                    if (secret.Value == value)
+                    {
+                        // Make sure it's active
+                        if (!secret.Properties.Enabled.GetValueOrDefault())
+                        {
+                            secret.Properties.Enabled = true;
+                            client.UpdateSecretProperties(secret.Properties);
+                        }
+
+                        return secret;
+                    }
+                }
+            }
+            catch (RequestFailedException) { }
+
+            // Didn't find the secret, so create it now.
+            return client.SetSecret(key, value);
+        }
+
+        internal static KeyVaultSecret EnsureCurrentSecret(SecretClient client, string key, string value)
+        {
+            try
+            {
+                var secret = client.GetSecret(key).Value;
+
+                if (secret != null && secret.Value == value)
+                {
+                    // Make sure it's active
                     if (!secret.Properties.Enabled.GetValueOrDefault())
                     {
                         secret.Properties.Enabled = true;
-                        commonClient.UpdateSecretProperties(secret.Properties);
+                        client.UpdateSecretProperties(secret.Properties);
                     }
 
-                    // Make sure it's got the correct value
-                    if (secret.Value != CommonBuilderTests.CommonKeyValuePairs[key])
-                        commonClient.SetSecret(key, CommonBuilderTests.CommonKeyValuePairs[key]);
-                }
-                catch (RequestFailedException)
-                {
-                    // Didn't find the secret, so create it now.
-                    commonClient.SetSecret(key, CommonBuilderTests.CommonKeyValuePairs[key]);
+                    return secret;
                 }
             }
+            catch (RequestFailedException) { }
 
-            // The Custom KeyVault is assumed to exist and already be filled out. Do just one quick sanity value check. It looks like this:
-            //      mapped-test-key == mappedValue
-            //      versioned-key == versionedValue-Current
-            //                       versionedValue-Older
-            // The actual version string of the versioned key does not matter. Just have at least two enabled versions.
-            customKeyVault = Environment.GetEnvironmentVariable("Microsoft.Configuration.ConfigurationBuilders.Test.AKV.Custom");
-            SecretClient customClient = new SecretClient(new Uri($"https://{customKeyVault}.vault.azure.net"), new DefaultAzureCredential());
-            var vaultCheck = customClient.GetSecret("versioned-key")?.Value;
-            customVersionCurrent = vaultCheck.Properties.Version;
-            foreach (SecretProperties secretProps in customClient.GetPropertiesOfSecretVersions("versioned-key"))
-                if (secretProps.Enabled.Value && secretProps.Version != customVersionCurrent)
-                    customVersionOld = secretProps.Version;
+            // Didn't find the secret, so create it now.
+            return client.SetSecret(key, value);
         }
 
         // ======================================================================
@@ -110,15 +178,15 @@ namespace Test
         // ======================================================================
         //   AzureKeyVault parameters
         // ======================================================================
-        [KeyVaultFact]
+        [Fact]
         public void AzureKeyVault_DefaultSettings()
         {
             var builder = TestHelper.CreateBuilder<AzureKeyVaultConfigBuilder>(() => new AzureKeyVaultConfigBuilder(), "AzureKeyVaultDefault",
-                new NameValueCollection() { { "vaultName", customKeyVault } });
+                new NameValueCollection() { { "vaultName", placeholderKeyVault } });
 
             // VaultName, Uri
-            Assert.Equal(customKeyVault, builder.VaultName);
-            Assert.Equal($"https://{customKeyVault}.vault.azure.net", builder.Uri);
+            Assert.Equal(placeholderKeyVault, builder.VaultName);
+            Assert.Equal($"https://{placeholderKeyVault}.vault.azure.net", builder.Uri);
 
             // Version
             Assert.Null(builder.Version);
@@ -138,55 +206,59 @@ namespace Test
             Assert.Equal("-", builder.CharacterMap["\\"]);
         }
 
-        [KeyVaultFact]
+        [Fact]
         public void AzureKeyVault_Settings()
         {
             // VaultName is case insensitive, Uri follows.
             var builder = TestHelper.CreateBuilder<AzureKeyVaultConfigBuilder>(() => new AzureKeyVaultConfigBuilder(), "AzureKeyVaultSettings1",
-                new NameValueCollection() { { "VauLTnaMe", customKeyVault } });
-            Assert.Equal(customKeyVault, builder.VaultName);
-            Assert.Equal($"https://{customKeyVault}.vault.azure.net", builder.Uri);
+                new NameValueCollection() { { "VauLTnaMe", placeholderKeyVault } });
+            Assert.Equal(placeholderKeyVault, builder.VaultName);
+            Assert.Equal($"https://{placeholderKeyVault}.vault.azure.net", builder.Uri);
 
             // Empty Uri, but valid vaultName
             builder = TestHelper.CreateBuilder<AzureKeyVaultConfigBuilder>(() => new AzureKeyVaultConfigBuilder(), "AzureKeyVaultSettings2",
-                new NameValueCollection() { { "vaultName", customKeyVault }, { "uri", "" } });
-            Assert.Equal($"https://{customKeyVault}.vault.azure.net", builder.Uri);
-            Assert.Equal(customKeyVault, builder.VaultName);
+                new NameValueCollection() { { "vaultName", placeholderKeyVault }, { "uri", "" } });
+            Assert.Equal($"https://{placeholderKeyVault}.vault.azure.net", builder.Uri);
+            Assert.Equal(placeholderKeyVault, builder.VaultName);
 
             // Uri is case insensitive, VaultName is not inferred.
             builder = TestHelper.CreateBuilder<AzureKeyVaultConfigBuilder>(() => new AzureKeyVaultConfigBuilder(), "AzureKeyVaultSettings3",
-                new NameValueCollection() { { "uRI", $"https://{customKeyVault}.VaulT.Azure.NET" } });
-            Assert.Equal($"https://{customKeyVault}.VaulT.Azure.NET", builder.Uri);
+                new NameValueCollection() { { "uRI", $"https://{placeholderKeyVault}.VaulT.Azure.NET" } });
+            Assert.Equal($"https://{placeholderKeyVault}.VaulT.Azure.NET", builder.Uri);
             Assert.Null(builder.VaultName);
 
             // Both Uri and VaultName. Uri wins.
             builder = TestHelper.CreateBuilder<AzureKeyVaultConfigBuilder>(() => new AzureKeyVaultConfigBuilder(), "AzureKeyVaultSettings4",
-                new NameValueCollection() { { "vaultName", customKeyVault }, { "uri", $"https://{customKeyVault}.vAUlt.AzUre.NET" } });
-            Assert.Equal($"https://{customKeyVault}.vAUlt.AzUre.NET", builder.Uri);
+                new NameValueCollection() { { "vaultName", placeholderKeyVault }, { "uri", $"https://{placeholderKeyVault}.vAUlt.AzUre.NET" } });
+            Assert.Equal($"https://{placeholderKeyVault}.vAUlt.AzUre.NET", builder.Uri);
             Assert.Null(builder.VaultName);
 
             // Uri with invalid VaultName. Uri wins and everything is ok.
             builder = TestHelper.CreateBuilder<AzureKeyVaultConfigBuilder>(() => new AzureKeyVaultConfigBuilder(), "AzureKeyVaultSettings5",
-                new NameValueCollection() { { "vaultName", "invalid_vault_name" }, { "uri", $"https://{customKeyVault}.vAUlt.AzUre.NET" } });
-            Assert.Equal($"https://{customKeyVault}.vAUlt.AzUre.NET", builder.Uri);
+                new NameValueCollection() { { "vaultName", "invalid_vault_name" }, { "uri", $"https://{placeholderKeyVault}.vAUlt.AzUre.NET" } });
+            Assert.Equal($"https://{placeholderKeyVault}.vAUlt.AzUre.NET", builder.Uri);
             Assert.Null(builder.VaultName);
 
             // Preload is case insensitive for name and value.
             builder = TestHelper.CreateBuilder<AzureKeyVaultConfigBuilder>(() => new AzureKeyVaultConfigBuilder(), "AzureKeyVaultSettings6",
-                new NameValueCollection() { { "vaultName", customKeyVault }, { "PreLoadsecretNAMEs", "TrUe" } });
-            Assert.Equal(customKeyVault, builder.VaultName);
-            Assert.Equal($"https://{customKeyVault}.vault.azure.net", builder.Uri);
+                new NameValueCollection() { { "vaultName", placeholderKeyVault }, { "PreLoadsecretNAMEs", "TrUe" } });
+            Assert.Equal(placeholderKeyVault, builder.VaultName);
+            Assert.Equal($"https://{placeholderKeyVault}.vault.azure.net", builder.Uri);
             Assert.True(builder.Preload);
 
-            // Request secrets with mapped characters. Two keys => same secret is ok. Strict [CharMapping happens before GetValue; use PCS()]
-            builder = TestHelper.CreateBuilder<AzureKeyVaultConfigBuilder>(() => new AzureKeyVaultConfigBuilder(), "AzureKeyVaultSettings7",
-                new NameValueCollection() { { "vaultName", customKeyVault } });
-            ValidateExpectedConfig(builder);
+            // These tests require executing the builder, which needs a valid endpoint.
+            if (AzureTestsEnabled)
+            {
+                // Request secrets with mapped characters. Two keys => same secret is ok. Strict [CharMapping happens before GetValue; use PCS()]
+                builder = TestHelper.CreateBuilder<AzureKeyVaultConfigBuilder>(() => new AzureKeyVaultConfigBuilder(), "AzureKeyVaultSettings7",
+                    new NameValueCollection() { { "vaultName", customKeyVault } });
+                ValidateExpectedConfig(builder);
 
-            // Request secrets with mapped characters. Two keys => same secret is ok. Greedy [CharMapping happens before GetAllValues; use PCS()]
-            builder = TestHelper.CreateBuilder<AzureKeyVaultConfigBuilder>(() => new AzureKeyVaultConfigBuilder(), "AzureKeyVaultSettings8",
-                new NameValueCollection() { { "vaultName", customKeyVault }, { "mode", "Greedy" } });
-            ValidateExpectedConfig(builder);
+                // Request secrets with mapped characters. Two keys => same secret is ok. Greedy [CharMapping happens before GetAllValues; use PCS()]
+                builder = TestHelper.CreateBuilder<AzureKeyVaultConfigBuilder>(() => new AzureKeyVaultConfigBuilder(), "AzureKeyVaultSettings8",
+                    new NameValueCollection() { { "vaultName", customKeyVault }, { "mode", "Greedy" } });
+                ValidateExpectedConfig(builder);
+            }
         }
 
         [KeyVaultTheory]
@@ -194,6 +266,10 @@ namespace Test
         [InlineData(false)]
         public void AzureKeyVault_Version(bool preload)
         {
+            var customKeyVault = Environment.GetEnvironmentVariable("Microsoft.Configuration.ConfigurationBuilders.Test.AKV.Custom");
+            SecretClient customClient = new SecretClient(new Uri($"https://{customKeyVault}.vault.azure.net"), new DefaultAzureCredential());
+            var vSecret = EnsureActiveSecret(customClient, "versioned-key", "versionedValue-Older");
+
             // Version is case insensitive
             var builder = TestHelper.CreateBuilder<AzureKeyVaultConfigBuilder>(() => new AzureKeyVaultConfigBuilder(), "AzureKeyVaultVersion1",
                 new NameValueCollection() { { "vaultName", customKeyVault }, { "vERsIOn", customVersionCurrent }, { "preloadSecretNames", preload.ToString() } });
@@ -273,7 +349,7 @@ namespace Test
         // ======================================================================
         //   Errors
         // ======================================================================
-        [KeyVaultTheory]
+        [Theory]
         [InlineData(KeyValueEnabled.Optional)]
         [InlineData(KeyValueEnabled.Enabled)]
         [InlineData(KeyValueEnabled.Disabled)]
@@ -326,7 +402,7 @@ namespace Test
             // ConnectionString and vaultName given
             exception = Record.Exception(() => {
                 builder = TestHelper.CreateBuilder<AzureKeyVaultConfigBuilder>(() => new AzureKeyVaultConfigBuilder(), "AzureKeyVaultErrors5",
-                    new NameValueCollection() { { "vaultName", customKeyVault }, { "ConNecTioNstRinG", "does not matter" }, { "enabled", enabled.ToString() } });
+                    new NameValueCollection() { { "vaultName", placeholderKeyVault }, { "ConNecTioNstRinG", "does not matter" }, { "enabled", enabled.ToString() } });
             });
             if (enabled != KeyValueEnabled.Disabled)
                 TestHelper.ValidateWrappedException<ArgumentException>(exception, "AzureKeyVaultErrors5");
@@ -336,7 +412,7 @@ namespace Test
             // ConnectionString and Uri given
             exception = Record.Exception(() => {
                 builder = TestHelper.CreateBuilder<AzureKeyVaultConfigBuilder>(() => new AzureKeyVaultConfigBuilder(), "AzureKeyVaultErrors6",
-                    new NameValueCollection() { { "uri", $"https://{customKeyVault}.vault.azure.net" }, { "ConNecTioNstRinG", "does not matter" }, { "enabled", enabled.ToString() } });
+                    new NameValueCollection() { { "uri", $"https://{placeholderKeyVault}.vault.azure.net" }, { "ConNecTioNstRinG", "does not matter" }, { "enabled", enabled.ToString() } });
             });
             if (enabled != KeyValueEnabled.Disabled)
                 TestHelper.ValidateWrappedException<ArgumentException>(exception, "AzureKeyVaultErrors6");
@@ -346,7 +422,7 @@ namespace Test
             // !Preload and Greedy disagree
             exception = Record.Exception(() => {
                 builder = TestHelper.CreateBuilder<AzureKeyVaultConfigBuilder>(() => new AzureKeyVaultConfigBuilder(), "AzureKeyVaultErrors7",
-                    new NameValueCollection() { { "vaultName", customKeyVault }, { "mode", "Greedy" }, { "preloadSecretNames", "false" }, { "enabled", enabled.ToString() } });
+                    new NameValueCollection() { { "vaultName", placeholderKeyVault }, { "mode", "Greedy" }, { "preloadSecretNames", "false" }, { "enabled", enabled.ToString() } });
             });
             if (enabled != KeyValueEnabled.Disabled)
                 TestHelper.ValidateWrappedException<ArgumentException>(exception, "AzureKeyVaultErrors7");
