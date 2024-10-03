@@ -25,6 +25,7 @@
     -->
     <BuildQuality Condition="'$(BuildQuality)' == ''">rtm</BuildQuality>
     <VersionStartYear>2022</VersionStartYear>
+    <!-- Update version in config.xdt's for major/minor changes. (Don't update for 'release' changes.) -->
     <VersionMajor>3</VersionMajor>
     <VersionMinor>0</VersionMinor>
     <VersionRevision>0</VersionRevision>
