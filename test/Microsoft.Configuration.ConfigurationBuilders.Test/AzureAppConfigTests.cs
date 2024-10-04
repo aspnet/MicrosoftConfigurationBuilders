@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Configuration;
 using System.Web;
+using Azure.Core;
 using Azure.Data.AppConfiguration;
 using Azure.Identity;
 using Azure.Security.KeyVault.Secrets;
@@ -317,7 +318,7 @@ namespace Test
         [InlineData(KeyValueEnabled.Optional)]
         [InlineData(KeyValueEnabled.Enabled)]
         [InlineData(KeyValueEnabled.Disabled)]
-        public void AzureKeyVault_ErrorsOptional(KeyValueEnabled enabled)
+        public void AzureAppConfig_ErrorsOptional(KeyValueEnabled enabled)
         {
             AzureAppConfigurationBuilder builder = null;
 
@@ -418,6 +419,21 @@ namespace Test
                     Assert.Null(builder.GetValue("bad%FilterFetchesThisValue"));
                 });
                 Assert.Null(exception);
+
+                // Unauthorized access
+                exception = Record.Exception(() =>
+                {
+                    builder = TestHelper.CreateBuilder<BadCredentialAppConfigBuilder>(() => new BadCredentialAppConfigBuilder(), "AzureAppConfigErrors10",
+                        new NameValueCollection() { { "endpoint", customEndPoint }, { "enabled", enabled.ToString() } });
+                    // Azure SDK connects lazily, so the invalid credential won't be caught until we make the KV client try to use it.
+                    Assert.Null(builder.GetValue("doesNotExist"));
+                });
+                if (enabled == KeyValueEnabled.Enabled) // We called GetValue() directly, so the exception will not be wrapped
+                    TestHelper.ValidateBasicException<AuthenticationFailedException>(exception, "ClientSecretCredential authentication failed", "not-a-valid");
+                else
+                    Assert.Null(exception);
+
+                // TODO: Can we do one with an unauthorized access to key-vault?
             }
 
             // TODO: Can we produce an invalid KeyVault reference? That should throw an error.
@@ -618,6 +634,15 @@ namespace Test
                     Assert.Equal(greedy ? 2 : 6, appSettings.Settings.Count);
                 }
             }
+        }
+
+        private class BadCredentialAppConfigBuilder : AzureAppConfigurationBuilder
+        {
+            protected override TokenCredential GetCredential() => new ClientSecretCredential("not-a-valid-tenantid", "not-a-valid-clientid", "not-a-valid-clientsecret");
+
+            protected override ConfigurationClientOptions GetConfigurationClientOptions() => base.GetConfigurationClientOptions();
+
+            protected override SecretClientOptions GetSecretClientOptions() => base.GetSecretClientOptions();
         }
     }
 }

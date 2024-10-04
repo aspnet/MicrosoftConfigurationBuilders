@@ -74,12 +74,16 @@ namespace Test
             Assert.NotNull(e);
             Assert.NotNull(e.InnerException);
 
+            // Verify we are unwrapping the type of exception we expect
+            if (!(e is KeyValueConfigBuilderException || e is KeyValueConfigurationErrorsException))
+                Assert.IsType<KeyValueConfigBuilderException>(e);
+
+            // Verify inner exception
+            ValidateBasicException(e.InnerException, exceptionType);
+
+            // Verify top-level message
             if (builder != null)
                 Assert.Contains(builder.Name, e.Message);
-
-            if (exceptionType != null)
-                Assert.IsType(exceptionType, e.InnerException);
-
             foreach (string msg in msgs)
                 Assert.Contains(msg, e.Message);
         }
@@ -94,20 +98,27 @@ namespace Test
             ValidateWrappedException(e, builder, typeof(T), msgs);
         }
 
-        public static void ValidateBasicException(Exception e, string msg = null, Type exceptionType = null)
+        public static void ValidateBasicException(Exception e, Type exceptionType = null, params string[] msgs)
         {
+            if (e is AggregateException ae)
+            {
+                foreach (var ie in ae.InnerExceptions)
+                    ValidateBasicException(ie, exceptionType, msgs);
+                return;
+            }
+
             Assert.NotNull(e);
 
-            if (msg != null)
+            foreach (string msg in msgs)
                 Assert.Contains(msg, e.Message);
 
             if (exceptionType != null)
                 Assert.IsType(exceptionType, e);
         }
 
-        public static void ValidateBasicException<T>(Exception e, string msg = null) where T : Exception
+        public static void ValidateBasicException<T>(Exception e, params string[] msgs) where T : Exception
         {
-            ValidateBasicException(e, msg, typeof(T));
+            ValidateBasicException(e, typeof(T), msgs);
         }
 
         static readonly string rawXmlInput = @"

@@ -239,6 +239,44 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// <returns>A <see cref="ConfigurationClientOptions"/> instance.</returns>
         protected virtual ConfigurationClientOptions GetConfigurationClientOptions() => new ConfigurationClientOptions();
 
+        /// <summary>
+        /// Returns a Boolean value indicating whether the given exception is should be considered an optional issue that
+        /// should be ignored or whether the exception should bubble up. This should consult <see cref="KeyValueConfigBuilder.IsOptional"/>.
+        /// </summary>
+        /// <param name="e"></param>
+        /// <returns>A Boolean to indicate whether the exception should be ignored.</returns>
+        // TODO: This should be considered for moving into KeyValueConfigBuilder as a virtual method in a major update.
+        // But for now, leave it here since we don't want to force a hard tie between minor versions of these packages.
+        protected bool ExceptionIsOptional(Exception e)
+        {
+            // Failed Azure requests have different meanings
+            if (e is RequestFailedException rfex)
+            {
+                // There was an error connecting over the web. DNS, timeout, etc.
+                if (rfex.InnerException is System.Net.WebException we)
+                    return IsOptional;
+
+                // ConfigClient will not throw this exception for not-found values.
+                // But resolving KeyVault config references still might encounter these cases.
+
+                // Secret wasn't found - This is ok at all times. It just means we asked for a value
+                // and Key Vault doesn't have it. Move along.
+                if (rfex.Status == 404 || rfex.Status == 400)
+                    return true;
+
+                // Access was denied
+                if (rfex.Status == 403)
+                    return IsOptional;
+            }
+
+            // All Auth exceptions are potentially optional
+            if (e is AuthenticationRequiredException || e is AuthenticationFailedException || e is CredentialUnavailableException)
+                return IsOptional;
+
+            // Even when 'optional', don't catch things unless we're certain we know what it is.
+            return false;
+        }
+
         private async Task<string> GetValueAsync(string key)
         {
             if (_client == null)
@@ -273,18 +311,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
                     if (UseAzureKeyVault && current is SecretReferenceConfigurationSetting secretReference)
                     {
-                        try
-                        {
-                            return await GetKeyVaultValue(secretReference);
-                        }
-                        catch (Exception)
-                        {
-                            // 'Optional' plays a double role with this provider. Being optional means it is
-                            // ok for us to fail to resolve a keyvault reference. If we are not optional though,
-                            // we want to make some noise when a reference fails to resolve.
-                            if (!IsOptional)
-                                throw;
-                        }
+                        return await GetKeyVaultValue(secretReference);
                     }
 
                     return current.Value;
@@ -294,7 +321,11 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                     await enumerator.DisposeAsync();
                 }
             }
-            catch (Exception e) when (IsOptional && ((e.InnerException is System.Net.Http.HttpRequestException) || (e.InnerException is UnauthorizedAccessException))) { }
+            catch (AggregateException ae)
+            {
+                ae.Handle((ex) => ExceptionIsOptional(ex)); // Re-throws if not optional
+            }
+            catch (Exception e) when (ExceptionIsOptional(e)) { }
 
             return null;
         }
@@ -348,14 +379,11 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                             {
                                 configValue = await GetKeyVaultValue(secretReference);
                             }
-                            catch (Exception)
+                            catch (AggregateException ae)
                             {
-                                // 'Optional' plays a double role with this provider. Being optional means it is
-                                // ok for us to fail to resolve a keyvault reference. If we are not optional though,
-                                // we want to make some noise when a reference fails to resolve.
-                                if (!IsOptional)
-                                    throw;
+                                ae.Handle((ex) => ExceptionIsOptional(ex)); // Re-throws if not optional
                             }
+                            catch (Exception e) when (ExceptionIsOptional(e)) { }
                         }
 
                         if (!data.ContainsKey(setting.Key))
@@ -368,7 +396,11 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                         await enumerator.DisposeAsync();
                 }
             }
-            catch (Exception e) when (IsOptional && ((e.InnerException is System.Net.Http.HttpRequestException) || (e.InnerException is UnauthorizedAccessException))) { }
+            catch (AggregateException ae)
+            {
+                ae.Handle((ex) => ExceptionIsOptional(ex)); // Re-throws if not optional
+            }
+            catch (Exception e) when (ExceptionIsOptional(e)) { }
 
             return data;
         }
