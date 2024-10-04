@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 
 using Azure;
@@ -170,8 +171,47 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// </summary>
         /// <returns>SecretClientOptions instance.</returns>
         protected virtual SecretClientOptions GetSecretClientOptions() => new SecretClientOptions();
-        
-        
+
+        /// <summary>
+        /// Returns a Boolean value indicating whether the given exception is should be considered an optional issue that
+        /// should be ignored or whether the exception should bubble up. This should consult <see cref="KeyValueConfigBuilder.IsOptional"/>.
+        /// </summary>
+        /// <param name="e"></param>
+        /// <returns>A Boolean to indicate whether the exception should be ignored.</returns>
+        // TODO: This should be considered for moving into KeyValueConfigBuilder as a virtual method in a major update.
+        // But for now, leave it here since we don't want to force a hard tie between minor versions of these packages.
+        protected bool ExceptionIsOptional(Exception e)
+        {
+            // Failed Azure requests have different meanings
+            if (e is RequestFailedException rfex)
+            {
+                // .ErrorCode doesn't always get populated. :/ But we can still check HTTP status.
+                // "BadParameter" = 400
+                // "Forbidden" == 403
+                // "SecretNotFound" == 404
+
+                // Secret wasn't found - This is ok at all times. It just means we asked for a value
+                // and Key Vault doesn't have it. Move along.
+                if (rfex.Status == 404 || rfex.Status == 400)
+                    return true;
+
+                // Access was denied
+                if (rfex.Status == 403)
+                    return IsOptional;
+
+                // There was an error connecting over the web. DNS, timeout, etc.
+                if (rfex.InnerException is System.Net.WebException we)
+                    return IsOptional ;
+            }
+
+            // All Auth exceptions are potentially optional
+            if (e is AuthenticationRequiredException || e is AuthenticationFailedException || e is CredentialUnavailableException)
+                return IsOptional;
+
+            // Even when 'optional', don't catch things unless we're certain we know what it is.
+            return false;
+        }
+
 
         /// <summary>
         /// Retrieves all known key/value pairs from the Key Vault where the key begins with with <paramref name="prefix"/>.
@@ -237,21 +277,11 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                 if (secret != null && secret.Properties.Enabled.GetValueOrDefault())
                     return secret;
             }
-            catch (RequestFailedException rfex)
+            catch (AggregateException ae)
             {
-                // Simply return null if the secret wasn't found
-                //if (rfex.ErrorCode == "SecretNotFound" || rfex.ErrorCode == "BadParameter")
-                // .ErrorCode doesn't get populated. :/
-                // "SecretNotFound" == 404
-                // "BadParameter" = 400
-                if (rfex.Status == 404 || rfex.Status == 400)
-                    return null;
-
-                // If there was a permission issue or some other error, let the exception bubble
-                // FYI: kve.Body.Error.Code == "Forbidden" :: No Rights, or secret is disabled.
-                if (!IsOptional)
-                    throw;
+                ae.Handle((ex) => ExceptionIsOptional(ex)); // Re-throws if not optional
             }
+            catch (Exception e) when (ExceptionIsOptional(e)) { }
 
             return null;
         }
@@ -275,26 +305,12 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                     keys.Add(secretProps.Name);
                 }
             }
-            catch (RequestFailedException rfex)
-            {
-                // If List Permission on Secrets in not available return empty list of keys
-                if (rfex.ErrorCode == "Forbidden")
-                    return keys;
-
-                if (!IsOptional)
-                    throw;
-            }
             catch (AggregateException ae)
             {
-                ae.Handle((ex) =>
-                {
-                    if (ex is RequestFailedException rfex && rfex.ErrorCode == "Forbidden")
-                        return true;    // This is handled. Continue on, eventually returning 'keys'.
-
-                    // All other exceptions will look at IsOptional
-                    return IsOptional;
-                });
+                ae.Handle((ex) => ExceptionIsOptional(ex)); // Re-throws if not optional
             }
+            catch (Exception e) when (ExceptionIsOptional(e)) { }
+
             return keys;
         }
 

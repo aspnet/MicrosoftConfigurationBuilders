@@ -3,6 +3,7 @@ using System.Collections.Specialized;
 using System.Configuration;
 using System.Diagnostics;
 using Azure;
+using Azure.Core;
 using Azure.Identity;
 using Azure.Security.KeyVault.Secrets;
 using Microsoft.Configuration.ConfigurationBuilders;
@@ -395,7 +396,7 @@ namespace Test
                 builder.ProcessConfigurationSection(TestHelper.GetAppSettings());
             });
             if (enabled == KeyValueEnabled.Enabled)
-                TestHelper.ValidateWrappedException(exception, builder);
+                TestHelper.ValidateWrappedException<RequestFailedException>(exception, builder);
             else
                 Assert.Null(exception);
 
@@ -429,7 +430,22 @@ namespace Test
             else
                 Assert.Null(exception);
 
-            // TODO - How to test for unauthorized access to a vault? Access Denied is an optional error.
+            // These tests require a valid KeyVault endpoint to get past client creation and into deeper errors.
+            if (AzureTestsEnabled)
+            {
+                // Unauthorized access
+                exception = Record.Exception(() =>
+                {
+                    builder = TestHelper.CreateBuilder<BadCredentialKeyVaultConfigBuilder>(() => new BadCredentialKeyVaultConfigBuilder(), "AzureKeyVaultErrors8",
+                        new NameValueCollection() { { "vaultName", commonKeyVault }, { "enabled", enabled.ToString() } });
+                    // Azure SDK connects lazily, so the invalid credential won't be caught until we make the KV client try to use it.
+                    builder.ProcessConfigurationSection(TestHelper.GetAppSettings());
+                });
+                if (enabled == KeyValueEnabled.Enabled)
+                    TestHelper.ValidateWrappedException<AuthenticationFailedException>(exception, builder);
+                else
+                    Assert.Null(exception);
+            }
         }
 
 
@@ -545,6 +561,13 @@ namespace Test
                     Assert.Equal("untouched", appSettings.Settings["versioned-key/" + customVersionNotExist]?.Value);
                 }
             }
+        }
+
+        private class BadCredentialKeyVaultConfigBuilder : AzureKeyVaultConfigBuilder
+        {
+            protected override TokenCredential GetCredential() => new ClientSecretCredential("not", "valid", "credential");
+
+            protected override SecretClientOptions GetSecretClientOptions() => base.GetSecretClientOptions();
         }
     }
 }
