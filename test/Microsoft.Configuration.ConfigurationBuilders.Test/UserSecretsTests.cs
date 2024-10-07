@@ -14,6 +14,7 @@ namespace Test
         private readonly string secretsFileName;
         private readonly string secretsId;
         private readonly string secretsIdFileName;
+        private readonly string commonSecretsFileName;
         private bool disposedValue;
 
         public UserSecretsTests()
@@ -29,10 +30,14 @@ namespace Test
             secretsFileName = Path.Combine(Environment.CurrentDirectory, "UserSecretsTest_" + Path.GetRandomFileName() + ".xml");
             if (File.Exists(secretsFileName))
                 File.Delete(secretsFileName);
+            commonSecretsFileName = Path.Combine(Environment.CurrentDirectory, "UserSecretsTest_" + Path.GetRandomFileName() + ".xml");
+            if (File.Exists(commonSecretsFileName))
+                File.Delete(commonSecretsFileName);
 
 
             // Populate the secrets file with key/value pairs that are needed for common tests
             XDocument xdocFile = XDocument.Parse("<root><secrets ver=\"1.0\"><secret name=\"secretSource\" value=\"file\" /></secrets></root>");
+            XDocument xdocCommonFile = XDocument.Parse("<root><secrets ver=\"1.0\"></secrets></root>");
             XDocument xdocId = XDocument.Parse("<root><secrets ver=\"1.0\"><secret name=\"secretSource\" value=\"id\" /></secrets></root>");
             foreach (string key in CommonBuilderTests.CommonKeyValuePairs)
             {
@@ -41,9 +46,11 @@ namespace Test
                 e.SetAttributeValue("value", CommonBuilderTests.CommonKeyValuePairs[key]);
                 xdocId.Root.Element("secrets").Add(new XElement(e));
                 xdocFile.Root.Element("secrets").Add(e);
+                xdocCommonFile.Root.Element("secrets").Add(e);
             }
             xdocId.Save(secretsIdFileName);
             xdocFile.Save(secretsFileName);
+            xdocCommonFile.Save(commonSecretsFileName);
         }
 
 
@@ -54,14 +61,21 @@ namespace Test
         public void UserSecrets_GetValue()
         {
             CommonBuilderTests.GetValue(() => new UserSecretsConfigBuilder(), "SecretsGetValue",
-                new NameValueCollection() { { "userSecretsFile", secretsFileName } });
+                new NameValueCollection() { { "userSecretsFile", commonSecretsFileName } });
         }
 
         [Fact]
         public void UserSecrets_GetAllValues()
         {
             CommonBuilderTests.GetAllValues(() => new UserSecretsConfigBuilder(), "SecretsGetAll",
-                new NameValueCollection() { { "userSecretsFile", secretsFileName } });
+                new NameValueCollection() { { "userSecretsFile", commonSecretsFileName } });
+        }
+
+        [Fact]
+        public void UserSecrets_ProcessConfigurationSection()
+        {
+            CommonBuilderTests.ProcessConfigurationSection(() => new UserSecretsConfigBuilder(), "SecretsProcessConfig",
+                new NameValueCollection() { { "userSecretsFile", commonSecretsFileName } });
         }
 
         // ======================================================================

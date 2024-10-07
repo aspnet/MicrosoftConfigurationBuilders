@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Specialized;
 using Microsoft.Configuration.ConfigurationBuilders;
 using Xunit;
 
@@ -27,6 +28,14 @@ namespace Test
         public void Environment_GetAllValues()
         {
             CommonBuilderTests.GetAllValues(() => new EnvironmentConfigBuilder(), "EnvGetAll");
+        }
+
+        [Fact]
+        public void Environment_ProcessConfigurationSection()
+        {
+            // We have to use a prefix to filter out non-related environment variables :/
+            CommonBuilderTests.ProcessConfigurationSection(() => new EnvironmentConfigBuilder(), "EnvProcessConfig",
+                new NameValueCollection() { { "prefix", CommonBuilderTests.CommonKVPrefix } });
         }
 
         // ======================================================================

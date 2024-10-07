@@ -68,6 +68,13 @@ namespace Test
                 new NameValueCollection() { { "directoryPath", fsRootCommon } });
         }
 
+        [Fact]
+        public void KeyPerFile_ProcessConfigurationSection()
+        {
+            CommonBuilderTests.ProcessConfigurationSection(() => new KeyPerFileConfigBuilder(), "KeyPerFileProcessConfig",
+                new NameValueCollection() { { "directoryPath", fsRootCommon } });
+        }
+
         // ======================================================================
         //   KeyPerFile parameters
         // ======================================================================

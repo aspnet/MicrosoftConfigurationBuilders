@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Configuration;
 using System.Diagnostics;
@@ -155,24 +156,30 @@ namespace Test
         // ======================================================================
         //   CommonBuilderTests
         // ======================================================================
-        [KeyVaultFact]
-        public void AzureKeyVault_GetValue()
+        [KeyVaultTheory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void AzureKeyVault_GetValue(bool preload)
         {
-            CommonBuilderTests.GetValue(() => new AzureKeyVaultConfigBuilder(), "AzureKeyVaultGetValue",
-                new NameValueCollection() { { "vaultName", commonKeyVault }, { "preloadSecretNames", "false" } });
-
-            CommonBuilderTests.GetValue(() => new AzureKeyVaultConfigBuilder(), "AzureKeyVaultPreloadGetValue",
-                new NameValueCollection() { { "vaultName", commonKeyVault }, { "preloadSecretNames", "true" } });
+            var s_preload = preload ? "Preload" : "";
+            CommonBuilderTests.GetValue(() => new AzureKeyVaultConfigBuilder(), $"AzureKeyVault{s_preload}GetValue",
+                new NameValueCollection() { { "vaultName", commonKeyVault }, { "preloadSecretNames", preload.ToString() } });
         }
 
         [KeyVaultFact]
         public void AzureKeyVault_GetAllValues()
         {
-            CommonBuilderTests.GetValue(() => new AzureKeyVaultConfigBuilder(), "AzureKeyVaultGetAllValues",
-                new NameValueCollection() { { "vaultName", commonKeyVault }, { "preloadSecretNames", "false" } });
+            // Preload must be enabled for GetAllValues to work, which should be the default.
+            CommonBuilderTests.GetAllValues(() => new AzureKeyVaultConfigBuilder(), "AzureKeyVaultGetAllValues",
+                new NameValueCollection() { { "vaultName", commonKeyVault } }, GetValueFromVersionedCollection);
+        }
 
-            CommonBuilderTests.GetValue(() => new AzureKeyVaultConfigBuilder(), "AzureKeyVaultPreloadGetAllValues",
-                new NameValueCollection() { { "vaultName", commonKeyVault }, { "preloadSecretNames", "true" } });
+        [KeyVaultFact]
+        public void AzureKeyVault_ProcessConfigurationSection()
+        {
+            // The common test will try Greedy and Strict modes, so it only makes sense to test with preload enabled.
+            CommonBuilderTests.ProcessConfigurationSection(() => new AzureKeyVaultConfigBuilder(), "AzureKeyVaultProcessConfig",
+                new NameValueCollection() { { "vaultName", commonKeyVault } });
         }
 
 
@@ -453,6 +460,17 @@ namespace Test
         //   Helpers
         // ======================================================================
         // TODO: Mock SecretClient. Much work, and we'd need to inject it into the builder.
+        private string GetValueFromVersionedCollection(ICollection<KeyValuePair<string, string>> collection, string key)
+        {
+            foreach (var kvp in collection)
+            {
+                var strippedKey = kvp.Key.Split(new char[] { '/' }, 2)[0];
+                if (strippedKey.Equals(key, StringComparison.OrdinalIgnoreCase))
+                    return kvp.Value;
+            }
+            return null;
+        }
+
         private void ValidateExpectedConfig(AzureKeyVaultConfigBuilder builder)
         {
             var cfg = TestHelper.LoadMultiLevelConfig("empty.config", "customAppSettings.config");

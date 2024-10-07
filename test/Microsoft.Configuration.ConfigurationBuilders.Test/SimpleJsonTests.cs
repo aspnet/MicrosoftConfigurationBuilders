@@ -36,24 +36,31 @@ namespace Test
         // ======================================================================
         //   CommonBuilderTests
         // ======================================================================
-        [Fact]
-        public void SimpleJson_GetValue()
+        [Theory]
+        [InlineData(SimpleJsonConfigBuilderMode.Flat)]
+        [InlineData(SimpleJsonConfigBuilderMode.Sectional)]
+        public void SimpleJson_GetValue(SimpleJsonConfigBuilderMode jsonMode)
         {
-            CommonBuilderTests.GetValue(() => new SimpleJsonConfigBuilder(), "SimpleJsonFlatGetValue",
-                new NameValueCollection() { { "jsonFile", commonJsonFileName }, { "jsonMode", "Flat" } });
-
-            CommonBuilderTests.GetValue(() => new SimpleJsonConfigBuilder(), "SimpleJsonSectGetValue",
-                new NameValueCollection() { { "jsonFile", commonJsonFileName }, { "jsonMode", "Sectional" } });
+            CommonBuilderTests.GetValue(() => new SimpleJsonConfigBuilder(), $"SimpleJson{jsonMode.ToString()}GetValue",
+                new NameValueCollection() { { "jsonFile", commonJsonFileName }, { "jsonMode", jsonMode.ToString() } });
         }
 
-        [Fact]
-        public void SimpleJson_GetAllValues()
+        [Theory]
+        [InlineData(SimpleJsonConfigBuilderMode.Flat)]
+        [InlineData(SimpleJsonConfigBuilderMode.Sectional)]
+        public void SimpleJson_GetAllValues(SimpleJsonConfigBuilderMode jsonMode)
         {
-            CommonBuilderTests.GetAllValues(() => new SimpleJsonConfigBuilder(), "SimpleJsonFlatGetAll",
-                new NameValueCollection() { { "jsonFile", commonJsonFileName }, { "jsonMode", "Flat" } });
+            CommonBuilderTests.GetAllValues(() => new SimpleJsonConfigBuilder(), $"SimpleJson{jsonMode.ToString()}GetAll",
+                new NameValueCollection() { { "jsonFile", commonJsonFileName }, { "jsonMode", jsonMode.ToString() } });
+        }
 
-            CommonBuilderTests.GetAllValues(() => new SimpleJsonConfigBuilder(), "SimpleJsonSectGetAll",
-                new NameValueCollection() { { "jsonFile", commonJsonFileName }, { "jsonMode", "Sectional" } });
+        [Theory]
+        [InlineData(SimpleJsonConfigBuilderMode.Flat)]
+        [InlineData(SimpleJsonConfigBuilderMode.Sectional)]
+        public void SimpleJson_ProcessConfigurationSection(SimpleJsonConfigBuilderMode jsonMode)
+        {
+            CommonBuilderTests.ProcessConfigurationSection(() => new SimpleJsonConfigBuilder(), $"SimpleJson{jsonMode.ToString()}ProcessConfig",
+                new NameValueCollection() { { "jsonFile", commonJsonFileName }, { "jsonMode", jsonMode.ToString() } });
         }
 
         // ======================================================================

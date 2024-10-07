@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Configuration;
+using System.Runtime;
 using System.Web;
 using Azure.Core;
 using Azure.Data.AppConfiguration;
@@ -43,6 +44,7 @@ namespace Test
         private static readonly string customEndPoint;
         private static readonly string keyVaultName;
         private static readonly DateTimeOffset customEpochPlaceholder = DateTimeOffset.Parse("December 31, 1999  11:59pm");
+        private static readonly DateTimeOffset oldTimeFilter = DateTimeOffset.Parse("April 15, 2002 9:00am");
         private static readonly DateTimeOffset customEpoch;
         private static Exception StaticCtorException;
 
@@ -77,75 +79,84 @@ namespace Test
 
             try
             {
-                // The Common config store gets filled out, but the store itself is assumed to already exist.
-                ConfigurationClient cfgClient = new ConfigurationClient(new Uri(commonEndPoint), new DefaultAzureCredential());
-                foreach (string key in CommonBuilderTests.CommonKeyValuePairs)
+                // For efficiency when debugging, we might not want to "clear out" and restage this on every run
+                bool recreateTestData = true;
+
+                if (recreateTestData)
                 {
-                    UpdateConfigSetting(cfgClient, key, CommonBuilderTests.CommonKeyValuePairs[key]);
+                    // The Common config store gets filled out, but the store itself is assumed to already exist.
+                    ConfigurationClient cfgClient = new ConfigurationClient(new Uri(commonEndPoint), new DefaultAzureCredential());
+                    foreach (string key in CommonBuilderTests.CommonKeyValuePairs)
+                    {
+                        UpdateConfigSetting(cfgClient, key, CommonBuilderTests.CommonKeyValuePairs[key]);
+                    }
+
+                    // The Custom config store also gets re-filled out, but the store itself is assumed to already exist.
+                    // Leverage the custom key vault used in the KV config builder tests.
+                    //
+                    //      kva:    versioned-key == versionedValue-Current
+                    //                               versionedValue-Older
+                    //      kvb:    mapped-test-key == mappedValue
+
+                    // Time -->                 Beginning       (labelA)      |epoch|               (labelA)        (labelB)
+                    // epochDTO                                                     DateTimeOffset-of-the-epoch (show up after epoch)
+                    // caseTestSetting                          altCaseTestValue    newCaseTestValue
+                    // testSetting              oldTestValue    altTestValue        newTestValue    newAltValue
+                    // newTestSetting                                               ntOGValue       ntValueA
+                    // superTestSetting         oldSuperValue                                       newSuperAlpha   newSuperBeta
+                    // keyVaultSetting          kva_value_old   kva_value_new       kva_value_old   kvb_value
+                    // superKeyVaultSetting     kvb_value                           kva_value_old                   kva_value_new
+                    //
+                    //      curious about                                                           onlyNewLabA     andNewLabB
+
+                    // First, ensure the KeyVault values are populated in Key Vault
+                    SecretClient kvClient = new SecretClient(new Uri($"https://{keyVaultName}.vault.azure.net"), new DefaultAzureCredential());
+                    var kvb_cur = AzureTests.EnsureCurrentSecret(kvClient, "mapped-test-key", "mappedValue");
+                    var kva_old = AzureTests.EnsureActiveSecret(kvClient, "versioned-key", "versionedValue-Older");
+                    var kva_cur = AzureTests.EnsureCurrentSecret(kvClient, "versioned-key", "versionedValue-Current");
+
+                    // Now re-create the config settings
+                    cfgClient = new ConfigurationClient(new Uri(customEndPoint), new DefaultAzureCredential());
+
+                    // Start by clearing all the setting to get a fresh look. (Incidentally, I think clearing these values only does so
+                    // at this point in time. Meaning if you set a SettingSelector with a timestamp from just before this, you'll still
+                    // see the old, dirty value. Which makes establishing this "clean" point with no values before our epoch time
+                    // all the more important.)
+                    ClearConfigSettings(cfgClient);
+
+                    // First create config settings with timestamps before the epoch
+                    UpdateConfigSetting(cfgClient, "testSetting", "oldTestValue");
+                    UpdateConfigSetting(cfgClient, "superTestSetting", "oldSuperValue");
+                    UpdateConfigSecret(cfgClient, "keyVaultSetting", kva_old);
+                    UpdateConfigSecret(cfgClient, "superKeyVaultSetting", kvb_cur);
+
+                    UpdateConfigSetting(cfgClient, "caseTestSetting", "altCaseTestValue", "labelA");
+                    UpdateConfigSetting(cfgClient, "testSetting", "altTestValue", "labelA");
+                    UpdateConfigSecret(cfgClient, "keyVaultSetting", kva_cur, "labelA");
+
+                    // Remember the epoch. Don't take time directly, as machine time might be off from server time.
+                    UpdateConfigSetting(cfgClient, "epochDTO", "useTimeStampOfThisSetting-" + DateTime.Now.Ticks);
+                    System.Threading.Thread.Sleep(3000);
+
+                    // Then ensure/create config settins after the epoch
+                    UpdateConfigSetting(cfgClient, "caseTestSetting", "newCaseTestValue");
+                    UpdateConfigSetting(cfgClient, "testSetting", "newTestValue");
+                    UpdateConfigSetting(cfgClient, "newTestSetting", "ntOGValue");
+                    UpdateConfigSecret(cfgClient, "keyVaultSetting", kva_old);
+                    UpdateConfigSecret(cfgClient, "superKeyVaultSetting", kva_old);
+
+                    UpdateConfigSetting(cfgClient, "testSetting", "newAltValue", "labelA");
+                    UpdateConfigSetting(cfgClient, "newTestSetting", "ntValueA", "labelA");
+                    UpdateConfigSetting(cfgClient, "superTestSetting", "newSuperAlpha", "labelA");
+                    UpdateConfigSecret(cfgClient, "keyVaultSetting", kvb_cur, "labelA");
+
+                    UpdateConfigSetting(cfgClient, "superTestSetting", "newSuperBeta", "labelB");
+                    UpdateConfigSecret(cfgClient, "superKeyVaultSetting", kva_cur, "labelB");
                 }
 
-                // The Custom config store also gets re-filled out, but the store itself is assumed to already exist.
-                // Leverage the custom key vault used in the KV config builder tests.
-                //
-                //      kva:    versioned-key == versionedValue-Current
-                //                               versionedValue-Older
-                //      kvb:    mapped-test-key == mappedValue
-
-                // Time -->                 Beginning       (labelA)      |epoch|               (labelA)        (labelB)
-                // epochDTO                                                     DateTimeOffset-of-the-epoch (show up after epoch)
-                // caseTestSetting                          altCaseTestValue    newCaseTestValue
-                // testSetting              oldTestValue    altTestValue        newTestValue    newAltValue
-                // newTestSetting                                               ntOGValue       ntValueA
-                // superTestSetting         oldSuperValue                                       newSuperAlpha   newSuperBeta
-                // keyVaultSetting          kva_value_old   kva_value_new       kva_value_old   kvb_value
-                // superKeyVaultSetting     kvb_value                           kva_value_old                   kva_value_new
-                //
-                //      curious about                                                           onlyNewLabA     andNewLabB
-
-                // First, ensure the KeyVault values are populated in Key Vault
-                SecretClient kvClient = new SecretClient(new Uri($"https://{keyVaultName}.vault.azure.net"), new DefaultAzureCredential());
-                var kvb_cur = AzureTests.EnsureCurrentSecret(kvClient, "mapped-test-key", "mappedValue");
-                var kva_old = AzureTests.EnsureActiveSecret(kvClient, "versioned-key", "versionedValue-Older");
-                var kva_cur = AzureTests.EnsureCurrentSecret(kvClient, "versioned-key", "versionedValue-Current");
-
-                // Now re-create the config settings
-                cfgClient = new ConfigurationClient(new Uri(customEndPoint), new DefaultAzureCredential());
-
-                // Start by clearing all the setting to get a fresh look. (Incidentally, I think clearing these values only does so
-                // at this point in time. Meaning if you set a SettingSelector with a timestamp from just before this, you'll still
-                // see the old, dirty value. Which makes establishing this "clean" point with no values before our epoch time
-                // all the more important.)
-                ClearConfigSettings(cfgClient);
-
-                // First create config settings with timestamps before the epoch
-                UpdateConfigSetting(cfgClient, "testSetting", "oldTestValue");
-                UpdateConfigSetting(cfgClient, "superTestSetting", "oldSuperValue");
-                UpdateConfigSecret(cfgClient, "keyVaultSetting", kva_old);
-                UpdateConfigSecret(cfgClient, "superKeyVaultSetting", kvb_cur);
-
-                UpdateConfigSetting(cfgClient, "caseTestSetting", "altCaseTestValue", "labelA");
-                UpdateConfigSetting(cfgClient, "testSetting", "altTestValue", "labelA");
-                UpdateConfigSecret(cfgClient, "keyVaultSetting", kva_cur, "labelA");
-
-                // Remember the epoch. Don't take time directly, as machine time might be off from server time.
-                UpdateConfigSetting(cfgClient, "epochDTO", "useTimeStampOfThisSetting-" + DateTime.Now.Ticks);
-                System.Threading.Thread.Sleep(3000);
-                customEpoch = ((DateTimeOffset)cfgClient.GetConfigurationSetting("epochDTO").Value.LastModified).AddSeconds(1);
-
-                // Then ensure/create config settins after the epoch
-                UpdateConfigSetting(cfgClient, "caseTestSetting", "newCaseTestValue");
-                UpdateConfigSetting(cfgClient, "testSetting", "newTestValue");
-                UpdateConfigSetting(cfgClient, "newTestSetting", "ntOGValue");
-                UpdateConfigSecret(cfgClient, "keyVaultSetting", kva_old);
-                UpdateConfigSecret(cfgClient, "superKeyVaultSetting", kva_old);
-
-                UpdateConfigSetting(cfgClient, "testSetting", "newAltValue", "labelA");
-                UpdateConfigSetting(cfgClient, "newTestSetting", "ntValueA", "labelA");
-                UpdateConfigSetting(cfgClient, "superTestSetting", "newSuperAlpha", "labelA");
-                UpdateConfigSecret(cfgClient, "keyVaultSetting", kvb_cur, "labelA");
-
-                UpdateConfigSetting(cfgClient, "superTestSetting", "newSuperBeta", "labelB");
-                UpdateConfigSecret(cfgClient, "superKeyVaultSetting", kva_cur, "labelB");
+                // We always need to know the epoch time, so we can compare against it.
+                var epochClient = new ConfigurationClient(new Uri(customEndPoint), new DefaultAzureCredential());
+                customEpoch = ((DateTimeOffset)epochClient.GetConfigurationSetting("epochDTO").Value.LastModified).AddSeconds(1);
             }
             catch (Exception ex)
             {
@@ -177,18 +188,46 @@ namespace Test
         // ======================================================================
         //   CommonBuilderTests
         // ======================================================================
-        [AppConfigFact]
-        public void AzureAppConfig_GetValue()
+        public static IEnumerable<object[]> GetCommonTestParameters()
         {
-            CommonBuilderTests.GetValue(() => new AzureAppConfigurationBuilder(), "AzureAppConfigGetValue",
-                new NameValueCollection() { { "endpoint", commonEndPoint } }, true);
+            foreach (string keyFilter in new[] { null, "", $"{CommonBuilderTests.CommonKVPrefix}*" })
+                yield return new object[] { keyFilter };
         }
 
-        [AppConfigFact]
-        public void AzureAppConfig_GetAllValues()
+        [AppConfigTheory]
+        [MemberData(nameof(GetCommonTestParameters))]
+        public void AzureAppConfig_GetValue(string keyFilter)
         {
-            CommonBuilderTests.GetValue(() => new AzureAppConfigurationBuilder(), "AzureAppConfigGetAllValues",
-                new NameValueCollection() { { "endpoint", commonEndPoint } }, true);
+            CommonBuilderTests.GetValue(() => new AzureAppConfigurationBuilder(), "AzureAppConfigGetValue",
+                new NameValueCollection() { { "endpoint", commonEndPoint }, { "keyFilter", keyFilter } }, caseSensitive: true);
+
+            // The presence of a KeyFilter shortcuts GetValue() to return null under the assumption that we already
+            // checked the value cache before calling GetValue(). So don't try to test KeyFilter here.
+        }
+
+        [AppConfigTheory]
+        [MemberData(nameof(GetCommonTestParameters))]
+        public void AzureAppConfig_GetAllValues(string keyFilter)
+        {
+            // Keyfilter filters first on server when fetching, then the resulting set with us is again filtered by prefix.
+
+            // Normally this common test is reflective of 'Greedy' operations. But AzureAppConfigurationBuilder sometimes
+            // uses this 'GetAllValues' technique in both greedy and non-greedy modes, depending on keyFilter. So we'll test both here.
+
+            CommonBuilderTests.GetAllValues(() => new AzureAppConfigurationBuilder(), "AzureAppConfigStrictGetAllValues",
+                new NameValueCollection() { { "endpoint", commonEndPoint }, { "mode", KeyValueMode.Strict.ToString() }, { "keyFilter", keyFilter } });
+
+            CommonBuilderTests.GetAllValues(() => new AzureAppConfigurationBuilder(), "AzureAppConfigGreedyGetAllValues",
+                new NameValueCollection() { { "endpoint", commonEndPoint }, { "mode", KeyValueMode.Greedy.ToString() }, { "keyFilter", keyFilter } });
+        }
+
+        [AppConfigTheory]
+        [MemberData(nameof(GetCommonTestParameters))]
+        public void AzureAppConfig_ProcessConfigurationSection(string keyFilter)
+        {
+            // The common test will try Greedy and Strict modes.
+            CommonBuilderTests.ProcessConfigurationSection(() => new AzureAppConfigurationBuilder(), "AzureAppConfigProcessConfig",
+                new NameValueCollection() { { "endpoint", commonEndPoint }, { "keyFilter", keyFilter } }, caseSensitive: true);
         }
 
         // ======================================================================
@@ -276,9 +315,10 @@ namespace Test
         public static IEnumerable<object[]> GetFilterTestParameters()
         {
             // xUnit evaluates MemberData before ever constructing this class. So we can't use customEpoch or any class variable here.
-            foreach (KeyValueMode mode in new [] { KeyValueMode.Strict, KeyValueMode.Greedy })
+            foreach (KeyValueMode mode in new[] { KeyValueMode.Strict, KeyValueMode.Greedy })
             {
-                foreach (var dto in new object[] { null, DateTimeOffset.MinValue, customEpochPlaceholder, DateTimeOffset.MaxValue })
+                // MinValue is interpretted as "no filter" by Azure AppConfig.
+                foreach (var dto in new object[] { null, DateTimeOffset.MinValue, oldTimeFilter, customEpochPlaceholder, DateTimeOffset.MaxValue })
                 {
                     yield return new object[] { mode, null, null, dto, false };
                     yield return new object[] { mode, "", "", dto, true };
@@ -299,16 +339,18 @@ namespace Test
             if (dtFilter == customEpochPlaceholder)
                 dtFilter = customEpoch;
 
-            bool isOld = (dtFilter == customEpoch);
+            // MinValue is interpretted as "no filter" by Azure AppConfig. So only our epoch time counts as "old."
+            bool? isOld = null;
+            if (dtFilter == customEpoch)
+                isOld = true;
+            else if (dtFilter != oldTimeFilter)
+                isOld = false;
 
             // Trying all sorts of combinations with just one test and lots of theory data
             var builder = TestHelper.CreateBuilder<AzureAppConfigurationBuilder>(() => new AzureAppConfigurationBuilder(), "AzureAppConfigFilters",
                 new NameValueCollection() { { "endpoint", customEndPoint }, { "mode", mode.ToString() }, { "keyFilter", keyFilter }, { "labelFilter", labelFilter },
                                             { "acceptDateTime", dtFilter.ToString() }, { "useAzureKeyVault", useAzure.ToString() }});
             ValidateExpectedConfig(builder, isOld);
-
-            // TODO: Specifying KeyFilter in a non-Greedy mode triggers GreedyInit
-            // Case insensitive attribute names? Case sensitive filters?
         }
 
         // ======================================================================
@@ -439,17 +481,77 @@ namespace Test
             // TODO: Can we produce an invalid KeyVault reference? That should throw an error.
         }
 
+
         // ======================================================================
         //   Helpers
         // ======================================================================
         // TODO: Mock ConfigurationClient. Much work, and we'd need to inject it into the builder.
-        private void ValidateExpectedConfig(AzureAppConfigurationBuilder builder, bool oldTimes)
+        private string GetExpectedConfigValue(AzureAppConfigurationBuilder builder, string key, bool? beforeEpoch)
+        {
+            // Before everything, there should be nothing
+            if (beforeEpoch == null)
+                return null;
+
+            // Key filter can be figured out before the switch to keep things simple
+            if (!String.IsNullOrWhiteSpace(builder.KeyFilter))
+            {
+                // Trim the trailing '*' if it exists
+                string filter = builder.KeyFilter.TrimEnd('*');
+
+                if (!key.StartsWith(filter))    // Case matters
+                    return null;
+            }
+
+            string kvreturn = null;
+
+            bool noLabel = String.IsNullOrWhiteSpace(builder.LabelFilter);
+            bool labelA = builder.LabelFilter == "labelA";  // Case matters
+
+            switch (key)
+            {
+                case "epochDTO":
+                    // We don't validate the value. Just don't return null if it isn't filtered out by labels.
+                    return (noLabel) ? customEpochPlaceholder.ToString() : null;
+                case "caseTestSetting":
+                    if (beforeEpoch.Value)
+                        return (noLabel || labelA) ? "altCaseTestValue" : null;
+                    return (labelA) ? "altCaseTestValue" : (noLabel) ? "newCaseTestValue" : null;
+                case "testSetting":
+                    if (beforeEpoch.Value)
+                        return (labelA) ? "altTestValue" : (noLabel) ? "oldTestValue" : null;
+                    return (labelA) ? "newAltValue" : (noLabel) ? "newTestValue" : null;
+                case "newTestSetting":
+                    if (beforeEpoch.Value)
+                        return null;
+                    return (labelA) ? "ntValueA" : (noLabel) ? "ntOGValue" : null;
+                case "superTestSetting":
+                    if (beforeEpoch.Value)
+                        return (noLabel) ? "oldSuperValue" : null;
+                    return (labelA) ? "newSuperAlpha" : (noLabel) ? "oldSuperValue" : null; // Probably null - unless label was 'labelB' which we are using in tests yet
+                case "keyVaultSetting":
+                    if (beforeEpoch.Value)
+                        kvreturn = (labelA) ? kva_value_new : (noLabel) ? kva_value_old : null;
+                    else
+                        kvreturn = (labelA) ? kvb_value : (noLabel) ? kva_value_old : null;
+                    break;
+                case "superKeyVaultSetting":
+                    kvreturn = (!noLabel) ? null : (beforeEpoch.Value) ? kvb_value : kva_value_old;
+                    break;
+            }
+
+            // If KeyVault is not enabled, we'll just see a URL for config values.
+            if (kvreturn != null && !builder.UseAzureKeyVault)
+                return kvUriRegex;
+            return kvreturn;
+        }
+
+        private void ValidateExpectedConfig(AzureAppConfigurationBuilder builder, bool? beforeEpoch)
         {
             var cfg = TestHelper.LoadMultiLevelConfig("empty.config", "customAppSettings.config");
             var appSettings = cfg.AppSettings;
 
             // Prime the appSettings section as expected for this test
-            appSettings.Settings.Add("casetestsetting", "untouched");
+            appSettings.Settings.Add("casetestsetting", "untouched");   // Yes, the case is wrong. That's the point.
             if (builder.Mode != KeyValueMode.Greedy)
             {
                 appSettings.Settings.Add("testSetting", "untouched");
@@ -465,174 +567,73 @@ namespace Test
             // Validation of values kind of assumes this is true. Make sure of it.
             Assert.Equal(customEndPoint, builder.Endpoint);
 
-            // All cases are the same on the System.Configuration side of things, so all these should
+            // All the System.Configuration side of things should be case-insensitive, so all these should
             // retrieve the same value, regardless of whether that value came from AzConfig or not.
             string caseValue =  appSettings.Settings["casetestsetting"]?.Value;
             Assert.Equal(caseValue, appSettings.Settings["caseTestSetting"]?.Value);
             Assert.Equal(caseValue, appSettings.Settings["cAsEtEstsEttIng"]?.Value);
 
-            // The key vault and case tests depend on extra parameters beyond just filters. Instead of
-            // littering the giant if statement below with yet more if's, let's do a pre-check of
-            // these extra conditions here. Then use null vs "untouched" values to indicate in that
-            // big if statement whether we expect new values for these or not.
-            bool greedy = (builder.Mode == KeyValueMode.Greedy);
-            string untouched = (greedy) ? null : "untouched";
-            string kvregex = (builder.UseAzureKeyVault) ? null : kvUriRegex;
-
             //==================================================================================================
-            // Four cases here. 1) No filter, 2) Just Key filter, 3) Just Label filter, 4) Both filters.
-            // In all four cases, we can expect differences between the old times and the current time.
-            // When verifying count, non-greedy always has 6. Greedy will vary.
+            if (builder.Mode == KeyValueMode.Greedy)
+            {
+                // 'caseTestSetting' starts off with an 'untouched' value in our test config, so it is always present.
+                int expectedCount = 1;
 
-            // ---------- No Filter ----------
-            if (builder.KeyFilter == null && builder.LabelFilter == null)
-            {
-                if (oldTimes)
+                // We don't verify 'epochDTO', but it might get sucked in in greedy mode.
+                if (GetExpectedConfigValue(builder, "epochDTO", beforeEpoch) != null)
+                    expectedCount++;
+
+                // In Greedy mode, we'll get a value for 'caseTestSetting' and then back in .Net config world, we
+                // will put that in place of the already existing 'casetestsetting' value.
+                var expectedValue = GetExpectedConfigValue(builder, "caseTestSetting", beforeEpoch) ?? "untouched";
+                Assert.Equal(expectedValue, appSettings.Settings["caseTestSetting"]?.Value);
+
+                expectedValue = GetExpectedConfigValue(builder, "testSetting", beforeEpoch);
+                if (expectedValue != null)
+                    expectedCount++;
+                Assert.Equal(expectedValue, appSettings.Settings["testSetting"]?.Value);
+
+                expectedValue = GetExpectedConfigValue(builder, "newTestSetting", beforeEpoch);
+                if (expectedValue != null)
+                    expectedCount++;
+                Assert.Equal(expectedValue, appSettings.Settings["newTestSetting"]?.Value);
+
+                expectedValue = GetExpectedConfigValue(builder, "superTestSetting", beforeEpoch);
+                if (expectedValue != null)
+                    expectedCount++;
+                Assert.Equal(expectedValue, appSettings.Settings["superTestSetting"]?.Value);
+
+                expectedValue = GetExpectedConfigValue(builder, "keyVaultSetting", beforeEpoch);
+                if (expectedValue != null)
                 {
-                    Assert.Equal(untouched ?? "altCaseTestValue", appSettings.Settings["casetestsetting"]?.Value);
-                    Assert.Equal("oldTestValue", appSettings.Settings["testSetting"]?.Value);
-                    Assert.Matches(kvregex ?? kva_value_old, appSettings.Settings["keyVaultSetting"]?.Value);
-                    Assert.Matches(kvregex ?? kvb_value, appSettings.Settings["superKeyVaultSetting"]?.Value);
-                    Assert.Equal(untouched, appSettings.Settings["newTestSetting"]?.Value);
-                    Assert.Equal("oldSuperValue", appSettings.Settings["superTestSetting"]?.Value);
-                    // "newTestSetting" is only in the pre-built config for non-greedy. "epochDTO" isn't ever, but gets sucked in when greedy. In the end, they cancel out.
-                    Assert.Equal(6, appSettings.Settings.Count);
+                    expectedCount++;
+                    Assert.Matches(expectedValue, appSettings.Settings["keyVaultSetting"]?.Value);
                 }
                 else
+                    Assert.Null(appSettings.Settings["keyVaultSetting"]?.Value);
+
+                expectedValue = GetExpectedConfigValue(builder, "superKeyVaultSetting", beforeEpoch);
+                if (expectedValue != null)
                 {
-                    Assert.Equal(untouched ?? "newCaseTestValue", appSettings.Settings["casetestsetting"]?.Value);
-                    Assert.Equal("newTestValue", appSettings.Settings["testSetting"]?.Value);
-                    Assert.Equal("ntOGValue", appSettings.Settings["newTestSetting"]?.Value);
-                    Assert.Equal("oldSuperValue", appSettings.Settings["superTestSetting"]?.Value);
-                    Assert.Matches(kvregex ?? kva_value_old, appSettings.Settings["keyVaultSetting"]?.Value);
-                    Assert.Matches(kvregex ?? kva_value_old, appSettings.Settings["superKeyVaultSetting"]?.Value);
-                    Assert.Equal(greedy ? 7 : 6, appSettings.Settings.Count);    // "newTestSetting" now shows up in any mode. (+epochDTO in greedy)
+                    expectedCount++;
+                    Assert.Matches(expectedValue, appSettings.Settings["superKeyVaultSetting"]?.Value);
                 }
+                else
+                    Assert.Null(appSettings.Settings["superKeyVaultSetting"]?.Value);
+
+                Assert.Equal(expectedCount, appSettings.Settings.Count);
             }
-            // ---------- Key Filter Only ----------
-            else if (builder.KeyFilter != null && builder.LabelFilter == null)
+            else // KeyValueMode.Strict - we don't test Token. It only differs from Strict in the common base class.
             {
-                if (oldTimes)
-                {
-                    Assert.Equal("untouched", appSettings.Settings["casetestsetting"]?.Value);
-                    Assert.Equal(untouched, appSettings.Settings["testSetting"]?.Value);
-                    Assert.Equal(untouched, appSettings.Settings["newTestSetting"]?.Value);
-                    Assert.Equal(untouched, appSettings.Settings["keyVaultSetting"]?.Value);
-                    if (builder.KeyFilter == builder.KeyFilter.ToLower())
-                    {
-                        // Key filter is case-sensitive: 'super*' will match keys in AppConfig...
-                        Assert.Equal("oldSuperValue", appSettings.Settings["superTestSetting"]?.Value);
-                        Assert.Matches(kvregex ?? kvb_value, appSettings.Settings["superKeyVaultSetting"]?.Value);
-                        Assert.Equal(greedy ? 3 : 6, appSettings.Settings.Count);
-                    }
-                    else
-                    {
-                        // ... but 'SUPER*' will not match any keys in AppConfig.
-                        // (Values retrieved from App Config are applied to .Net config case-insensitively, but that's another testcase.)
-                        Assert.Equal(untouched, appSettings.Settings["superTestSetting"]?.Value);
-                        Assert.Equal(untouched, appSettings.Settings["superKeyVaultSetting"]?.Value);
-                        Assert.Equal(greedy ? 1 : 6, appSettings.Settings.Count);
-                    }
-                }
-                else
-                {
-                    Assert.Equal("untouched", appSettings.Settings["casetestsetting"]?.Value);
-                    Assert.Equal(untouched, appSettings.Settings["testSetting"]?.Value);
-                    Assert.Equal(untouched, appSettings.Settings["newTestSetting"]?.Value);
-                    Assert.Equal(untouched, appSettings.Settings["keyVaultSetting"]?.Value);
-                    if (builder.KeyFilter == builder.KeyFilter.ToLower())
-                    {
-                        // Key filter is case-sensitive: 'super*' will match keys in AppConfig...
-                        Assert.Equal("oldSuperValue", appSettings.Settings["superTestSetting"]?.Value);
-                        Assert.Matches(kvregex ?? kva_value_old, appSettings.Settings["superKeyVaultSetting"]?.Value);
-                        Assert.Equal(greedy ? 3 : 6, appSettings.Settings.Count);
-                    }
-                    else
-                    {
-                        // ... but 'SUPER*' will not match any keys in AppConfig.
-                        // (Values retrieved from App Config are applied to .Net config case-insensitively, but that's another testcase.)
-                        Assert.Equal(untouched, appSettings.Settings["superTestSetting"]?.Value);
-                        Assert.Equal(untouched, appSettings.Settings["superKeyVaultSetting"]?.Value);
-                        Assert.Equal(greedy ? 1 : 6, appSettings.Settings.Count);
-                    }
-                }
-            }
-            // ---------- Label Filter Only ----------
-            else if (builder.KeyFilter == null && builder.LabelFilter != null)
-            {
-                if (oldTimes)
-                {
-                    Assert.Equal(untouched, appSettings.Settings["newTestSetting"]?.Value);
-                    Assert.Equal(untouched, appSettings.Settings["superTestSetting"]?.Value);
-                    Assert.Equal(untouched, appSettings.Settings["superKeyVaultSetting"]?.Value);
-                    if (builder.LabelFilter != builder.LabelFilter.ToLower())
-                    {
-                        // Label filter is case-sensitive: 'labelA' will match labels in AppConfig...
-                        Assert.Equal(untouched ?? "altCaseTestValue", appSettings.Settings["casetestsetting"]?.Value);
-                        Assert.Equal("altTestValue", appSettings.Settings["testSetting"]?.Value);
-                        Assert.Matches(kvregex ?? kva_value_new, appSettings.Settings["keyVaultSetting"]?.Value);
-                        Assert.Equal(greedy ? 3 : 6, appSettings.Settings.Count);
-                    }
-                    else
-                    {
-                        // ... but 'labela' will not match any labels in AppConfig.
-                        Assert.Equal("untouched", appSettings.Settings["casetestsetting"]?.Value);
-                        Assert.Equal(untouched, appSettings.Settings["testSetting"]?.Value);
-                        Assert.Equal(untouched, appSettings.Settings["keyVaultSetting"]?.Value);
-                        Assert.Equal(greedy ? 1 : 6, appSettings.Settings.Count);
-                    }
-                }
-                else
-                {
-                    Assert.Equal(untouched, appSettings.Settings["superKeyVaultSetting"]?.Value);
-                    if (builder.LabelFilter != builder.LabelFilter.ToLower())
-                    {
-                        // Label filter is case-sensitive: 'labelA' will match labels in AppConfig...
-                        Assert.Equal(untouched ?? "altCaseTestValue", appSettings.Settings["casetestsetting"]?.Value);
-                        Assert.Equal("newAltValue", appSettings.Settings["testSetting"]?.Value);
-                        Assert.Equal("ntValueA", appSettings.Settings["newTestSetting"]?.Value);
-                        Assert.Equal("newSuperAlpha", appSettings.Settings["superTestSetting"]?.Value);
-                        Assert.Matches(kvregex ?? kvb_value, appSettings.Settings["keyVaultSetting"]?.Value);
-                        Assert.Equal(greedy ? 5 : 6, appSettings.Settings.Count);
-                    }
-                    else
-                    {
-                        // ... but 'labela' will not match any labels in AppConfig.
-                        Assert.Equal("untouched", appSettings.Settings["casetestsetting"]?.Value);
-                        Assert.Equal(untouched, appSettings.Settings["testSetting"]?.Value);
-                        Assert.Equal(untouched, appSettings.Settings["newTestSetting"]?.Value);
-                        Assert.Equal(untouched, appSettings.Settings["superTestSetting"]?.Value);
-                        Assert.Equal(untouched, appSettings.Settings["keyVaultSetting"]?.Value);
-                        Assert.Equal(greedy ? 1 : 6, appSettings.Settings.Count);
-                    }
-                }
-            }
-            // ---------- Both Key and Label Filter ----------
-            else
-            {
-                // Key and Label filters are case-sensitive... but they are tested independently of each other.
-                // If providing testcase scenarios where both filters bump against case-sensitivity, then this
-                // section will need to be updated accordingly.
-                if (oldTimes)
-                {
-                    Assert.Equal("untouched", appSettings.Settings["casetestsetting"]?.Value);
-                    Assert.Equal(untouched, appSettings.Settings["testSetting"]?.Value);
-                    Assert.Equal(untouched, appSettings.Settings["newTestSetting"]?.Value);
-                    Assert.Equal(untouched, appSettings.Settings["superTestSetting"]?.Value);
-                    Assert.Equal(untouched, appSettings.Settings["keyVaultSetting"]?.Value);
-                    Assert.Equal(untouched, appSettings.Settings["superKeyVaultSetting"]?.Value);
-                    Assert.Equal(greedy ? 1 : 6, appSettings.Settings.Count);
-                }
-                else
-                {
-                    Assert.Equal("untouched", appSettings.Settings["casetestsetting"]?.Value);
-                    Assert.Equal(untouched, appSettings.Settings["testSetting"]?.Value);
-                    Assert.Equal(untouched, appSettings.Settings["newTestSetting"]?.Value);
-                    Assert.Equal("newSuperAlpha", appSettings.Settings["superTestSetting"]?.Value);
-                    Assert.Equal(untouched, appSettings.Settings["keyVaultSetting"]?.Value);
-                    Assert.Equal(untouched, appSettings.Settings["superKeyVaultSetting"]?.Value);
-                    Assert.Equal(greedy ? 2 : 6, appSettings.Settings.Count);
-                }
+                // In strict mode, we ask Azure AppConfig directly for 'casetestsetting' and get nothing since the case doesn't match. So it stays as 'untouched'.
+                Assert.Equal("untouched", appSettings.Settings["caseTestSetting"]?.Value);
+                Assert.Equal(GetExpectedConfigValue(builder, "testSetting", beforeEpoch) ?? "untouched", appSettings.Settings["testSetting"]?.Value);
+                Assert.Equal(GetExpectedConfigValue(builder, "newTestSetting", beforeEpoch) ?? "untouched", appSettings.Settings["newTestSetting"]?.Value);
+                Assert.Equal(GetExpectedConfigValue(builder, "superTestSetting", beforeEpoch) ?? "untouched", appSettings.Settings["superTestSetting"]?.Value);
+                Assert.Matches(GetExpectedConfigValue(builder, "keyVaultSetting", beforeEpoch) ?? "untouched", appSettings.Settings["keyVaultSetting"]?.Value);
+                Assert.Matches(GetExpectedConfigValue(builder, "superKeyVaultSetting", beforeEpoch) ?? "untouched", appSettings.Settings["superKeyVaultSetting"]?.Value);
+
+                Assert.Equal(6, appSettings.Settings.Count); // No 'epochDTO' in our staged config.
             }
         }
 
