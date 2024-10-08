@@ -169,7 +169,7 @@ namespace Test
         // ======================================================================
         //   "Full Stack" basics
         // ======================================================================
-        public static void ProcessConfigurationSection(Func<KeyValueConfigBuilder> builderFactory, string name, NameValueCollection settings = null, bool caseSensitive = false)
+        public static void ProcessConfigurationSection(Func<KeyValueConfigBuilder> builderFactory, string name, NameValueCollection settings = null)
         {
             NameValueCollection customSettings, baseSettings = settings ?? new NameValueCollection();
 

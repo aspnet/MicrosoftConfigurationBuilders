@@ -228,7 +228,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
         /// <summary>
         /// Use <see cref="GetAllValues(string)" /> to populate a cache of possible key/value pairs and avoid
-        /// querying the config source multiple times. Always called in 'Greedy' mode. May be called by
+        /// querying the config source multiple times. Always called by base in 'Greedy' mode. May also be called by
         /// individual builders in some other cases.
         /// </summary>
         protected void EnsureGreedyInitialized()
@@ -246,7 +246,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                         {
                             foreach (KeyValuePair<string, string> kvp in GetAllValues(prefix))
                             {
-                                _cachedValues.Add(TrimPrefix(kvp.Key, prefix), kvp.Value);
+                                _cachedValues.Add(kvp.Key, kvp.Value);
                             }
                             _greedyInitialized = true;
                         }
@@ -313,13 +313,18 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                 else if (Mode == KeyValueMode.Greedy)
                 {
                     EnsureGreedyInitialized();
+
+                    // Cached keys have already been 'mapped', but the prefix property we're about to use for trimming them
+                    // hasn't. Do that here so we are sure to correctly trim prefixes according to the way they are mapped.
+                    string prefix = MapKey(KeyPrefix);
                     foreach (KeyValuePair<string, string> kvp in _cachedValues)
                     {
                         if (kvp.Value != null)
                         {
                             // Here, kvp.Key is not from the config file, so it might not be correctly cased. Get the correct casing for UpdateKey.
-                            string newKey = UpdateKey(handler.TryGetOriginalCase(kvp.Key));
-                            handler.InsertOrUpdate(newKey, kvp.Value, kvp.Key);
+                            string oldKey = TrimPrefix(handler.TryGetOriginalCase(kvp.Key), prefix);
+                            string newKey = UpdateKey(oldKey);
+                            handler.InsertOrUpdate(newKey, kvp.Value, oldKey);
                         }
                     }
                 }

@@ -194,15 +194,14 @@ namespace Test
                 yield return new object[] { keyFilter };
         }
 
-        [AppConfigTheory]
-        [MemberData(nameof(GetCommonTestParameters))]
-        public void AzureAppConfig_GetValue(string keyFilter)
+        [AppConfigFact]
+        public void AzureAppConfig_GetValue()
         {
-            CommonBuilderTests.GetValue(() => new AzureAppConfigurationBuilder(), "AzureAppConfigGetValue",
-                new NameValueCollection() { { "endpoint", commonEndPoint }, { "keyFilter", keyFilter } }, caseSensitive: true);
-
             // The presence of a KeyFilter shortcuts GetValue() to return null under the assumption that we already
             // checked the value cache before calling GetValue(). So don't try to test KeyFilter here.
+            // ProcessConfigurationSection should be able to tackle that scenario in more of a "full-stack" manner.
+            CommonBuilderTests.GetValue(() => new AzureAppConfigurationBuilder(), "AzureAppConfigGetValue",
+                new NameValueCollection() { { "endpoint", commonEndPoint } }, caseSensitive: true);
         }
 
         [AppConfigTheory]
@@ -227,7 +226,7 @@ namespace Test
         {
             // The common test will try Greedy and Strict modes.
             CommonBuilderTests.ProcessConfigurationSection(() => new AzureAppConfigurationBuilder(), "AzureAppConfigProcessConfig",
-                new NameValueCollection() { { "endpoint", commonEndPoint }, { "keyFilter", keyFilter } }, caseSensitive: true);
+                new NameValueCollection() { { "endpoint", commonEndPoint }, { "keyFilter", keyFilter } });
         }
 
         // ======================================================================
