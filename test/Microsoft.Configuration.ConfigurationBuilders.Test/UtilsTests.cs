@@ -35,15 +35,26 @@ namespace Test
         [Fact]
         public void Utils_MapPath_AspNet()
         {
-            // Fake running in ASP.Net
-            FakeAspNet(true);
+            try
+            {
+                // Fake running in ASP.Net
+                FakeAspNet(true);
 
-            // Since HostingEnvironment is not actually loaded, Utils.ServerMapPath should spit our string right back at us.
-            string badPath = ")*@#__This_is_not_a_valid_Path_and_will_error_Unless_we_Get_into_ServerMapPath()}}}}!";
-            Assert.Equal(Utils.MapPath(badPath), badPath);
+                // Rooted paths don't change
+                Assert.Equal(@"C:\Windows\System32", Utils.MapPath(@"C:\Windows\System32"));
+                Assert.Equal(@"/Windows", Utils.MapPath(@"/Windows"));
+                Assert.Equal(@"\Windows", Utils.MapPath(@"\Windows"));
 
-            // Stop faking ASP.Net
-            FakeAspNet(false);
+                // A real HostingEnvironment.MapPath would reject this. But we don't mock all that logic.
+                // Instead, just verify that we have gone through the ASP.Net HostingEnvironment path.
+                string badPath = ")*@#__This_is_not_a_valid_Path_and_will_error_Unless_we_Get_into_ServerMapPath()}}}}!";
+                Assert.Equal(MockHostingEnvironment.PathPrefix + badPath, Utils.MapPath(badPath));
+            }
+            finally
+            {
+                // Stop faking ASP.Net
+                FakeAspNet(false);
+            }
         }
 
         [Fact]
@@ -83,6 +94,19 @@ namespace Test
             Type utils = typeof(Utils);
             FieldInfo isAspNetField = utils.GetField("s_isAspNet", BindingFlags.Static | BindingFlags.NonPublic);
             isAspNetField.SetValue(null, isAspNet);
+
+            // And mock HostingEnvironment?
+            FieldInfo hostingEnvironment = utils.GetField("s_hostingEnvironmentType", BindingFlags.Static | BindingFlags.NonPublic);
+            hostingEnvironment.SetValue(null, isAspNet ? typeof(MockHostingEnvironment) : null);
+        }
+
+        private class MockHostingEnvironment
+        {
+            public static string PathPrefix = @"\\MockHE\ASP.Net\";
+            public static string MapPath(string path)
+            {
+                return PathPrefix + path;
+            }
         }
     }
 }
