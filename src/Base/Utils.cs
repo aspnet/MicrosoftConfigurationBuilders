@@ -27,6 +27,10 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             if (String.IsNullOrWhiteSpace(path))
                 return path;
 
+            // Use 'as is' if the path is rooted.
+            if (Path.IsPathRooted(path))
+                return path;
+
             // First try Server.MapPath in ASP.Net
             if (IsAspNet)
             {
@@ -36,10 +40,6 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                 }
                 catch (Exception) { }
             }
-
-            // Use 'as is' if the path is rooted.
-            if (Path.IsPathRooted(path))
-                return path;
 
             // Special case a '~' at the start should always use AppDomain.BaseDirectory
             if (path.StartsWith(@"~/") || path.StartsWith(@"~\"))
