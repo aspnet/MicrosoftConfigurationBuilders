@@ -78,6 +78,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         public string TokenPattern { get { EnsureInitialized(); return _tokenPattern; } protected set { _tokenPattern = value; } }
         //private string _tokenPattern = @"\$\{(\w+)\}";
         private string _tokenPattern = @"\$\{(\w[\w-_$@#+,.:~]*)\}";    // Updated to be more reasonable for V2
+        //private string _tokenPattern = @"\$\{(\w[\w-_$@#+,.~]*)(?:\:([^}]*))?\}";    // Something like this to allow default values
 
         /// <summary>
         /// Gets or sets the behavior to use when recursion is detected.
@@ -207,19 +208,20 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             configValue = Regex.Replace(configValue, _tokenPattern, (m) =>
             {
                 string settingName = m.Groups[1].Value;
+                string defaultValue = (m.Groups[2].Success) ? m.Groups[2].Value : m.Groups[0].Value;
 
                 // If we are processing appSettings in ProcessConfigurationSection(), then we can use that. Other config builders in
                 // the chain before us have already finished, so this is a relatively consistent and logical state to draw from.
                 if (CurrentSection is AppSettingsSection appSettings && CurrentSection.SectionInformation?.SectionName == "appSettings")
-                    return (appSettings.Settings[settingName]?.Value ?? m.Groups[0].Value);
+                    return (appSettings.Settings[settingName]?.Value ?? defaultValue);
 
                 // Try to use CurrentConfiguration before falling back to ConfigurationManager. Otherwise OpenConfiguration()
                 // scenarios won't work because we're looking in the wrong processes AppSettings.
                 else if (CurrentSection?.CurrentConfiguration?.AppSettings is AppSettingsSection currentAppSettings)
-                    return (currentAppSettings.Settings[settingName]?.Value ?? m.Groups[0].Value);
+                    return (currentAppSettings.Settings[settingName]?.Value ?? defaultValue);
 
                 // All other config sections can just go through ConfigurationManager to get app settings though. :)
-                return (ConfigurationManager.AppSettings[settingName] ?? m.Groups[0].Value);
+                return (ConfigurationManager.AppSettings[settingName] ?? defaultValue);
             });
 
             _config[configName] = configValue;
@@ -362,10 +364,11 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             string updatedString = Regex.Replace(rawString, TokenPattern, (m) =>
                 {
                     string key = m.Groups[1].Value;
+                    string defaultValue = (m.Groups[2].Success) ? m.Groups[2].Value : m.Groups[0].Value;
 
                     // Same prefix-handling rules apply in token mode as in strict mode.
                     // Since the key is being completely replaced by the value, we don't need to call UpdateKey().
-                    return EscapeValue(GetValueInternal(key)) ?? m.Groups[0].Value;
+                    return EscapeValue(GetValueInternal(key)) ?? defaultValue;
                 });
 
             return updatedString;
