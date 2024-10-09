@@ -59,9 +59,21 @@ This is a setting that defines which characters from a config key need to be rep
 Somewhat of a remnant from earlier versions that allowed operating on raw XML, this flag can be used to specify whether or not to XML-escape values when replacing tokens in 'Token' mode. The default value is `false`.
 
 #### tokenPattern
-This is a setting that is shared between all KeyValueConfigBuilder-derived builders is `tokenPattern`. When describing the `Expand` behavior of these builders above, it was mentioned that the raw xml is searched for tokens that look like __`${token}`__. This is done with a regular expression. `@"\$\{(\w+)\}"` to be exact. The set of characters that matches `\w` is more strict than xml and many sources of config values allow, and some applications may need to allow more exotic characters in their token names. Additionally there might be scenarios where the `${}` pattern is not acceptable.
+A setting that is shared between all KeyValueConfigBuilder-derived builders is `tokenPattern`. When builders are in `Token` mode, [section handlers](SectionHandlers.md) are used to iterate through the Key/Value pairs of a config section. The builder then searches the full text of each 'Value' for any 'tokens' to expand. (In the old `Expand` mode, this search was done on the entire raw xml definition of the section before the .Net config system turns that into an object.) This token search is done with a regular expression, and the format of the token is given by this `tokenPattern` setting. The current default pattern is `@"\$\{(\w[\w-_$@#+,.:~]*)\}"`, which is the familiar "$\{TOKEN}" pattern we frequently see in other places.
 
 `tokenPattern` allows developers to change the regex that is used for token matching. It is a string argument, and no validation is done to make sure it is a well-formed non-dangerous regex - so use it wisely. The only real restriction is that is must contain a capture group. The entire regex must match the entire token, and the first capture must be the token name to look up in the config source.
+
+> :information_source: **NOTE:**
+> In v3.1, pattern recognition has been updated to look for a second capture within the `tokenPattern` match. If one is found, then that second capture will be used as a default value if no value can be found in the backing configuration store for the builder. The out-of-box `tokenPattern` is still as it was in the previous version, not capturing default values. But v3.1 builders will light up with this new feature simply by updating the `tokenPattern` in builder definitions like so:
+> ```xml
+>   <configBuilders>
+>     <builders>
+>       <!-- This will find tokens like "${TOKEN}" and "${TOKEN:default}" -->
+>       <add name="DefaultEnv" mode="Token" tokenPattern="\$\{(\w[\w-_$@#+,.~]*)(?:\:([^}]*))?\}" type="Microsoft.Configuration.ConfigurationBuilders.EnvironmentConfigBuilder, Microsoft.Configuration.ConfigurationBuilders.Environment" />
+>     </builders>
+>   </configBuilders>
+> ```
+> The [SampleConsoleApp](../samples/SampleConsoleApp/App.config) has been updated to demonstrate this new feature.
 
 ## AppSettings Parameters
 Starting with version 2, initialization parameters for key/value config builders can be drawn from `appSettings` instead of being hard-coded in the config file. This should allow for greater flexibility when deploying solutions with config builders where connection strings need to be kept secure, or deployment environments are swappable. Eg:
