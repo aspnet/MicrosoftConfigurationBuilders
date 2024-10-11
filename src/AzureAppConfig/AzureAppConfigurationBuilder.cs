@@ -6,6 +6,8 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Linq;
+using System.Reflection;
+using System.Runtime;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
@@ -25,6 +27,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         #pragma warning disable CS1591 // No xml comments for tag literals.
         public const string endpointTag = "endpoint";
         public const string connectionStringTag = "connectionString";
+        public const string snapshotTag = "snapshot";
         public const string keyFilterTag = "keyFilter";
         public const string labelFilterTag = "labelFilter";
         public const string dateTimeFilterTag = "acceptDateTime";
@@ -40,6 +43,12 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// Alternative to the preferred <see cref="Endpoint"/>, gets or sets a connection string used to connect to the config store.
         /// </summary>
         public string ConnectionString { get; protected set; }
+
+        /// <summary>
+        /// Gets or sets the name of a Snapshot to retrieve config values from.
+        /// If provided, this setting supercedes the Label, Key, and DateTime filters.
+        /// </summary>
+        public string Snapshot { get; protected set; }
 
         /// <summary>
         /// Gets or sets a 'Key Filter' to use when searching for config values.
@@ -63,6 +72,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
         private ConcurrentDictionary<Uri, SecretClient> _kvClientCache;
         private ConfigurationClient _client;
+        private FieldInfo _cachedValuesField;
 
         /// <summary>
         /// Initializes the configuration builder lazily.
@@ -76,30 +86,45 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
             base.LazyInitialize(name, config);
 
+            // TODO: This is super hacky. In a major-version update, this should be revamped in cooperation with the KVCB base class.
+            // When we cache our values, we drew them from a source where case matters. Case should still matter in our cache.
+            // Replace the built-in case-insensitive cache with a case-sensitive one.
+            _cachedValuesField = typeof(KeyValueConfigBuilder).GetField("_cachedValues", BindingFlags.Instance | BindingFlags.NonPublic);
+            if (_cachedValuesField != null)
+                _cachedValuesField.SetValue(this, new Dictionary<string, string>());
+
             // At this point, we have our 'Enabled' choice. If we are disabled, we can stop right here.
             if (Enabled == KeyValueEnabled.Disabled) return;
 
-            // keyFilter
-            KeyFilter = UpdateConfigSettingWithAppSettings(keyFilterTag);
-            if (String.IsNullOrWhiteSpace(KeyFilter))
-                KeyFilter = null;
+            // snapshot
+            Snapshot = UpdateConfigSettingWithAppSettings(snapshotTag);
+            if (String.IsNullOrWhiteSpace(Snapshot))
+            {
+                // Only configure other filters if 'snapshot' is not provided.
+                Snapshot = null;
 
-            // labelFilter
-            // Place some restrictions on label filter, similar to the .net core provider.
-            // The idea is to restrict queries to one label, and one label only. Even if that
-            // one label is the "empty" label. Doing so will remove the decision making process
-            // from this builders hands about which key/value/label tuple to choose when there
-            // are multiple.
-            LabelFilter = UpdateConfigSettingWithAppSettings(labelFilterTag);
-            if (String.IsNullOrWhiteSpace(LabelFilter)) {
-                LabelFilter = null;
-            }
-            else if (LabelFilter.Contains('*') || LabelFilter.Contains(',')) {
-                throw new ArgumentException("The characters '*' and ',' are not supported in label filters.", labelFilterTag);
-            }
+                // keyFilter
+                KeyFilter = UpdateConfigSettingWithAppSettings(keyFilterTag);
+                if (String.IsNullOrWhiteSpace(KeyFilter))
+                    KeyFilter = null;
 
-            // acceptDateTime
-            AcceptDateTime = (UpdateConfigSettingWithAppSettings(dateTimeFilterTag) != null) ? DateTimeOffset.Parse(config[dateTimeFilterTag]) : AcceptDateTime;
+                // labelFilter
+                // Place some restrictions on label filter, similar to the .net core provider.
+                // The idea is to restrict queries to one label, and one label only. Even if that
+                // one label is the "empty" label. Doing so will remove the decision making process
+                // from this builders hands about which key/value/label tuple to choose when there
+                // are multiple.
+                LabelFilter = UpdateConfigSettingWithAppSettings(labelFilterTag);
+                if (String.IsNullOrWhiteSpace(LabelFilter)) {
+                    LabelFilter = null;
+                }
+                else if (LabelFilter.Contains('*') || LabelFilter.Contains(',')) {
+                    throw new ArgumentException("The characters '*' and ',' are not supported in label filters.", labelFilterTag);
+                }
+
+                // acceptDateTime
+                AcceptDateTime = (UpdateConfigSettingWithAppSettings(dateTimeFilterTag) != null) ? DateTimeOffset.Parse(config[dateTimeFilterTag]) : AcceptDateTime;
+            }
 
             // Azure Key Vault Integration
             UseAzureKeyVault = (UpdateConfigSettingWithAppSettings(useKeyVaultTag) != null) ? Boolean.Parse(config[useKeyVaultTag]) : UseAzureKeyVault;
@@ -148,14 +173,16 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             // At this point we've got all our ducks in a row and are ready to go. And we know that
             // we will be used, because this is the 'lazy' initializer. But let's handle one oddball case
             // before we go.
-            // If we have a keyFilter set, then we will always query a set of values instead of a single
-            // value, regardless of whether we are in strict/token/greedy mode. But if we're not in
-            // greedy mode, then the base KeyValueConfigBuilder will still request each key/value it is
-            // interested in one at a time, and only cache that one result. So we will end up querying the
-            // same set of values from the AppConfig service for every value. Let's only do this once and
-            // cache the entire set to make those calls to GetValueInternal read from the cache instead of
-            // hitting the service every time.
-            if (KeyFilter != null && Mode != KeyValueMode.Greedy)
+            // In non-Greedy modes, after this point, all values are fetched - and cached - one at a time.
+            // But there are cases where the AppConfig SDK requires us to fetch _all_ matching values at
+            // once instead of one-at-a-time. Might as well cache those once instead of fetching them
+            // all every time we need to read the next value.
+            // TODO: It would be better to do this in 'GetValue()', but there is not a good way to get a value
+            // from the cache after populating it in that method - and changing the API between this class
+            // and the base class to make that easier would require a major version update. The API already
+            // anticipates this usage scenario for 'GetAllValues()' though, so we only need to do this
+            // in non-Greedy modes.
+            if ((Snapshot != null || KeyFilter != null) && Mode != KeyValueMode.Greedy)
                 EnsureGreedyInitialized();
         }
 
@@ -191,13 +218,11 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// <returns>The value corresponding to the given 'key' or null if no value is found.</returns>
         public override string GetValue(string key)
         {
-            // Quick shortcut. If we have a keyFilter set, then we've already populated the cache with
-            // all possible values for this builder. If we get here, that means the key was not found in
-            // the cache. Going further will query with just the key name, and no keyFilter applied. This
-            // could result in finding a value... but we shouldn't, because the requested key does not
-            // match the keyFilter - otherwise it would already be in the cache. Avoid the trouble and
-            // shortcut return nothing in this case.
-            if (KeyFilter != null)
+            // Quick shortcut. If we have snapshot or keyFilter set, then we've already populated the cache
+            // with all possible values for this builder. If we get here, that means the key was not found in
+            // the cache. Going further will query again for a key that we probably won't find. Avoid the trouble
+            // and shortcut return nothing in this case.
+            if (KeyFilter != null || Snapshot != null)
                 return null;
 
             // Azure Key Vault keys are case-insensitive, so this should be fine.
@@ -282,44 +307,19 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             if (_client == null)
                 return null;
 
-            SettingSelector selector = new SettingSelector { KeyFilter = key };
-
-            if (LabelFilter != null)
-            {
-                selector.LabelFilter = LabelFilter;
-            }
-            if (AcceptDateTime > DateTimeOffset.MinValue)
-            {
-                selector.AcceptDateTime = AcceptDateTime;
-            }
-            // TODO: Reduce bandwidth by limiting the fields we retrieve.
-            // Currently, content type doesn't get delivered, even if we add it to the selection. This prevents KeyVault recognition.
-            //selector.Fields = SettingFields.Key | SettingFields.Value | SettingFields.ContentType;
-
             try
             {
-                AsyncPageable<ConfigurationSetting> settings = _client.GetConfigurationSettingsAsync(selector);
-                IAsyncEnumerator<ConfigurationSetting> enumerator = settings.GetAsyncEnumerator();
+                ConfigurationSetting setting = await GetConfigSettingAsync(key);
 
-                try
+                if (setting == null)
+                    return null;
+
+                if (UseAzureKeyVault && setting is SecretReferenceConfigurationSetting secretReference)
                 {
-                    // There should only be one result. If there's more, we're only returning the fisrt.
-                    await enumerator.MoveNextAsync();
-                    ConfigurationSetting current = enumerator.Current;
-                    if (current == null)
-                        return null;
-
-                    if (UseAzureKeyVault && current is SecretReferenceConfigurationSetting secretReference)
-                    {
-                        return await GetKeyVaultValue(secretReference);
-                    }
-
-                    return current.Value;
+                    return await GetKeyVaultValue(secretReference);
                 }
-                finally
-                {
-                    await enumerator.DisposeAsync();
-                }
+
+                return setting.Value;
             }
             catch (AggregateException ae)
             {
@@ -337,29 +337,12 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             if (_client == null)
                 return data;
 
-            SettingSelector selector = new SettingSelector();
-            if (KeyFilter != null)
-            {
-                selector.KeyFilter = KeyFilter;
-            }
-            if (LabelFilter != null)
-            {
-                selector.LabelFilter = LabelFilter;
-            }
-            if (AcceptDateTime > DateTimeOffset.MinValue)
-            {
-                selector.AcceptDateTime = AcceptDateTime;
-            }
-            // TODO: Reduce bandwidth by limiting the fields we retrieve.
-            // Currently, content type doesn't get delivered, even if we add it to the selection. This prevents KeyVault recognition.
-            //selector.Fields = SettingFields.Key | SettingFields.Value | SettingFields.ContentType;
-
             // We don't make any guarantees about which kv get precendence when there are multiple of the same key...
             // But the config service does seem to return kvs in a preferred order - no label first, then alphabetical by label.
             // Prefer the first kv we encounter from the config service.
             try
             {
-                AsyncPageable<ConfigurationSetting> settings = _client.GetConfigurationSettingsAsync(selector);
+                AsyncPageable<ConfigurationSetting> settings = GetConfigSettings();
                 IAsyncEnumerator<ConfigurationSetting> enumerator = settings.GetAsyncEnumerator();
                 try
                 {
@@ -403,6 +386,61 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             catch (Exception e) when (ExceptionIsOptional(e)) { }
 
             return data;
+        }
+
+        private async Task<ConfigurationSetting> GetConfigSettingAsync(string name)
+        {
+            AsyncPageable<ConfigurationSetting> settings = GetConfigSettings(name);
+
+            // Alas, 'await using' isn't available in C# 7.3, which is technically the last supported C# for .NET Framework.
+            IAsyncEnumerator<ConfigurationSetting> enumerator = settings.GetAsyncEnumerator();
+            try
+            {
+                // TODO smolloy - In Snapshot mode, there is no way to select just this key.
+                // There should only be one result. If there's more, we're only returning the fisrt.
+                await enumerator.MoveNextAsync();
+                return enumerator.Current;
+            }
+            finally
+            {
+                await enumerator.DisposeAsync();
+            }
+        }
+
+        private AsyncPageable<ConfigurationSetting> GetConfigSettings(string name = null)
+        {
+            // TODO: Reduce bandwidth by limiting the fields we retrieve.
+            // Currently, content type doesn't get delivered, even if we add it to the selection. This prevents KeyVault recognition.
+            //selector.Fields = SettingFields.Key | SettingFields.Value | SettingFields.ContentType;
+
+            // Use a snapshot if it was provided
+            if (Snapshot != null)
+            {
+                return _client.GetConfigurationSettingsForSnapshotAsync(Snapshot);
+            }
+            else
+            {
+                SettingSelector selector = new SettingSelector();
+                if (name != null)
+                {
+                    selector.KeyFilter = name;
+                }
+                else if (KeyFilter != null)
+                {
+                    selector.KeyFilter = KeyFilter;
+                }
+                if (LabelFilter != null)
+                {
+                    selector.LabelFilter = LabelFilter;
+                }
+                if (AcceptDateTime > DateTimeOffset.MinValue)
+                {
+                    selector.AcceptDateTime = AcceptDateTime;
+                }
+
+                // We use 'GetSetting_s_' here because the singular version doesn't support multiple filters. :/
+                return _client.GetConfigurationSettingsAsync(selector);
+            }
         }
 
         private async Task<string> GetKeyVaultValue(SecretReferenceConfigurationSetting secretReference)
