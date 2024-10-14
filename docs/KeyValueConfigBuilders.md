@@ -152,10 +152,12 @@ In a similar vein to `GetCredential()`, builders who need finer control over the
 <add name="AzureAppConfig"
     [@mode|@enabled="enabled"|@charMap|@prefix|@stripPrefix|tokenPattern|@escapeExpandedValues]
     (@endpoint="https://your-appconfig-store.azconfig.io" | <del>@connectionString="Endpoint=https://your-appconfig-store.azconfig.io;Id=XXXXXXXXXX;Secret=XXXXXXXXXX"</del>)
+    [@snapshot="string"]
     [@keyFilter="string"]
     [@labelFilter="label"]
     [@acceptDateTime="DateTimeOffset"]
     [@useAzureKeyVault="bool"]
+    [@preloadValues="bool"]
     type="Microsoft.Configuration.ConfigurationBuilders.AzureAppConfigurationBuilder, Microsoft.Configuration.ConfigurationBuilders.AzureAppConfiguration" />
 ```
 > :information_source: **NOTE:**
@@ -164,12 +166,14 @@ In a similar vein to `GetCredential()`, builders who need finer control over the
 [AppConfiguration](https://docs.microsoft.com/en-us/azure/azure-app-configuration/overview) is a new offering from Azure. If you wish to use this new service for managing your configuration, then use this AzureAppConfigurationBuilder. Either `endpoint` or `connectionString` are required, but all other attributes are optional. If both `endpoint` and `connectionString` are used, then preference is given to the connection string.
   * `endpoint` - This specifies the AppConfiguration store to connect to.
   * ~~`connectionString`~~ - The recommendation is to use `endpoint` in conjunction with [DefaultAzureCredential](#azure-config-builders). ~~This specifies the AppConfiguration store to connect to, along with the Id and Secret necessary to access the service. Be careful not to expose any secrets in your code, repos, or App Configuration stores if you use this method for connecting.~~
+  * `snapshot` - Use this attribute to draw configuration values from the specific AppConfig snapshot named by the value of this attribute. **Setting this attribute will cause `keyFilter`, `labelFilter`, and `acceptDateTime` to be silently ignored.**
   * `keyFilter` - Use this to select a set of configuration values matching a certain key pattern.
       > :information_source: NOTE:
       > This filter is conceptually similar to the `prefix` attribute, but this filter is handled by the AppConfiguration service on the server side, whereas `prefix` filtering is done directly by the config builder in the application. They achieve the same goal through different mechanisms which have tradeoffs and merits according to the situation.
   * `labelFilter` - Only retrieve configuration values that match a certain label.
   * `acceptDateTime` - Instead of versioning ala Azure Key Vault, AppConfiguration uses timestamps. Use this attribute to go back in time to retrieve configuration values from a past state.
   * `useAzureKeyVault` - Enable this feature to allow AzureAppConfigurationBuilder to connect to and retrieve secrets from Azure Key Vault for config values that are stored in Key Vault. The same managed service identity that is used for connecting to the AppConfiguration service will be used to connect to Key Vault. The Key Vault uri is retrieved as part of the data from AppConfiguration and does not need to be specified here. Default is `false`.
+  * `preloadValues` - Enable this feature to have the builder pre-load all values from the AppConfiguration store into memory. Essentially the same as a 'Greedy' mode fetch of config values from the AppConfig store - but without dumping them all into the working config section.If you have a large cache of config values, or you have some values (that match key and label filters) that you don't want to pull into application memory - even if they don't get applied to existing config entries - then disable this. Otherwise, it is `true` by default because fetching as many config values as possible in one request is a much more scalable design and will help applications avoid throttling on the service end.
 
 #### AzureKeyVaultConfigBuilder
 ```xml
