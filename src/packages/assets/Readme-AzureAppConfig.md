@@ -8,6 +8,7 @@ The basic usage of this builder is given below. Parameters inside `[]`s are opti
 <add name="AzureAppConfig"
     [@mode|@enabled="enabled"|@charMap|@prefix|@stripPrefix|tokenPattern|@escapeExpandedValues]
     (@endpoint="https://your-appconfig-store.azconfig.io" | @connectionString="Endpoint=https://your-appconfig-store.azconfig.io;Id=XXXXXXXXXX;Secret=XXXXXXXXXX")
+    [@snapshot="string"]
     [@keyFilter="string"]
     [@labelFilter="label"]
     [@acceptDateTime="DateTimeOffset"]
@@ -20,10 +21,17 @@ The basic usage of this builder is given below. Parameters inside `[]`s are opti
 
   * `endpoint` - This specifies the AppConfiguration store to connect to.
   * `connectionString` - The recommendation is to use `endpoint`. ~~This specifies the AppConfiguration store to connect to, along with the Id and Secret necessary to access the service. Be carefulnot to expose any secrets in your code, repos, or App Configuration stores if you use this method for connecting.~~
+  * `snapshot` - Use this attribute to draw configuration values from the specific AppConfig snapshot named by the value of this attribute. **Setting this attribute will cause `keyFilter`, `labelFilter`, and `acceptDateTime` to be silently ignored.**
   * `keyFilter` - Use this to select a set of configuration values matching a certain key pattern.
   * `labelFilter` - Only retrieve configuration values that match a certain label.
   * `acceptDateTime` - Instead of versioning ala Azure Key Vault, AppConfiguration uses timestamps. Use this attribute to go back in time to retrieve configuration values from a past state.
   * `useAzureKeyVault` - Enable this feature to allow AzureAppConfigurationBuilder to connect to and retrieve secrets from Azure Key Vault for config values that are stored in Key Vault. The same managed service identity that is used for connecting to the AppConfiguration service will be used to connect to Key Vault. The Key Vault uri is retrieved as part of the data from AppConfiguration and does not need to be specific here. Default is `false`.
+
+### V3.1 Updates:
+  * Added Snapshot capabilities.
+  * Fixed `GetCredential()` and related option-overload issues.
+  * Auth failures are "optional" for [Azure Config Builders](https://github.com/aspnet/MicrosoftConfigurationBuilders/blob/main/docs/KeyValueConfigBuilders.md#azure-config-builders).
+  * Fixed bug with key filters in `Strict` mode.
 
 ### V3 Updates:
 A more complete list of updates [lives here](https://github.com/aspnet/MicrosoftConfigurationBuilders/blob/main/README.md#v3-updates). These are the ones most relevant to this builder:
