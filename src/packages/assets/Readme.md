@@ -9,6 +9,14 @@ The set of builders produced here are styled as "Key/Value Config Builders." The
 For more information about the builders featured in this project, to report bugs, or submit contributions, please refer to the github project page for [MicrosoftConfigurationBuilders](https://github.com/aspnet/MicrosoftConfigurationBuilders/).
 
 
+### V3.1 Updates:
+  * Added Snapshot capabilities to the [`AzureAppConfigurationBuilder`](https://github.com/aspnet/MicrosoftConfigurationBuilders/blob/main/docs/KeyValueConfigBuilders.md#azureappconfigurationbuilder).
+  * Added ability to provide "[default values](https://github.com/aspnet/MicrosoftConfigurationBuilders/blob/main/docs/KeyValueConfigBuilders.md#tokenPattern)" in `Token` mode.
+  * Fixed bug with rooted-paths and `Utils.MapPath` in ASP.Net scenarios.
+  * Fixed `GetCredential()` and related option-overload issues in [`AzureAppConfigurationBuilder`](https://github.com/aspnet/MicrosoftConfigurationBuilders/blob/main/docs/KeyValueConfigBuilders.md#azureappconfigurationbuilder).
+  * Auth failures are "optional" for [Azure Config Builders](https://github.com/aspnet/MicrosoftConfigurationBuilders/blob/main/docs/KeyValueConfigBuilders.md#azure-config-builders).
+  * Fixed [`AzureAppConfigurationBuilder`](https://github.com/aspnet/MicrosoftConfigurationBuilders/blob/main/docs/KeyValueConfigBuilders.md#azureappconfigurationbuilder) bug with key filters in `Strict` mode.
+
 ### V3 Updates:
   * :warning: ***Breaking Change*** - `Expand` mode is gone. It has been [replaced by `Token` mode](https://github.com/aspnet/MicrosoftConfigurationBuilders/blob/main/docs/KeyValueConfigBuilders.md#mode).
   * `Utils.MapPath` - This was somewhat broken in ASP.Net scenarios previously. It should now reliably go against `Server.MapPath()` in ASP.Net scenarios. It has also been updated to fall back against the directory of the config file being processed when resolving the app root in the case of a `Configuration` object being created by `ConfigurationManager.OpenConfiguration*` API's rather than being part of a fully-initialized runtime configuration stack.

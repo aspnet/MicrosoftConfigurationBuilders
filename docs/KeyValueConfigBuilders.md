@@ -152,6 +152,7 @@ In a similar vein to `GetCredential()`, builders who need finer control over the
 <add name="AzureAppConfig"
     [@mode|@enabled="enabled"|@charMap|@prefix|@stripPrefix|tokenPattern|@escapeExpandedValues]
     (@endpoint="https://your-appconfig-store.azconfig.io" | <del>@connectionString="Endpoint=https://your-appconfig-store.azconfig.io;Id=XXXXXXXXXX;Secret=XXXXXXXXXX"</del>)
+    [@snapshot="string"]
     [@keyFilter="string"]
     [@labelFilter="label"]
     [@acceptDateTime="DateTimeOffset"]
@@ -164,6 +165,7 @@ In a similar vein to `GetCredential()`, builders who need finer control over the
 [AppConfiguration](https://docs.microsoft.com/en-us/azure/azure-app-configuration/overview) is a new offering from Azure. If you wish to use this new service for managing your configuration, then use this AzureAppConfigurationBuilder. Either `endpoint` or `connectionString` are required, but all other attributes are optional. If both `endpoint` and `connectionString` are used, then preference is given to the connection string.
   * `endpoint` - This specifies the AppConfiguration store to connect to.
   * ~~`connectionString`~~ - The recommendation is to use `endpoint` in conjunction with [DefaultAzureCredential](#azure-config-builders). ~~This specifies the AppConfiguration store to connect to, along with the Id and Secret necessary to access the service. Be careful not to expose any secrets in your code, repos, or App Configuration stores if you use this method for connecting.~~
+  * `snapshot` - Use this attribute to draw configuration values from the specific AppConfig snapshot named by the value of this attribute. **Setting this attribute will cause `keyFilter`, `labelFilter`, and `acceptDateTime` to be silently ignored.**
   * `keyFilter` - Use this to select a set of configuration values matching a certain key pattern.
       > :information_source: NOTE:
       > This filter is conceptually similar to the `prefix` attribute, but this filter is handled by the AppConfiguration service on the server side, whereas `prefix` filtering is done directly by the config builder in the application. They achieve the same goal through different mechanisms which have tradeoffs and merits according to the situation.
