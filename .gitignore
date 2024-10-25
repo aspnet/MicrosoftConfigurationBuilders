@@ -10,6 +10,8 @@ test/**/[Oo]bj/
 .binaries/
 msbuild.*
 /packages/
-samples/SampleWebApp/bin/
-samples/SampleWebApp/obj/
+samples/**/[Bb]in/
+samples/**/[Oo]bj/
+samples/**/[Pp]ublish[Pp]rofiles/
+samples/**/[Ss]ervice[Dd]ependencies/
 *.user
