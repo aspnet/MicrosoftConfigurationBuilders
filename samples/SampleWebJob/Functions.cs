@@ -1,7 +1,8 @@
-﻿using Microsoft.Azure.WebJobs;
-using System.Collections;
+﻿using System.Collections;
 using System.Configuration;
-using System.IO;
+using System.Text;
+using Microsoft.Azure.WebJobs;
+using Microsoft.Extensions.Logging;
 
 namespace SampleWebJob
 {
@@ -9,31 +10,35 @@ namespace SampleWebJob
     {
         // This function will get triggered/executed when a new message is written 
         // on an Azure Queue called queue.
-        public static void ProcessQueueMessage([QueueTrigger("queue")] string message, TextWriter log)
+        public static void ProcessQueueMessage([QueueTrigger("queue")] string message, ILogger logger)
         {
-            log.WriteLine("===================================================================");
-            log.WriteLine("===================================================================");
-            log.WriteLine(message);
+            StringBuilder log = new StringBuilder();
 
-            log.WriteLine("---------- App Settings ----------");
+            log.AppendLine("===================================================================");
+            log.AppendLine("===================================================================");
+            log.AppendLine(message);
+
+            log.AppendLine("---------- App Settings ----------");
             foreach (string appsetting in ConfigurationManager.AppSettings.Keys)
             {
-                log.WriteLine($"{appsetting}\t{ConfigurationManager.AppSettings[appsetting]}");
+                log.AppendLine($"{appsetting}\t{ConfigurationManager.AppSettings[appsetting]}");
             }
 
-            log.WriteLine("");
-            log.WriteLine("---------- Connection Strings ----------");
+            log.AppendLine("");
+            log.AppendLine("---------- Connection Strings ----------");
             foreach (ConnectionStringSettings cs in ConfigurationManager.ConnectionStrings)
             {
-                log.WriteLine($"{cs.Name}\t{cs.ConnectionString}");
+                log.AppendLine($"{cs.Name}\t{cs.ConnectionString}");
             }
 
-            log.WriteLine("");
-            log.WriteLine("---------- Environment ----------");
+            log.AppendLine("");
+            log.AppendLine("---------- Environment ----------");
             foreach (DictionaryEntry ev in System.Environment.GetEnvironmentVariables())
             {
-                log.WriteLine($"{ev.Key}\t{ev.Value}");
+                log.AppendLine($"{ev.Key}\t{ev.Value}");
             }
+
+            logger.LogInformation(log.ToString());
         }
     }
 }

@@ -1,26 +1,43 @@
-﻿using System;
-using Microsoft.Azure.WebJobs;
+﻿using Microsoft.Azure.WebJobs;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Threading.Tasks;
 
 namespace SampleWebJob
 {
-    // To learn more about Microsoft Azure WebJobs SDK, please see https://go.microsoft.com/fwlink/?LinkID=320976
+    // To learn more about Microsoft Azure WebJobs SDK, please see https://go.microsoft.com/fwlink/?linkid=2250384
     internal class Program
     {
-        // Please set the following connection strings in app.config for this WebJob to run:
-        // AzureWebJobsDashboard and AzureWebJobsStorage
-        static void Main()
+        // Please set AzureWebJobsStorage connection strings in appsettings.json for this WebJob to run.
+        public static async Task Main(string[] args)
         {
-            var config = new JobHostConfiguration();
+            var builder = new HostBuilder()
+                .UseEnvironment(EnvironmentName.Development)
+                .ConfigureWebJobs(b =>
+                {
+                    b.AddAzureStorageCoreServices()
+                    .AddAzureStorageQueues();
+                })
+                .ConfigureLogging((context, b) =>
+                {
+                    b.SetMinimumLevel(LogLevel.Information);
+                    b.AddConsole();
+                });
 
-            if (config.IsDevelopment)
+
+            var host = builder.Build();
+            using (host)
             {
-                config.UseDevelopmentSettings();
-            }
+                ILogger logger = host.Services.GetService(typeof(ILogger<Program>)) as ILogger<Program>;
 
-            // The following code ensures that the WebJob will be running continuously
-            //var host = new JobHost(config);
-            //host.RunAndBlock();
-            Functions.ProcessQueueMessage("Manual trigger of ProcessMessageQ", Console.Out);
+                await host.StartAsync();
+                Functions.ProcessQueueMessage("Manual trigger of ProcessMessageQ", logger);
+                await host.StopAsync();
+            }
         }
     }
 }
+
+
