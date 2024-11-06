@@ -59,7 +59,13 @@ extends:
   template: azure-pipelines/MicroBuild.1ES.Official.yml@MicroBuildTemplate
   parameters:
     sdl:
+      binskim:
+        enable: true
+      codeql:
+        enable: true
       policheck:
+        enable: true
+      tsa:
         enable: true
       sourceAnalysisPool:
         name: AzurePipelines-EO
