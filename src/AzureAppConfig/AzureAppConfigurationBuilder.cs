@@ -32,6 +32,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         public const string labelFilterTag = "labelFilter";
         public const string dateTimeFilterTag = "acceptDateTime";
         public const string useKeyVaultTag = "useAzureKeyVault";
+        public const string preloadTag = "preloadValues";
         #pragma warning restore CS1591 // No xml comments for tag literals.
 
         /// <summary>
@@ -70,9 +71,17 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// </summary>
         public bool UseAzureKeyVault { get; protected set; } = false;
 
+        /// <summary>
+        /// Specifies whether the config builder should load all (filtered) config values from the store up front, or
+        /// load them all individually when needed. (Does not apply to Greedy mode, which preloads all values automatically.)
+        /// This can greatly reduce the number of calls to the config store to help avoid throttling.
+        /// </summary>
+        public bool PreloadValues { get; protected set; } = true;
+
         private ConcurrentDictionary<Uri, SecretClient> _kvClientCache;
         private ConfigurationClient _client;
         private FieldInfo _cachedValuesField;
+        private bool _valuesPreloaded = false;
 
         /// <summary>
         /// Initializes the configuration builder lazily.
@@ -170,20 +179,33 @@ namespace Microsoft.Configuration.ConfigurationBuilders
                 }
             }
 
-            // At this point we've got all our ducks in a row and are ready to go. And we know that
-            // we will be used, because this is the 'lazy' initializer. But let's handle one oddball case
-            // before we go.
-            // In non-Greedy modes, after this point, all values are fetched - and cached - one at a time.
-            // But there are cases where the AppConfig SDK requires us to fetch _all_ matching values at
-            // once instead of one-at-a-time. Might as well cache those once instead of fetching them
-            // all every time we need to read the next value.
-            // TODO: It would be better to do this in 'GetValue()', but there is not a good way to get a value
-            // from the cache after populating it in that method - and changing the API between this class
-            // and the base class to make that easier would require a major version update. The API already
-            // anticipates this usage scenario for 'GetAllValues()' though, so we only need to do this
-            // in non-Greedy modes.
-            if ((Snapshot != null || KeyFilter != null) && Mode != KeyValueMode.Greedy)
-                EnsureGreedyInitialized();
+            // Preload - Enabled if explicity set to true in the config, or if Snapshot or KeyFilter are used.
+            // Cannot be disabled explicitly in the case of Snapshot or KeyFilter. Be noisy about that.
+            // Does not make sense in Greedy mode, but no need to make noise about that.
+            if (Mode == KeyValueMode.Greedy)
+            {
+                PreloadValues = true;   // Just say true and be done with it.
+            }
+            else
+            {
+                // Implicitly, use default preload value - unless Snapshot or KeyFilter are used, then preload is true.
+                var implicitPreload = (Snapshot != null || KeyFilter != null);
+                PreloadValues |= implicitPreload;
+
+                // However, if preload is explicitly set to true in the config, check to see if the configured
+                // value is compatible with the current settings.
+                if ((UpdateConfigSettingWithAppSettings(preloadTag) != null))
+                {
+                    var explicitPreload = Boolean.Parse(config[preloadTag]);
+
+                    // Cannot explicitly set preload to false if using snapshot or keyFilter.
+                    if (implicitPreload && !explicitPreload)
+                        throw new ArgumentException($"The '{preloadTag}' attribute cannot be set to false when using the '{snapshotTag}' or '{keyFilterTag}' attributes.");
+
+                    // If there is no conflict, use the explicitly requested value.
+                    PreloadValues = explicitPreload;
+                }
+            }
         }
 
         /// <summary>
@@ -218,15 +240,31 @@ namespace Microsoft.Configuration.ConfigurationBuilders
         /// <returns>The value corresponding to the given 'key' or null if no value is found.</returns>
         public override string GetValue(string key)
         {
-            // Quick shortcut. If we have snapshot or keyFilter set, then we've already populated the cache
-            // with all possible values for this builder. If we get here, that means the key was not found in
-            // the cache. Going further will query again for a key that we probably won't find. Avoid the trouble
-            // and shortcut return nothing in this case.
-            if (KeyFilter != null || Snapshot != null)
+            // Special case - Preload
+            // If we are to preload values, we need to make sure that we have already done so.
+            // If we haven't, then we need to do that now.
+            // If we have though, then the base KVCB has already checked the cache and did not
+            // find what it needed. Going back to the store yet again is likely to be a waste of time.
+            // Avoid the trouble and shortcut return nothing in this case.
+            if (PreloadValues)
+            {
+                if (!_valuesPreloaded)
+                {
+                    string retval = null;
+                    if (_cachedValuesField != null)
+                    {
+                        var cachedValues = _cachedValuesField.GetValue(this) as Dictionary<string, string>;
+                        foreach (var kvp in GetAllValues(null))
+                            cachedValues.Add(kvp.Key, kvp.Value);
+                        cachedValues.TryGetValue(key, out retval);
+                    }
+                    _valuesPreloaded = true;
+                    return retval;
+                }
                 return null;
+            }
 
-            // Azure Key Vault keys are case-insensitive, so this should be fine.
-            // Also, this is a synchronous method. And in single-threaded contexts like ASP.Net
+            // This is a synchronous method. And in single-threaded contexts like ASP.Net
             // it can be bad/dangerous to block on async calls. So lets work some TPL voodoo
             // to avoid potential deadlocks.
             return Task.Run(async () => { return await GetValueAsync(key); }).Result;
@@ -332,7 +370,10 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
         private async Task<ICollection<KeyValuePair<string, string>>> GetAllValuesAsync(string prefix)
         {
-            Dictionary<string, string> data = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            // This should be case-sensitive, as the config service is case-sensitive.
+            // When doing prefix comparisons however, do those as case-insensitive, since the
+            // expectation is that prefixes from the builder definition in config are case-insensitive.
+            Dictionary<string, string> data = new Dictionary<string, string>();
 
             if (_client == null)
                 return data;
