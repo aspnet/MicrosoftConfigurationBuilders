@@ -5,51 +5,65 @@ using System.IO;
 using Microsoft.Configuration.ConfigurationBuilders;
 using Xunit;
 
-
 namespace Test
 {
-    public class KeyPerFileTests : IDisposable
+    public class KeyPerFileFixture : IDisposable
     {
-        private readonly string fsRoot, fsRootCommon, fsRootKVP;
-        private bool disposedValue;
+        public string FsRoot { get; private set; }
+        public string FsRootCommon { get; private set; }
+        public string FsRootKVP { get; private set; }
 
-        public KeyPerFileTests()
+        public KeyPerFileFixture()
         {
             // Get a clean KeyPerFile directory
-            fsRoot = Path.Combine(Environment.CurrentDirectory, "KeyPerFileTest_" + Path.GetRandomFileName());
-            fsRootCommon = Path.Combine(fsRoot, "common");
-            fsRootKVP = Path.Combine(fsRoot, "kvp");
-            if (Directory.Exists(fsRoot))
-                Directory.Delete(fsRoot, true);
-            Directory.CreateDirectory(fsRoot);
-            Directory.CreateDirectory(fsRootCommon);
-            Directory.CreateDirectory(fsRootKVP);
+            FsRoot = Path.Combine(Environment.CurrentDirectory, "KeyPerFileTest_" + Path.GetRandomFileName());
+            FsRootCommon = Path.Combine(FsRoot, "common");
+            FsRootKVP = Path.Combine(FsRoot, "kvp");
+            if (Directory.Exists(FsRoot))
+                Directory.Delete(FsRoot, true);
+            Directory.CreateDirectory(FsRoot);
+            Directory.CreateDirectory(FsRootCommon);
+            Directory.CreateDirectory(FsRootKVP);
 
             // Populate the filesystem with key/value pairs that are needed for common tests
             foreach (string key in CommonBuilderTests.CommonKeyValuePairs)
-                File.WriteAllText(Path.Combine(fsRootCommon, key), CommonBuilderTests.CommonKeyValuePairs[key]);
+                File.WriteAllText(Path.Combine(FsRootCommon, key), CommonBuilderTests.CommonKeyValuePairs[key]);
 
             // Also add some more of our own stuff for KeyPerFile-specific tests
-            File.WriteAllText(Path.Combine(fsRootKVP, "testkey"), "simple test value");
-            File.WriteAllText(Path.Combine(fsRootKVP, "dash-testkey"), "test value with dash");
-            File.WriteAllText(Path.Combine(fsRootKVP, "ignore.testkey"), "default hidden test value");
-            Directory.CreateDirectory(Path.Combine(fsRootKVP, "subFeature"));
-            File.WriteAllText(Path.Combine(fsRootKVP, "subFeature", "testkey"), "subFeature value");
-            File.WriteAllText(Path.Combine(fsRootKVP, "subFeature", "dash-testkey"), "subFeature dash value");
-            File.WriteAllText(Path.Combine(fsRootKVP, "subFeature", "ignore.testkey"), "default subFeature hidden value");
-            Directory.CreateDirectory(Path.Combine(fsRootKVP, "ignore"));
-            File.WriteAllText(Path.Combine(fsRootKVP, "ignore", "testkey"), "visible test value");
-            File.WriteAllText(Path.Combine(fsRootKVP, "ignore", ".testkey"), "hopefully not hidden test value");
-            File.WriteAllText(Path.Combine(fsRootKVP, "ignore", "-testkey"), "hopefully not hidden dash test value");
-            Directory.CreateDirectory(Path.Combine(fsRootKVP, "dash"));
-            File.WriteAllText(Path.Combine(fsRootKVP, "dash", "testkey"), "conflict key from dash folder");
-            File.WriteAllText(Path.Combine(fsRootKVP, "dash", "dir--testkey"), "double conflict test value from plain dash folder");
-            Directory.CreateDirectory(Path.Combine(fsRootKVP, "dash--dir"));
-            File.WriteAllText(Path.Combine(fsRootKVP, "dash--dir", "testkey"), "double conflict test value from dash-testkey folder");
-            Directory.CreateDirectory(Path.Combine(fsRootKVP, "dash-"));
-            File.WriteAllText(Path.Combine(fsRootKVP, "dash-", "testkey"), "double delimiter key from dash- folder");
+            File.WriteAllText(Path.Combine(FsRootKVP, "testkey"), "simple test value");
+            File.WriteAllText(Path.Combine(FsRootKVP, "dash-testkey"), "test value with dash");
+            File.WriteAllText(Path.Combine(FsRootKVP, "ignore.testkey"), "default hidden test value");
+            Directory.CreateDirectory(Path.Combine(FsRootKVP, "subFeature"));
+            File.WriteAllText(Path.Combine(FsRootKVP, "subFeature", "testkey"), "subFeature value");
+            File.WriteAllText(Path.Combine(FsRootKVP, "subFeature", "dash-testkey"), "subFeature dash value");
+            File.WriteAllText(Path.Combine(FsRootKVP, "subFeature", "ignore.testkey"), "default subFeature hidden value");
+            Directory.CreateDirectory(Path.Combine(FsRootKVP, "ignore"));
+            File.WriteAllText(Path.Combine(FsRootKVP, "ignore", "testkey"), "visible test value");
+            File.WriteAllText(Path.Combine(FsRootKVP, "ignore", ".testkey"), "hopefully not hidden test value");
+            File.WriteAllText(Path.Combine(FsRootKVP, "ignore", "-testkey"), "hopefully not hidden dash test value");
+            Directory.CreateDirectory(Path.Combine(FsRootKVP, "dash"));
+            File.WriteAllText(Path.Combine(FsRootKVP, "dash", "testkey"), "conflict key from dash folder");
+            File.WriteAllText(Path.Combine(FsRootKVP, "dash", "dir--testkey"), "double conflict test value from plain dash folder");
+            Directory.CreateDirectory(Path.Combine(FsRootKVP, "dash--dir"));
+            File.WriteAllText(Path.Combine(FsRootKVP, "dash--dir", "testkey"), "double conflict test value from dash-testkey folder");
+            Directory.CreateDirectory(Path.Combine(FsRootKVP, "dash-"));
+            File.WriteAllText(Path.Combine(FsRootKVP, "dash-", "testkey"), "double delimiter key from dash- folder");
         }
 
+        public void Dispose()
+        {
+            Directory.Delete(FsRoot, true);
+        }
+    }
+
+    public class KeyPerFileTests : IClassFixture<KeyPerFileFixture>
+    {
+        private readonly KeyPerFileFixture _fixture;
+
+        public KeyPerFileTests(KeyPerFileFixture fixture)
+        {
+            _fixture = fixture;
+        }
 
         // ======================================================================
         //   CommonBuilderTests
@@ -58,21 +72,21 @@ namespace Test
         public void KeyPerFile_GetValue()
         {
             CommonBuilderTests.GetValue(() => new KeyPerFileConfigBuilder(), "KeyPerFileGetValue",
-                new NameValueCollection() { { "directoryPath", fsRootCommon } });
+                new NameValueCollection() { { "directoryPath", _fixture.FsRootCommon } });
         }
 
         [Fact]
         public void KeyPerFile_GetAllValues()
         {
             CommonBuilderTests.GetAllValues(() => new KeyPerFileConfigBuilder(), "KeyPerFileGetAll",
-                new NameValueCollection() { { "directoryPath", fsRootCommon } });
+                new NameValueCollection() { { "directoryPath", _fixture.FsRootCommon } });
         }
 
         [Fact]
         public void KeyPerFile_ProcessConfigurationSection()
         {
             CommonBuilderTests.ProcessConfigurationSection(() => new KeyPerFileConfigBuilder(), "KeyPerFileProcessConfig",
-                new NameValueCollection() { { "directoryPath", fsRootCommon } });
+                new NameValueCollection() { { "directoryPath", _fixture.FsRootCommon } });
         }
 
         // ======================================================================
@@ -82,12 +96,12 @@ namespace Test
         public void KeyPerFile_DefaultSettings()
         {
             var builder = TestHelper.CreateBuilder<KeyPerFileConfigBuilder>(() => new KeyPerFileConfigBuilder(), "KeyPerFileDefault",
-                new NameValueCollection() { { "directoryPath", fsRootKVP } });
+                new NameValueCollection() { { "directoryPath", _fixture.FsRootKVP } });
 
             // DirectoryPath
-            var mappedRoot = Utils.MapPath(fsRootKVP);
+            var mappedRoot = Utils.MapPath(_fixture.FsRootKVP);
             Assert.Equal(mappedRoot, builder.DirectoryPath);
-            Assert.Equal(fsRootKVP, mappedRoot);  // Doesn't really matter. But this should be the case in this test.
+            Assert.Equal(_fixture.FsRootKVP, mappedRoot);  // Doesn't really matter. But this should be the case in this test.
 
             // KeyDelimiter
             Assert.Null(builder.KeyDelimiter);
@@ -107,16 +121,16 @@ namespace Test
         {
             // DirectoryPath, KeyDelimiter, IgnorePrefix attributes are case insensitive
             var builder = TestHelper.CreateBuilder<KeyPerFileConfigBuilder>(() => new KeyPerFileConfigBuilder(), "KeyPerFileIgPrefix1",
-                new NameValueCollection() { { "diRECTOrYpath", fsRootKVP }, { "keYdeLIMITer", "--" }, { "igNOreprefiX", "you-cant-see-me+" } });
-            var mappedPath = Utils.MapPath(fsRootKVP);
-            Assert.Equal(fsRootKVP, mappedPath);    // Does not have to be true functionally speaking, but it should be true here.
+                new NameValueCollection() { { "diRECTOrYpath", _fixture.FsRootKVP }, { "keYdeLIMITer", "--" }, { "igNOreprefiX", "you-cant-see-me+" } });
+            var mappedPath = Utils.MapPath(_fixture.FsRootKVP);
+            Assert.Equal(_fixture.FsRootKVP, mappedPath);    // Does not have to be true functionally speaking, but it should be true here.
             Assert.Equal(mappedPath, builder.DirectoryPath);
             Assert.Equal("--", builder.KeyDelimiter);
             Assert.Equal("you-cant-see-me+", builder.IgnorePrefix);
 
             // IgnorePrefix works single-level - GetAllValues()
             builder = TestHelper.CreateBuilder<KeyPerFileConfigBuilder>(() => new KeyPerFileConfigBuilder(), "KeyPerFileIgPrefix2",
-                new NameValueCollection() { { "directoryPath", fsRootKVP }, { "ignorePrefix", "ignore." } });
+                new NameValueCollection() { { "directoryPath", _fixture.FsRootKVP }, { "ignorePrefix", "ignore." } });
             var allValues = builder.GetAllValues("");
             Assert.Null(builder.KeyDelimiter);
             Assert.Equal("ignore.", builder.IgnorePrefix);
@@ -127,7 +141,7 @@ namespace Test
 
             // IgnorePrefix works single-level - GetValue()
             builder = TestHelper.CreateBuilder<KeyPerFileConfigBuilder>(() => new KeyPerFileConfigBuilder(), "KeyPerFileIgPrefix3",
-                new NameValueCollection() { { "directoryPath", fsRootKVP }, { "ignorePrefix", "ignore." } });
+                new NameValueCollection() { { "directoryPath", _fixture.FsRootKVP }, { "ignorePrefix", "ignore." } });
             Assert.Null(builder.KeyDelimiter);
             Assert.Equal("ignore.", builder.IgnorePrefix);
             Assert.Equal("simple test value", builder.GetValue("testkey"));
@@ -136,7 +150,7 @@ namespace Test
 
             // IgnorePrefix works multi-level - GetAllValues()
             builder = TestHelper.CreateBuilder<KeyPerFileConfigBuilder>(() => new KeyPerFileConfigBuilder(), "KeyPerFileIgPrefix4",
-                new NameValueCollection() { { "directoryPath", fsRootKVP }, { "keyDelimiter", ":" }, { "ignorePrefix", "ignore." } });
+                new NameValueCollection() { { "directoryPath", _fixture.FsRootKVP }, { "keyDelimiter", ":" }, { "ignorePrefix", "ignore." } });
             allValues = builder.GetAllValues("");
             Assert.Equal(":", builder.KeyDelimiter);
             Assert.Equal("ignore.", builder.IgnorePrefix);
@@ -156,7 +170,7 @@ namespace Test
 
             // IgnorePrefix works multi-level - GetValue()
             builder = TestHelper.CreateBuilder<KeyPerFileConfigBuilder>(() => new KeyPerFileConfigBuilder(), "KeyPerFileIgPrefix5",
-                new NameValueCollection() { { "directoryPath", fsRootKVP }, { "keyDelimiter", ":" }, { "ignorePrefix", "ignore." } });
+                new NameValueCollection() { { "directoryPath", _fixture.FsRootKVP }, { "keyDelimiter", ":" }, { "ignorePrefix", "ignore." } });
             Assert.Equal(":", builder.KeyDelimiter);
             Assert.Equal("ignore.", builder.IgnorePrefix);
             Assert.Equal("simple test value", builder.GetValue("testkey"));
@@ -168,7 +182,7 @@ namespace Test
 
             // IgnorePrefix is "" - Single level - GetAllValues()
             builder = TestHelper.CreateBuilder<KeyPerFileConfigBuilder>(() => new KeyPerFileConfigBuilder(), "KeyPerFileIgPrefix6",
-                new NameValueCollection() { { "directoryPath", fsRootKVP }, { "ignorePrefix", "" } });
+                new NameValueCollection() { { "directoryPath", _fixture.FsRootKVP }, { "ignorePrefix", "" } });
             allValues = builder.GetAllValues("");
             Assert.Null(builder.KeyDelimiter);
             Assert.Equal("", builder.IgnorePrefix);
@@ -179,7 +193,7 @@ namespace Test
 
             // IgnorePrefix is "" - Single level - GetValue()
             builder = TestHelper.CreateBuilder<KeyPerFileConfigBuilder>(() => new KeyPerFileConfigBuilder(), "KeyPerFileIgPrefix7",
-                new NameValueCollection() { { "directoryPath", fsRootKVP }, { "ignorePrefix", "" } });
+                new NameValueCollection() { { "directoryPath", _fixture.FsRootKVP }, { "ignorePrefix", "" } });
             Assert.Null(builder.KeyDelimiter);
             Assert.Equal("", builder.IgnorePrefix);
             Assert.Equal("simple test value", builder.GetValue("testkey"));
@@ -188,7 +202,7 @@ namespace Test
 
             // IgnorePrefix is "" - Multi-level - GetValue()
             builder = TestHelper.CreateBuilder<KeyPerFileConfigBuilder>(() => new KeyPerFileConfigBuilder(), "KeyPerFileIgPrefix8",
-                new NameValueCollection() { { "directoryPath", fsRootKVP }, { "keyDelimiter", ":" }, { "ignorePrefix", "" } });
+                new NameValueCollection() { { "directoryPath", _fixture.FsRootKVP }, { "keyDelimiter", ":" }, { "ignorePrefix", "" } });
             allValues = builder.GetAllValues("");
             Assert.Equal(":", builder.KeyDelimiter);
             Assert.Equal("", builder.IgnorePrefix);
@@ -208,7 +222,7 @@ namespace Test
 
             // IgnorePrefix is "" - Multi-level - GetValue()
             builder = TestHelper.CreateBuilder<KeyPerFileConfigBuilder>(() => new KeyPerFileConfigBuilder(), "KeyPerFileIgPrefix9",
-                new NameValueCollection() { { "directoryPath", fsRootKVP }, { "keyDelimiter", ":" }, { "ignorePrefix", "" } });
+                new NameValueCollection() { { "directoryPath", _fixture.FsRootKVP }, { "keyDelimiter", ":" }, { "ignorePrefix", "" } });
             Assert.Equal(":", builder.KeyDelimiter);
             Assert.Equal("", builder.IgnorePrefix);
             Assert.Equal("simple test value", builder.GetValue("testkey"));
@@ -224,16 +238,16 @@ namespace Test
         {
             // DirectoryPath, KeyDelimiter, IgnorePrefix attributes are case insensitive
             var builder = TestHelper.CreateBuilder<KeyPerFileConfigBuilder>(() => new KeyPerFileConfigBuilder(), "KeyPerFileDelimiter1",
-                new NameValueCollection() { { "diRECTOrYpath", fsRootKVP }, { "keYdeLIMITer", "--" }, { "igNOreprefiX", "you-cant-see-me+" } });
-            var mappedPath = Utils.MapPath(fsRootKVP);
-            Assert.Equal(fsRootKVP, mappedPath);    // Does not have to be true functionally speaking, but it should be true here.
+                new NameValueCollection() { { "diRECTOrYpath", _fixture.FsRootKVP }, { "keYdeLIMITer", "--" }, { "igNOreprefiX", "you-cant-see-me+" } });
+            var mappedPath = Utils.MapPath(_fixture.FsRootKVP);
+            Assert.Equal(_fixture.FsRootKVP, mappedPath);    // Does not have to be true functionally speaking, but it should be true here.
             Assert.Equal(mappedPath, builder.DirectoryPath);
             Assert.Equal("--", builder.KeyDelimiter);
             Assert.Equal("you-cant-see-me+", builder.IgnorePrefix);
 
             // keyDelimiter is null => Only top-level settings available
             builder = TestHelper.CreateBuilder<KeyPerFileConfigBuilder>(() => new KeyPerFileConfigBuilder(), "KeyPerFileDelimiter2",
-                new NameValueCollection() { { "directoryPath", fsRootKVP } });
+                new NameValueCollection() { { "directoryPath", _fixture.FsRootKVP } });
             var allValues = builder.GetAllValues("");
             Assert.Null(builder.KeyDelimiter);
             Assert.Equal("ignore.", builder.IgnorePrefix);
@@ -244,7 +258,7 @@ namespace Test
 
             // keyDelimiter not null => multi-level settings available (no delimiter conflict)
             builder = TestHelper.CreateBuilder<KeyPerFileConfigBuilder>(() => new KeyPerFileConfigBuilder(), "KeyPerFileDelimiter3",
-                new NameValueCollection() { { "directoryPath", fsRootKVP }, { "keyDelimiter", ":" } });
+                new NameValueCollection() { { "directoryPath", _fixture.FsRootKVP }, { "keyDelimiter", ":" } });
             allValues = builder.GetAllValues("");
             Assert.Equal(":", builder.KeyDelimiter);
             Assert.Equal("ignore.", builder.IgnorePrefix);
@@ -264,7 +278,7 @@ namespace Test
 
             // ignorePrefix filters ignored files in GetValue() as well
             builder = TestHelper.CreateBuilder<KeyPerFileConfigBuilder>(() => new KeyPerFileConfigBuilder(), "KeyPerFileDelimiter4",
-                new NameValueCollection() { { "directoryPath", fsRootKVP }, { "keyDelimiter", ":" } });
+                new NameValueCollection() { { "directoryPath", _fixture.FsRootKVP }, { "keyDelimiter", ":" } });
             Assert.Equal(":", builder.KeyDelimiter);
             Assert.Equal("ignore.", builder.IgnorePrefix);
             Assert.Equal("simple test value", builder.GetValue("testkey"));
@@ -276,7 +290,7 @@ namespace Test
 
             // keyDelimiter in file names
             builder = TestHelper.CreateBuilder<KeyPerFileConfigBuilder>(() => new KeyPerFileConfigBuilder(), "KeyPerFileDelimiter5",
-                new NameValueCollection() { { "directoryPath", fsRootKVP }, { "keyDelimiter", "-" } });
+                new NameValueCollection() { { "directoryPath", _fixture.FsRootKVP }, { "keyDelimiter", "-" } });
             Assert.Equal("-", builder.KeyDelimiter);
             Assert.Equal("ignore.", builder.IgnorePrefix);
             Assert.Equal("simple test value", builder.GetValue("testkey"));
@@ -291,7 +305,7 @@ namespace Test
             
             // keyDelimiter matches end of ignorePrefix in GetValue() (ie, do you ignore 'hide-testkey' or is that a multi-level [hide, testkey] lookup?)
             builder = TestHelper.CreateBuilder<KeyPerFileConfigBuilder>(() => new KeyPerFileConfigBuilder(), "KeyPerFileDelimiter6",
-                new NameValueCollection() { { "directoryPath", fsRootKVP }, { "keyDelimiter", "." } });
+                new NameValueCollection() { { "directoryPath", _fixture.FsRootKVP }, { "keyDelimiter", "." } });
             Assert.Equal(".", builder.KeyDelimiter);
             Assert.Equal("ignore.", builder.IgnorePrefix);
             Assert.Equal("simple test value", builder.GetValue("testkey"));
@@ -309,7 +323,7 @@ namespace Test
 
             // keyDelimiter matches end of ignorePrefix in GetAllValues() (ie, do you ignore 'hide-testkey' or is that a multi-level [hide, testkey] lookup?)
             builder = TestHelper.CreateBuilder<KeyPerFileConfigBuilder>(() => new KeyPerFileConfigBuilder(), "KeyPerFileDelimiter7",
-                new NameValueCollection() { { "directoryPath", fsRootKVP }, { "keyDelimiter", "." } });
+                new NameValueCollection() { { "directoryPath", _fixture.FsRootKVP }, { "keyDelimiter", "." } });
             allValues = builder.GetAllValues("");
             Assert.Equal(".", builder.KeyDelimiter);
             Assert.Equal("ignore.", builder.IgnorePrefix);
@@ -368,7 +382,7 @@ namespace Test
             exception = Record.Exception(() =>
             {
                 TestHelper.CreateBuilder<KeyPerFileConfigBuilder>(() => new KeyPerFileConfigBuilder(), "KeyPerFileErrors3",
-                    new NameValueCollection() { { "directoryPath", fsRootKVP }, { "ignorePrefix", @"ig\n*re/." }, { "enabled", enabled.ToString() } });
+                    new NameValueCollection() { { "directoryPath", _fixture.FsRootKVP }, { "ignorePrefix", @"ig\n*re/." }, { "enabled", enabled.ToString() } });
             });
             Assert.Null(exception);
         }
@@ -378,7 +392,7 @@ namespace Test
         {
             // keyDelimiter conflicts with filename characters in GetValue() (parent/child)
             var builder = TestHelper.CreateBuilder<KeyPerFileConfigBuilder>(() => new KeyPerFileConfigBuilder(), "KeyPerFileConflict1",
-                new NameValueCollection() { { "directoryPath", fsRootKVP }, { "keyDelimiter", "-" }, { "enabled", "Enabled" } });
+                new NameValueCollection() { { "directoryPath", _fixture.FsRootKVP }, { "keyDelimiter", "-" }, { "enabled", "Enabled" } });
             Assert.Equal("-", builder.KeyDelimiter);
             Assert.Equal("simple test value", builder.GetValue("testkey"));
             Assert.Equal("subFeature value", builder.GetValue("subFeature-testkey"));
@@ -390,7 +404,7 @@ namespace Test
 
             // keyDelimiter conflicts with filename characters in GetAllValues() (parent/child)
             builder = TestHelper.CreateBuilder<KeyPerFileConfigBuilder>(() => new KeyPerFileConfigBuilder(), "KeyPerFileConflict2",
-                new NameValueCollection() { { "directoryPath", fsRootKVP }, { "keyDelimiter", "-" }, { "enabled", "Enabled" } });
+                new NameValueCollection() { { "directoryPath", _fixture.FsRootKVP }, { "keyDelimiter", "-" }, { "enabled", "Enabled" } });
             exception = Record.Exception(() =>
             {
                 builder.GetAllValues("");
@@ -399,7 +413,7 @@ namespace Test
 
             // keyDelimiter conflicts with filename characters in GetValue() (siblings)
             builder = TestHelper.CreateBuilder<KeyPerFileConfigBuilder>(() => new KeyPerFileConfigBuilder(), "KeyPerFileConflict3",
-                new NameValueCollection() { { "directoryPath", fsRootKVP }, { "keyDelimiter", "--" }, { "enabled", "Enabled" } });
+                new NameValueCollection() { { "directoryPath", _fixture.FsRootKVP }, { "keyDelimiter", "--" }, { "enabled", "Enabled" } });
             Assert.Equal("--", builder.KeyDelimiter);
             Assert.Equal("simple test value", builder.GetValue("testkey"));
             Assert.Equal("subFeature value", builder.GetValue("subFeature--testkey"));
@@ -413,7 +427,7 @@ namespace Test
 
             // keyDelimiter conflicts with filename characters in GetAllValues() (siblings)
             builder = TestHelper.CreateBuilder<KeyPerFileConfigBuilder>(() => new KeyPerFileConfigBuilder(), "KeyPerFileConflict4",
-                new NameValueCollection() { { "directoryPath", fsRootKVP }, { "keyDelimiter", "--" }, { "enabled", "Enabled" } });
+                new NameValueCollection() { { "directoryPath", _fixture.FsRootKVP }, { "keyDelimiter", "--" }, { "enabled", "Enabled" } });
             exception = Record.Exception(() =>
             {
                 builder.GetAllValues("");
@@ -422,14 +436,14 @@ namespace Test
 
             // Conflicts are not an optional failure
             builder = TestHelper.CreateBuilder<KeyPerFileConfigBuilder>(() => new KeyPerFileConfigBuilder(), "KeyPerFileConflict5",
-                new NameValueCollection() { { "directoryPath", fsRootKVP }, { "keyDelimiter", "-" }, { "enabled", "Optional" } });
+                new NameValueCollection() { { "directoryPath", _fixture.FsRootKVP }, { "keyDelimiter", "-" }, { "enabled", "Optional" } });
             exception = Record.Exception(() =>
             {
                 builder.GetValue("dash-testkey");
             });
             TestHelper.ValidateBasicException<ArgumentException>(exception);
             builder = TestHelper.CreateBuilder<KeyPerFileConfigBuilder>(() => new KeyPerFileConfigBuilder(), "KeyPerFileConflict6",
-                new NameValueCollection() { { "directoryPath", fsRootKVP }, { "keyDelimiter", "-" }, { "enabled", "Optional" } });
+                new NameValueCollection() { { "directoryPath", _fixture.FsRootKVP }, { "keyDelimiter", "-" }, { "enabled", "Optional" } });
             exception = Record.Exception(() =>
             {
                 builder.GetAllValues("");
@@ -440,50 +454,16 @@ namespace Test
             var appSettings = new AppSettingsSection();
             appSettings.Settings.Add("testkey", "should not change");
             builder = TestHelper.CreateBuilder<KeyPerFileConfigBuilder>(() => new KeyPerFileConfigBuilder(), "KeyPerFileConflict7",
-                new NameValueCollection() { { "directoryPath", fsRootKVP }, { "keyDelimiter", "-" }, { "enabled", "Disabled" } });
+                new NameValueCollection() { { "directoryPath", _fixture.FsRootKVP }, { "keyDelimiter", "-" }, { "enabled", "Disabled" } });
             appSettings = (AppSettingsSection)builder.ProcessConfigurationSection(appSettings); // No exception
             Assert.Single(appSettings.Settings);
             Assert.Equal("should not change", appSettings.Settings["testkey"]?.Value);
 
             // No conflicts when disabled - Greedy
             builder = TestHelper.CreateBuilder<KeyPerFileConfigBuilder>(() => new KeyPerFileConfigBuilder(), "KeyPerFileConflict8",
-                new NameValueCollection() { { "mode", "Greedy" }, { "directoryPath", fsRootKVP }, { "keyDelimiter", "-" }, { "enabled", "Disabled" } });
+                new NameValueCollection() { { "mode", "Greedy" }, { "directoryPath", _fixture.FsRootKVP }, { "keyDelimiter", "-" }, { "enabled", "Disabled" } });
             appSettings = (AppSettingsSection)builder.ProcessConfigurationSection(new AppSettingsSection()); // No exception
             Assert.Empty(appSettings.Settings);
-        }
-
-
-        // ======================================================================
-        //   IDisposable Pattern
-        // ======================================================================
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!disposedValue)
-            {
-                if (disposing)
-                {
-                    // TODO: dispose managed state (managed objects)
-                }
-
-                // TODO: free unmanaged resources (unmanaged objects) and override finalizer
-                // TODO: set large fields to null
-                Directory.Delete(fsRoot, true);
-                disposedValue = true;
-            }
-        }
-
-        // override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
-        ~KeyPerFileTests()
-        {
-            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-            Dispose(disposing: false);
-        }
-
-        public void Dispose()
-        {
-            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-            Dispose(disposing: true);
-            GC.SuppressFinalize(this);
         }
     }
 }

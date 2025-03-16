@@ -5,32 +5,45 @@ using System.IO;
 using Microsoft.Configuration.ConfigurationBuilders;
 using Xunit;
 
-
 namespace Test
 {
-    public class SimpleJsonTests : IDisposable
+    public class SimpleJsonFixture : IDisposable
     {
-        private readonly string commonJsonFileName;
-        private readonly string jsonTestFileName;
-        private readonly string jsonConflictFileName;
-        private bool disposedValue;
+        public string CommonJsonFileName { get; private set; }
+        public string JsonTestFileName { get; private set; }
+        public string JsonConflictFileName { get; private set; }
 
-        public SimpleJsonTests()
+        public SimpleJsonFixture()
         {
             // Get a clean json settings file
-            commonJsonFileName = Path.Combine(Environment.CurrentDirectory, "SimpleJsonTest_" + Path.GetRandomFileName() + ".json");
-            if (File.Exists(commonJsonFileName))
-                File.Delete(commonJsonFileName);
+            CommonJsonFileName = Path.Combine(Environment.CurrentDirectory, "SimpleJsonTest_" + Path.GetRandomFileName() + ".json");
+            if (File.Exists(CommonJsonFileName))
+                File.Delete(CommonJsonFileName);
 
             // Populate the json file with key/value pairs that are needed for common tests
             string rawJson = "";
             foreach (string key in CommonBuilderTests.CommonKeyValuePairs)
                 rawJson += $"  \"{key}\": \"{CommonBuilderTests.CommonKeyValuePairs[key].Replace(@"\", @"\\").Replace("\"", "\\\"")}\",\r\n";
-            File.WriteAllText(commonJsonFileName, $"{{\r\n{rawJson}}}");
+            File.WriteAllText(CommonJsonFileName, $"{{\r\n{rawJson}}}");
 
             // Also find our custom json test file
-            jsonTestFileName = Path.Combine(Environment.CurrentDirectory, "testConfigFiles", "simpleJsonTest.json");
-            jsonConflictFileName = Path.Combine(Environment.CurrentDirectory, "testConfigFiles", "simpleJsonConflict.json");
+            JsonTestFileName = Path.Combine(Environment.CurrentDirectory, "testConfigFiles", "simpleJsonTest.json");
+            JsonConflictFileName = Path.Combine(Environment.CurrentDirectory, "testConfigFiles", "simpleJsonConflict.json");
+        }
+
+        public void Dispose()
+        {
+            File.Delete(CommonJsonFileName);
+        }
+    }
+
+    public class SimpleJsonTests : IClassFixture<SimpleJsonFixture>
+    {
+        private readonly SimpleJsonFixture _fixture;
+
+        public SimpleJsonTests(SimpleJsonFixture fixture)
+        {
+            _fixture = fixture;
         }
 
         // ======================================================================
@@ -42,7 +55,7 @@ namespace Test
         public void SimpleJson_GetValue(SimpleJsonConfigBuilderMode jsonMode)
         {
             CommonBuilderTests.GetValue(() => new SimpleJsonConfigBuilder(), $"SimpleJson{jsonMode.ToString()}GetValue",
-                new NameValueCollection() { { "jsonFile", commonJsonFileName }, { "jsonMode", jsonMode.ToString() } });
+                new NameValueCollection() { { "jsonFile", _fixture.CommonJsonFileName }, { "jsonMode", jsonMode.ToString() } });
         }
 
         [Theory]
@@ -51,7 +64,7 @@ namespace Test
         public void SimpleJson_GetAllValues(SimpleJsonConfigBuilderMode jsonMode)
         {
             CommonBuilderTests.GetAllValues(() => new SimpleJsonConfigBuilder(), $"SimpleJson{jsonMode.ToString()}GetAll",
-                new NameValueCollection() { { "jsonFile", commonJsonFileName }, { "jsonMode", jsonMode.ToString() } });
+                new NameValueCollection() { { "jsonFile", _fixture.CommonJsonFileName }, { "jsonMode", jsonMode.ToString() } });
         }
 
         [Theory]
@@ -60,7 +73,7 @@ namespace Test
         public void SimpleJson_ProcessConfigurationSection(SimpleJsonConfigBuilderMode jsonMode)
         {
             CommonBuilderTests.ProcessConfigurationSection(() => new SimpleJsonConfigBuilder(), $"SimpleJson{jsonMode.ToString()}ProcessConfig",
-                new NameValueCollection() { { "jsonFile", commonJsonFileName }, { "jsonMode", jsonMode.ToString() } });
+                new NameValueCollection() { { "jsonFile", _fixture.CommonJsonFileName }, { "jsonMode", jsonMode.ToString() } });
         }
 
         // ======================================================================
@@ -70,11 +83,11 @@ namespace Test
         public void SimpleJson_DefaultSettings()
         {
             var builder = TestHelper.CreateBuilder<SimpleJsonConfigBuilder>(() => new SimpleJsonConfigBuilder(), "SimpleJsonDefault",
-                new NameValueCollection() { { "jsonFile", jsonTestFileName } });
+                new NameValueCollection() { { "jsonFile", _fixture.JsonTestFileName } });
 
             // JsonFile
-            var mappedRoot = Utils.MapPath(jsonTestFileName);
-            Assert.Equal(jsonTestFileName, mappedRoot);  // Doesn't really matter. But this should be the case in this test.
+            var mappedRoot = Utils.MapPath(_fixture.JsonTestFileName);
+            Assert.Equal(_fixture.JsonTestFileName, mappedRoot);  // Doesn't really matter. But this should be the case in this test.
             Assert.Equal(mappedRoot, builder.JsonFile);
 
             // JsonMode
@@ -92,15 +105,15 @@ namespace Test
         {
             // JsonFile and JsonMode attributes are case insensitive
             var builder = TestHelper.CreateBuilder<SimpleJsonConfigBuilder>(() => new SimpleJsonConfigBuilder(), "SimpleJsonSettings1",
-                new NameValueCollection() { { "JsONfilE", jsonTestFileName }, { "jSONmODe", "seCTiOnaL" } });
-            var mappedPath = Utils.MapPath(jsonTestFileName);
-            Assert.Equal(jsonTestFileName, mappedPath);    // Does not have to be true functionally speaking, but it should be true here.
+                new NameValueCollection() { { "JsONfilE", _fixture.JsonTestFileName }, { "jSONmODe", "seCTiOnaL" } });
+            var mappedPath = Utils.MapPath(_fixture.JsonTestFileName);
+            Assert.Equal(_fixture.JsonTestFileName, mappedPath);    // Does not have to be true functionally speaking, but it should be true here.
             Assert.Equal(mappedPath, builder.JsonFile);
             Assert.Equal(SimpleJsonConfigBuilderMode.Sectional, builder.JsonMode);
 
             // Everything is flattened in flat mode
             builder = TestHelper.CreateBuilder<SimpleJsonConfigBuilder>(() => new SimpleJsonConfigBuilder(), "SimpleJsonSettings2",
-                new NameValueCollection() { { "jsonFile", jsonTestFileName }, { "jsonMode", "Flat" } });
+                new NameValueCollection() { { "jsonFile", _fixture.JsonTestFileName }, { "jsonMode", "Flat" } });
             var allValues = builder.GetAllValues("");
             Assert.Equal(55, allValues.Count);
             Assert.Equal("From Json Root", TestHelper.GetValueFromCollection(allValues, "rootString"));
@@ -164,7 +177,7 @@ namespace Test
 
             // Again, but one at a time
             builder = TestHelper.CreateBuilder<SimpleJsonConfigBuilder>(() => new SimpleJsonConfigBuilder(), "SimpleJsonSettings3",
-                new NameValueCollection() { { "jsonFile", jsonTestFileName }, { "jsonMode", "Flat" } });
+                new NameValueCollection() { { "jsonFile", _fixture.JsonTestFileName }, { "jsonMode", "Flat" } });
             Assert.Equal(55, allValues.Count);
             Assert.Equal("From Json Root", builder.GetValue("rootString"));
             Assert.Equal("True", builder.GetValue("rootBoolean"));
@@ -227,7 +240,7 @@ namespace Test
 
             // Get just the custom settings
             builder = TestHelper.CreateBuilder<SimpleJsonConfigBuilder>(() => new SimpleJsonConfigBuilder(), "SimpleJsonSettings4",
-                new NameValueCollection() { { "jsonFile", jsonTestFileName }, { "jsonMode", "Flat" } });
+                new NameValueCollection() { { "jsonFile", _fixture.JsonTestFileName }, { "jsonMode", "Flat" } });
             allValues = builder.GetAllValues("customAppSettings:");
             Assert.Equal(10, allValues.Count);
             Assert.Equal("Custom Setting from Json", TestHelper.GetValueFromCollection(allValues, "customAppSettings:jsonCustomString"));
@@ -245,7 +258,7 @@ namespace Test
             var cfg = TestHelper.LoadMultiLevelConfig("empty.config", "customAppSettings.config");
             var appSettings = cfg.AppSettings;
             builder = TestHelper.CreateBuilder<SimpleJsonConfigBuilder>(() => new SimpleJsonConfigBuilder(), "SimpleJsonSettings5",
-                new NameValueCollection() { { "jsonFile", jsonTestFileName }, { "jsonMode", "Sectional" }, { "mode", "Greedy" } });
+                new NameValueCollection() { { "jsonFile", _fixture.JsonTestFileName }, { "jsonMode", "Sectional" }, { "mode", "Greedy" } });
             appSettings = (AppSettingsSection)builder.ProcessConfigurationSection(appSettings);
             Assert.Equal(30, appSettings.Settings.Count);
             Assert.Equal("From appSettings", appSettings.Settings["asString"]?.Value);
@@ -282,7 +295,7 @@ namespace Test
             // We only get CustomAppSettings section in sectional mode
             var customSettings = (AppSettingsSection)cfg.GetSection("customAppSettings");
             builder = TestHelper.CreateBuilder<SimpleJsonConfigBuilder>(() => new SimpleJsonConfigBuilder(), "SimpleJsonSettings6",
-                new NameValueCollection() { { "jsonFile", jsonTestFileName }, { "jsonMode", "Sectional" }, { "mode", "Greedy" } });
+                new NameValueCollection() { { "jsonFile", _fixture.JsonTestFileName }, { "jsonMode", "Sectional" }, { "mode", "Greedy" } });
             customSettings = (AppSettingsSection)builder.ProcessConfigurationSection(customSettings);
             Assert.Equal(10, customSettings.Settings.Count);
             Assert.Equal("Custom Setting from Json", customSettings.Settings["jsonCustomString"]?.Value);
@@ -332,7 +345,7 @@ namespace Test
             exception = Record.Exception(() =>
             {
                 TestHelper.CreateBuilder<SimpleJsonConfigBuilder>(() => new SimpleJsonConfigBuilder(), "SimpleJsonErrors3",
-                    new NameValueCollection() { { "jsonFile", jsonTestFileName }, { "enabled", enabled.ToString() }, { "jsonMode", "invalidMode" } });
+                    new NameValueCollection() { { "jsonFile", _fixture.JsonTestFileName }, { "enabled", enabled.ToString() }, { "jsonMode", "invalidMode" } });
             });
             if (enabled != KeyValueEnabled.Disabled)
                 TestHelper.ValidateWrappedException<ArgumentException>(exception, "SimpleJsonErrors3");
@@ -356,7 +369,7 @@ namespace Test
             var exception = Record.Exception(() =>
             {
                 var builder = TestHelper.CreateBuilder<SimpleJsonConfigBuilder>(() => new SimpleJsonConfigBuilder(), "SimpleJsonConflict1",
-                    new NameValueCollection() { { "jsonFile", jsonConflictFileName }, { "enabled", enabled.ToString() }, { "jsonMode", jsonMode.ToString() } });
+                    new NameValueCollection() { { "jsonFile", _fixture.JsonConflictFileName }, { "enabled", enabled.ToString() }, { "jsonMode", jsonMode.ToString() } });
 
                 if (jsonMode == SimpleJsonConfigBuilderMode.Sectional)
                 {
@@ -376,7 +389,7 @@ namespace Test
             exception = Record.Exception(() =>
             {
                 var builder = TestHelper.CreateBuilder<SimpleJsonConfigBuilder>(() => new SimpleJsonConfigBuilder(), "SimpleJsonConflict2",
-                    new NameValueCollection() { { "jsonFile", jsonConflictFileName }, { "enabled", enabled.ToString() }, { "jsonMode", "Sectional" } });
+                    new NameValueCollection() { { "jsonFile", _fixture.JsonConflictFileName }, { "enabled", enabled.ToString() }, { "jsonMode", "Sectional" } });
 
                 if (jsonMode == SimpleJsonConfigBuilderMode.Sectional)
                 {
@@ -392,40 +405,6 @@ namespace Test
                 TestHelper.ValidateWrappedException<ArgumentException>(exception, "SimpleJsonConflict2");
             else
                 Assert.Null(exception);
-        }
-
-
-        // ======================================================================
-        //   IDisposable Pattern
-        // ======================================================================
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!disposedValue)
-            {
-                if (disposing)
-                {
-                    // TODO: dispose managed state (managed objects)
-                }
-
-                // TODO: free unmanaged resources (unmanaged objects) and override finalizer
-                // TODO: set large fields to null
-                File.Delete(commonJsonFileName);
-                disposedValue = true;
-            }
-        }
-
-        // override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
-        ~SimpleJsonTests()
-        {
-            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-            Dispose(disposing: false);
-        }
-
-        public void Dispose()
-        {
-            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-            Dispose(disposing: true);
-            GC.SuppressFinalize(this);
         }
     }
 }

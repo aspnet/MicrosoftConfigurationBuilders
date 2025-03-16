@@ -9,31 +9,29 @@ using Xunit;
 
 namespace Test
 {
-    public class UserSecretsTests : IDisposable
+    public class UserSecretsFixture : IDisposable
     {
-        private readonly string secretsFileName;
-        private readonly string secretsId;
-        private readonly string secretsIdFileName;
-        private readonly string commonSecretsFileName;
-        private bool disposedValue;
+        public string SecretsFileName { get; private set; }
+        public string SecretsId { get; private set; }
+        public string SecretsIdFileName { get; private set; }
+        public string CommonSecretsFileName { get; private set; }
 
-        public UserSecretsTests()
+        public UserSecretsFixture()
         {
             // Get clean secrets file locations
-            secretsId = Guid.NewGuid().ToString();
-            secretsIdFileName = GetSecretsFileFromID(secretsId);
-            if (File.Exists(secretsIdFileName))
-                File.Delete(secretsIdFileName);
-            string idDirectory = Path.GetDirectoryName(secretsIdFileName);
+            SecretsId = Guid.NewGuid().ToString();
+            SecretsIdFileName = GetSecretsFileFromID(SecretsId);
+            if (File.Exists(SecretsIdFileName))
+                File.Delete(SecretsIdFileName);
+            string idDirectory = Path.GetDirectoryName(SecretsIdFileName);
             if (!Directory.Exists(idDirectory))
                 Directory.CreateDirectory(idDirectory);
-            secretsFileName = Path.Combine(Environment.CurrentDirectory, "UserSecretsTest_" + Path.GetRandomFileName() + ".xml");
-            if (File.Exists(secretsFileName))
-                File.Delete(secretsFileName);
-            commonSecretsFileName = Path.Combine(Environment.CurrentDirectory, "UserSecretsTest_" + Path.GetRandomFileName() + ".xml");
-            if (File.Exists(commonSecretsFileName))
-                File.Delete(commonSecretsFileName);
-
+            SecretsFileName = Path.Combine(Environment.CurrentDirectory, "UserSecretsTest_" + Path.GetRandomFileName() + ".xml");
+            if (File.Exists(SecretsFileName))
+                File.Delete(SecretsFileName);
+            CommonSecretsFileName = Path.Combine(Environment.CurrentDirectory, "UserSecretsTest_" + Path.GetRandomFileName() + ".xml");
+            if (File.Exists(CommonSecretsFileName))
+                File.Delete(CommonSecretsFileName);
 
             // Populate the secrets file with key/value pairs that are needed for common tests
             XDocument xdocFile = XDocument.Parse("<root><secrets ver=\"1.0\"><secret name=\"secretSource\" value=\"file\" /></secrets></root>");
@@ -48,11 +46,35 @@ namespace Test
                 xdocFile.Root.Element("secrets").Add(e);
                 xdocCommonFile.Root.Element("secrets").Add(e);
             }
-            xdocId.Save(secretsIdFileName);
-            xdocFile.Save(secretsFileName);
-            xdocCommonFile.Save(commonSecretsFileName);
+            xdocId.Save(SecretsIdFileName);
+            xdocFile.Save(SecretsFileName);
+            xdocCommonFile.Save(CommonSecretsFileName);
         }
 
+        private string GetSecretsFileFromID(string id)
+        {
+            MethodInfo getFileName = typeof(UserSecretsConfigBuilder).GetMethod("GetSecretsFileFromId", BindingFlags.NonPublic | BindingFlags.Instance);
+            var tempBuilder = new UserSecretsConfigBuilder();
+            string filename = getFileName.Invoke(tempBuilder, new object[] { id }) as string;
+            return filename;
+        }
+
+        public void Dispose()
+        {
+            File.Delete(SecretsFileName);
+            File.Delete(SecretsIdFileName);
+            File.Delete(CommonSecretsFileName);
+        }
+    }
+
+    public class UserSecretsTests : IClassFixture<UserSecretsFixture>
+    {
+        private readonly UserSecretsFixture _fixture;
+
+        public UserSecretsTests(UserSecretsFixture fixture)
+        {
+            _fixture = fixture;
+        }
 
         // ======================================================================
         //   CommonBuilderTests
@@ -61,21 +83,21 @@ namespace Test
         public void UserSecrets_GetValue()
         {
             CommonBuilderTests.GetValue(() => new UserSecretsConfigBuilder(), "SecretsGetValue",
-                new NameValueCollection() { { "userSecretsFile", commonSecretsFileName } });
+                new NameValueCollection() { { "userSecretsFile", _fixture.CommonSecretsFileName } });
         }
 
         [Fact]
         public void UserSecrets_GetAllValues()
         {
             CommonBuilderTests.GetAllValues(() => new UserSecretsConfigBuilder(), "SecretsGetAll",
-                new NameValueCollection() { { "userSecretsFile", commonSecretsFileName } });
+                new NameValueCollection() { { "userSecretsFile", _fixture.CommonSecretsFileName } });
         }
 
         [Fact]
         public void UserSecrets_ProcessConfigurationSection()
         {
             CommonBuilderTests.ProcessConfigurationSection(() => new UserSecretsConfigBuilder(), "SecretsProcessConfig",
-                new NameValueCollection() { { "userSecretsFile", commonSecretsFileName } });
+                new NameValueCollection() { { "userSecretsFile", _fixture.CommonSecretsFileName } });
         }
 
         // ======================================================================
@@ -85,12 +107,12 @@ namespace Test
         public void UserSecrets_DefaultSettings()
         {
             var secrets = TestHelper.CreateBuilder<UserSecretsConfigBuilder>(() => new UserSecretsConfigBuilder(), "SecretsDefault",
-                new NameValueCollection() { { "userSecretsFile", secretsFileName } });
-            var mappedFile = Utils.MapPath(secretsFileName);
+                new NameValueCollection() { { "userSecretsFile", _fixture.SecretsFileName } });
+            var mappedFile = Utils.MapPath(_fixture.SecretsFileName);
 
             // UserSecretsFile
             Assert.Equal(mappedFile, secrets.UserSecretsFile);
-            Assert.Equal(secretsFileName, mappedFile);  // Doesn't really matter. But this should be the case in this test.
+            Assert.Equal(_fixture.SecretsFileName, mappedFile);  // Doesn't really matter. But this should be the case in this test.
 
             // UserSecretsId
             Assert.Null(secrets.UserSecretsId);
@@ -107,29 +129,28 @@ namespace Test
         {
             // SecretsFile
             var secrets = TestHelper.CreateBuilder<UserSecretsConfigBuilder>(() => new UserSecretsConfigBuilder(), "SecretsSettings1",
-                new NameValueCollection() { { "userSecretsFile", secretsFileName } });
-            var mappedFile = Utils.MapPath(secretsFileName);
+                new NameValueCollection() { { "userSecretsFile", _fixture.SecretsFileName } });
+            var mappedFile = Utils.MapPath(_fixture.SecretsFileName);
             Assert.Equal(mappedFile, secrets.UserSecretsFile);
-            Assert.Equal(secretsFileName, mappedFile);  // Doesn't really matter. But this should be the case in this test.
+            Assert.Equal(_fixture.SecretsFileName, mappedFile);  // Doesn't really matter. But this should be the case in this test.
             Assert.Null(secrets.UserSecretsId);
             Assert.Equal("file", secrets.GetValue("secretSource"));
 
             // UserSecretsID
             secrets = TestHelper.CreateBuilder<UserSecretsConfigBuilder>(() => new UserSecretsConfigBuilder(), "SecretsSettings2",
-                new NameValueCollection() { { "userSECRETSid", secretsId } });
-            mappedFile = Utils.MapPath(secretsIdFileName);
+                new NameValueCollection() { { "userSECRETSid", _fixture.SecretsId } });
+            mappedFile = Utils.MapPath(_fixture.SecretsIdFileName);
             Assert.Equal(mappedFile, secrets.UserSecretsFile);
-            Assert.Equal(secretsIdFileName, mappedFile);  // Doesn't really matter. But this should be the case in this test.
-            Assert.Equal(secretsId, secrets.UserSecretsId);
+            Assert.Equal(_fixture.SecretsIdFileName, mappedFile);  // Doesn't really matter. But this should be the case in this test.
+            Assert.Equal(_fixture.SecretsId, secrets.UserSecretsId);
             Assert.Equal("id", secrets.GetValue("secretSource"));
-
 
             // Both UserSecretsID and UserSecretsFile - Builder only looks at secretsFile
             secrets = TestHelper.CreateBuilder<UserSecretsConfigBuilder>(() => new UserSecretsConfigBuilder(), "SecretsSettings3",
-                new NameValueCollection() { { "userSecretsId", secretsId }, { "usERSecRETsFile", secretsFileName } });
-            mappedFile = Utils.MapPath(secretsFileName);
+                new NameValueCollection() { { "userSecretsId", _fixture.SecretsId }, { "usERSecRETsFile", _fixture.SecretsFileName } });
+            mappedFile = Utils.MapPath(_fixture.SecretsFileName);
             Assert.Equal(mappedFile, secrets.UserSecretsFile);
-            Assert.Equal(secretsFileName, mappedFile);  // Doesn't really matter. But this should be the case in this test.
+            Assert.Equal(_fixture.SecretsFileName, mappedFile);  // Doesn't really matter. But this should be the case in this test.
             Assert.Null(secrets.UserSecretsId);
             Assert.Equal("file", secrets.GetValue("secretSource"));
         }
@@ -144,7 +165,8 @@ namespace Test
         public void UserSecrets_Errors(KeyValueEnabled enabled)
         {
             // NoSecretsFile or ID
-            var exception = Record.Exception(() => {
+            var exception = Record.Exception(() =>
+            {
                 TestHelper.CreateBuilder<UserSecretsConfigBuilder>(() => new UserSecretsConfigBuilder(), "SecretsErrors1",
                     new NameValueCollection() { { "enabled", enabled.ToString() } });
             });
@@ -154,7 +176,8 @@ namespace Test
                 Assert.Null(exception);
 
             // File does not exist
-            exception = Record.Exception(() => {
+            exception = Record.Exception(() =>
+            {
                 TestHelper.CreateBuilder<UserSecretsConfigBuilder>(() => new UserSecretsConfigBuilder(), "SecretsErrors2",
                     new NameValueCollection() { { "enabled", enabled.ToString() }, { "userSecretsFile", "invalidFileName" } });
             });
@@ -163,10 +186,10 @@ namespace Test
             else
                 Assert.Null(exception);
 
-
             // ID does not exist
             //  ... when Optional (default)
-            exception = Record.Exception(() => {
+            exception = Record.Exception(() =>
+            {
                 TestHelper.CreateBuilder<UserSecretsConfigBuilder>(() => new UserSecretsConfigBuilder(), "SecretsErrors3",
                     new NameValueCollection() { { "enabled", enabled.ToString() }, { "userSecretsId", "invalidId" } });
             });
@@ -174,52 +197,6 @@ namespace Test
                 TestHelper.ValidateWrappedException<ArgumentException>(exception, "SecretsErrors3");
             else
                 Assert.Null(exception);
-        }
-
-
-        // ======================================================================
-        //   Helpers
-        // ======================================================================
-        private string GetSecretsFileFromID(string id)
-        {
-            MethodInfo getFileName = typeof(UserSecretsConfigBuilder).GetMethod("GetSecretsFileFromId", BindingFlags.NonPublic | BindingFlags.Instance);
-            var tempBuilder = new UserSecretsConfigBuilder();
-            string filename = getFileName.Invoke(tempBuilder, new object[] { id }) as string;
-            return filename;
-        }
-
-        // ======================================================================
-        //   IDisposable Pattern
-        // ======================================================================
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!disposedValue)
-            {
-                if (disposing)
-                {
-                    // TODO: dispose managed state (managed objects)
-                }
-
-                // TODO: free unmanaged resources (unmanaged objects) and override finalizer
-                // TODO: set large fields to null
-                File.Delete(secretsFileName);
-                File.Delete(secretsIdFileName);
-                disposedValue = true;
-            }
-        }
-
-        // override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
-        ~UserSecretsTests()
-        {
-            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-            Dispose(disposing: false);
-        }
-
-        public void Dispose()
-        {
-            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-            Dispose(disposing: true);
-            GC.SuppressFinalize(this);
         }
     }
 }
