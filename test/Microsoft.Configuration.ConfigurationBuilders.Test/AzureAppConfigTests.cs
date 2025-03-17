@@ -372,6 +372,9 @@ namespace Test
             // UseAzureKeyVault
             Assert.False(builder.UseAzureKeyVault);
 
+            // PreloadValues
+            Assert.True(builder.PreloadValues);
+
             // Enabled
             Assert.Equal(KeyValueEnabled.Enabled, builder.Enabled);
 
@@ -436,6 +439,27 @@ namespace Test
             Assert.Equal(DateTimeOffset.MinValue, builder.AcceptDateTime);
             Assert.True(builder.UseAzureKeyVault);
 
+            // PreloadValues - case insensitive
+            builder = TestHelper.CreateBuilder<AzureAppConfigurationBuilder>(() => new AzureAppConfigurationBuilder(), "AzureAppConfigSettings6_1",
+                new NameValueCollection() { { "endpoint", placeholderEndPoint }, { "preLOADvalues", "FALSe" } });
+            Assert.Equal(placeholderEndPoint, builder.Endpoint);
+            Assert.Null(builder.ConnectionString);
+            Assert.False(builder.PreloadValues);
+
+            // PreloadValues - triggered by keyFilter
+            builder = TestHelper.CreateBuilder<AzureAppConfigurationBuilder>(() => new AzureAppConfigurationBuilder(), "AzureAppConfigSettings6_2",
+                new NameValueCollection() { { "endpoint", placeholderEndPoint }, { "keyFilter", "somefilter" } });
+            Assert.Equal(placeholderEndPoint, builder.Endpoint);
+            Assert.Null(builder.ConnectionString);
+            Assert.True(builder.PreloadValues);
+
+            // PreloadValues - triggered by snapshot
+            builder = TestHelper.CreateBuilder<AzureAppConfigurationBuilder>(() => new AzureAppConfigurationBuilder(), "AzureAppConfigSettings6_3",
+                new NameValueCollection() { { "endpoint", placeholderEndPoint }, { "snapshot", "somename" } });
+            Assert.Equal(placeholderEndPoint, builder.Endpoint);
+            Assert.Null(builder.ConnectionString);
+            Assert.True(builder.PreloadValues);
+
             // These tests require executing the builder, which needs a valid endpoint.
             if (AppConfigFixture.FullStackTestsEnabled)
             {
@@ -450,12 +474,29 @@ namespace Test
 
                 // UseKeyVault is case insensitive, does not allow reading KeyVault values
                 builder = TestHelper.CreateBuilder<AzureAppConfigurationBuilder>(() => new AzureAppConfigurationBuilder(), "AzureAppConfigSettings8",
-                    new NameValueCollection() { { "endpoint", AppConfigFixture.CustomEndPoint }, { "useAzureKeyVault", "false" } });
+                    new NameValueCollection() { { "endpoint", AppConfigFixture.CustomEndPoint }, { "useAZurekeYVaulT", "faLsE" } });
                 Assert.Equal(AppConfigFixture.CustomEndPoint, builder.Endpoint);
                 Assert.False(builder.UseAzureKeyVault);
                 Assert.Matches(kvUriRegex, builder.GetValue("keyVaultSetting"));    // Don't care what the uri is... just that is it a URI instead of a value
                 allValues = builder.GetAllValues("");
                 Assert.Matches(kvUriRegex, TestHelper.GetValueFromCollection(allValues, "superKeyVaultSetting"));
+
+                // PreloadValues - case insensitive
+                var preloadBuilder = TestHelper.CreateBuilder<PreloadCheckAppConfigBuilder>(() => new PreloadCheckAppConfigBuilder(), "AzureAppConfigSettings9",
+                    new NameValueCollection() { { "endpoint", AppConfigFixture.CustomEndPoint } });
+                Assert.Equal(AppConfigFixture.CustomEndPoint, builder.Endpoint);
+                Assert.True(preloadBuilder.PreloadValues);
+                Assert.False(preloadBuilder.CalledGetAllValues);
+                preloadBuilder.GetValue("notImportant");
+                Assert.True(preloadBuilder.CalledGetAllValues);
+
+                preloadBuilder = TestHelper.CreateBuilder<PreloadCheckAppConfigBuilder>(() => new PreloadCheckAppConfigBuilder(), "AzureAppConfigSettings_10",
+                    new NameValueCollection() { { "endpoint", AppConfigFixture.CustomEndPoint }, { "preloadValues", "false" } });
+                Assert.Equal(AppConfigFixture.CustomEndPoint, builder.Endpoint);
+                Assert.False(preloadBuilder.PreloadValues);
+                Assert.False(preloadBuilder.CalledGetAllValues);
+                preloadBuilder.GetValue("notImportant");
+                Assert.False(preloadBuilder.CalledGetAllValues);
             }
         }
 
@@ -595,6 +636,39 @@ namespace Test
             });
             if (enabled != KeyValueEnabled.Disabled)
                 TestHelper.ValidateWrappedException<FormatException>(exception, "AzureAppConfigErrors7");
+            else
+                Assert.Null(exception);
+
+            // Invalid preloadValues
+            exception = Record.Exception(() =>
+            {
+                builder = TestHelper.CreateBuilder<AzureAppConfigurationBuilder>(() => new AzureAppConfigurationBuilder(), "AzureAppConfigErrors7_1",
+                    new NameValueCollection() { { "endpoint", placeholderEndPoint }, { "preloadValues", "neither tru nor fals" }, { "enabled", enabled.ToString() } });
+            });
+            if (enabled != KeyValueEnabled.Disabled)
+                TestHelper.ValidateWrappedException<FormatException>(exception, "AzureAppConfigErrors7_1");
+            else
+                Assert.Null(exception);
+
+            // KeyFilter requires preload
+            exception = Record.Exception(() =>
+            {
+                builder = TestHelper.CreateBuilder<AzureAppConfigurationBuilder>(() => new AzureAppConfigurationBuilder(), "AzureAppConfigErrors7_2",
+                    new NameValueCollection() { { "endpoint", placeholderEndPoint }, { "preloadValues", "false" }, { "keyFilter", "somefilter" }, { "enabled", enabled.ToString() } });
+            });
+            if (enabled != KeyValueEnabled.Disabled)
+                TestHelper.ValidateWrappedException<ArgumentException>(exception, "AzureAppConfigErrors7_2");
+            else
+                Assert.Null(exception);
+
+            // Snapshot requires preload
+            exception = Record.Exception(() =>
+            {
+                builder = TestHelper.CreateBuilder<AzureAppConfigurationBuilder>(() => new AzureAppConfigurationBuilder(), "AzureAppConfigErrors7_3",
+                    new NameValueCollection() { { "endpoint", placeholderEndPoint }, { "preloadValues", "false" }, { "snapshot", "somesnapshot" }, { "enabled", enabled.ToString() } });
+            });
+            if (enabled != KeyValueEnabled.Disabled)
+                TestHelper.ValidateWrappedException<ArgumentException>(exception, "AzureAppConfigErrors7_3");
             else
                 Assert.Null(exception);
 
@@ -832,6 +906,17 @@ namespace Test
             protected override ConfigurationClientOptions GetConfigurationClientOptions() => base.GetConfigurationClientOptions();
 
             protected override SecretClientOptions GetSecretClientOptions() => base.GetSecretClientOptions();
+        }
+
+        private class PreloadCheckAppConfigBuilder : AzureAppConfigurationBuilder
+        {
+            public bool CalledGetAllValues { get; private set; } = false;
+
+            public override ICollection<KeyValuePair<string, string>> GetAllValues(string prefix)
+            {
+                CalledGetAllValues = true;
+                return base.GetAllValues(prefix);
+            }
         }
     }
 }
