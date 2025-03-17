@@ -1,18 +1,33 @@
 ﻿using System;
 using System.Collections.Specialized;
+using System.IO;
 using Microsoft.Configuration.ConfigurationBuilders;
 using Xunit;
 
 
 namespace Test
 {
-    public class EnvironmentTests
+    public class EnvironmentFixture : IDisposable
     {
-        public EnvironmentTests()
+        // This doesn't really need to be a Fixtures - since there isn't really any cleanup that has to be done.
+        // But it does save us from repeated setup, and also matches the pattern we use in the other builder tests.
+        public EnvironmentFixture()
         {
             // Populate the environment with key/value pairs that are needed for common tests
             foreach (string key in CommonBuilderTests.CommonKeyValuePairs)
                 Environment.SetEnvironmentVariable(key, CommonBuilderTests.CommonKeyValuePairs[key]);
+        }
+
+        public void Dispose() { }
+    }
+
+    public class EnvironmentTests : IClassFixture<EnvironmentFixture>
+    {
+        private readonly EnvironmentFixture _fixture;
+
+        public EnvironmentTests(EnvironmentFixture fixture)
+        {
+            _fixture = fixture;
         }
 
         // ======================================================================
