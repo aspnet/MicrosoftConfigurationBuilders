@@ -2,9 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Configuration;
-using System.Reflection;
-using System.Runtime;
-using System.Web;
+using System.Linq;
 using Azure;
 using Azure.Core;
 using Azure.Data.AppConfiguration;
@@ -15,12 +13,18 @@ using Xunit;
 
 namespace Test
 {
+    public static class AppConfigConstants
+    {
+        /* Convenience to keep full-stack out of the way during local development. Leave 'false' when committing.  */
+        public static readonly bool DisableFullStackTests = true;
+    }
+
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
     public sealed class AppConfigFactAttribute : FactAttribute
     {
         public AppConfigFactAttribute(string Reason = null)
         {
-            if (!AzureAppConfigTests.AppConfigTestsEnabled)
+            if (!AppConfigFixture.FullStackTestsEnabled)
                 Skip = Reason ?? "Skipped: Azure AppConfig Tests Disabled.";
         }
     }
@@ -30,7 +34,7 @@ namespace Test
     {
         public AppConfigTheoryAttribute(string Reason = null)
         {
-            if (!AzureAppConfigTests.AppConfigTestsEnabled)
+            if (!AppConfigFixture.FullStackTestsEnabled)
                 Skip = Reason ?? "Skipped: Azure AppConfig Tests Disabled.";
         }
     }
@@ -43,167 +47,226 @@ namespace Test
         IsSnapshot,
     };
 
-    public class AzureAppConfigTests
+    public class AppConfigFixture : IDisposable
     {
-        private static readonly string kva_value_old = "versionedValue-Older";
-        private static readonly string kva_value_new = "versionedValue-Current";
-        private static readonly string kvb_value = "mappedValue";
-        private static readonly string kvUriRegex = "{\"uri\":\".+\"}";
-        private static readonly string placeholderEndPoint = "https://placeholder-EndPoint.example.com";
-        private static readonly string commonEndPoint;
-        private static readonly string customEndPoint;
-        private static readonly string keyVaultName;
-        private static readonly string testSnapName;
-        private static readonly DateTimeOffset customEpochPlaceholder = DateTimeOffset.Parse("December 31, 1999  11:59pm");
-        private static readonly DateTimeOffset oldTimeFilter = DateTimeOffset.Parse("April 15, 2002 9:00am");
-        private static readonly DateTimeOffset customEpoch;
-        private static Exception StaticCtorException;
+        /* Convenience to keep full-stack out of the way during local development. Leave 'true' when committing.  */
+        public static readonly bool FullStackTestsEnabled;
+        public static readonly string CommonEndPoint;
+        public static readonly string CustomEndPoint;
+        public static readonly string KeyVaultName;
+
+        public DateTimeOffset CustomEpoch { get; private set; }
+        public string TestSnapName { get; private set; }
+        public string KVA_Value_Old { get; private set; } = "versionedValue-Older";
+        public string KVA_Value_New { get; private set; } = "versionedValue-Current";
+        public string KVB_Value { get; private set; } = "mappedValue";
 
 
-        // Update this to true to enable AzConfig tests.
-        public static bool AppConfigTestsEnabled
+        static AppConfigFixture()
         {
-            get
-            {
-                // Convenience for local development. Leave this commented when committing.
-                //return false;
+            CommonEndPoint = Environment.GetEnvironmentVariable("Microsoft.Configuration.ConfigurationBuilders.Test.AzConfig.Common");
+            CustomEndPoint = Environment.GetEnvironmentVariable("Microsoft.Configuration.ConfigurationBuilders.Test.AzConfig.Custom");
+            KeyVaultName = Environment.GetEnvironmentVariable("Microsoft.Configuration.ConfigurationBuilders.Test.AKV.Custom");
 
-                // If we have connection info, consider these tests enabled.
-                if (String.IsNullOrWhiteSpace(commonEndPoint))
-                    return false;
-                if (String.IsNullOrWhiteSpace(customEndPoint))
-                    return false;
-                if (String.IsNullOrWhiteSpace(keyVaultName))
-                    return false;
-                return true;
-            }
+            FullStackTestsEnabled = !AppConfigConstants.DisableFullStackTests && !String.IsNullOrWhiteSpace(CommonEndPoint)
+                && !String.IsNullOrWhiteSpace(CustomEndPoint) && !String.IsNullOrWhiteSpace(KeyVaultName);
         }
 
-        static AzureAppConfigTests()
+        public AppConfigFixture()
         {
-            commonEndPoint = Environment.GetEnvironmentVariable("Microsoft.Configuration.ConfigurationBuilders.Test.AzConfig.Common");
-            customEndPoint = Environment.GetEnvironmentVariable("Microsoft.Configuration.ConfigurationBuilders.Test.AzConfig.Custom");
-            keyVaultName = Environment.GetEnvironmentVariable("Microsoft.Configuration.ConfigurationBuilders.Test.AKV.Custom");
+            // If full-stack tests are disabled, there is no need to do anything in here.
+            if (!FullStackTestsEnabled) { return; }
 
-            // If tests are disabled, there is no need to do anything in here.
-            if (!AppConfigTestsEnabled) { return; }
-
-            try
+            // The Common config store gets filled out, but the store itself is assumed to already exist.
+            ConfigurationClient cfgClient = new ConfigurationClient(new Uri(CommonEndPoint), new DefaultAzureCredential());
+            var currentCommonSettings = GetAllConfigSettings(cfgClient);
+            var recreateCommonSettings = currentCommonSettings.Count != CommonBuilderTests.CommonKeyValuePairs.Count;
+            foreach (string key in CommonBuilderTests.CommonKeyValuePairs)
             {
-                // For efficiency when debugging, we might not want to "clear out" and restage this on every run
-                bool recreateTestData = true;
-
-                // The Common config store gets filled out, but the store itself is assumed to already exist.
-                ConfigurationClient cfgClient = new ConfigurationClient(new Uri(commonEndPoint), new DefaultAzureCredential());
-
-                if (recreateTestData)
+                if (!currentCommonSettings.Exists(s => s.Key == key && s.Value == CommonBuilderTests.CommonKeyValuePairs[key]))
+                    recreateCommonSettings = true;
+            }
+            if (recreateCommonSettings)
+            {
+                ClearConfigSettings(cfgClient);
+                foreach (string key in CommonBuilderTests.CommonKeyValuePairs)
                 {
-                    foreach (string key in CommonBuilderTests.CommonKeyValuePairs)
-                    {
-                        UpdateConfigSetting(cfgClient, key, CommonBuilderTests.CommonKeyValuePairs[key]);
-                    }
-
-                    // The Custom config store also gets re-filled out, but the store itself is assumed to already exist.
-                    // Leverage the custom key vault used in the KV config builder tests.
-                    //
-                    //      kva:    versioned-key == versionedValue-Current
-                    //                               versionedValue-Older
-                    //      kvb:    mapped-test-key == mappedValue
-
-                    // Time -->                 Beginning       (labelA)      |epoch|               (labelA)        (labelB)
-                    // epochDTO                                                     DateTimeOffset-of-the-epoch (show up after epoch)
-                    // caseTestSetting                          altCaseTestValue    newCaseTestValue
-                    // testSetting              oldTestValue    altTestValue        newTestValue    newAltValue
-                    // newTestSetting                                               ntOGValue       ntValueA
-                    // superTestSetting         oldSuperValue                                       newSuperAlpha   newSuperBeta
-                    // keyVaultSetting          kva_value_old   kva_value_new       kva_value_old   kvb_value
-                    // superKeyVaultSetting     kvb_value                           kva_value_old                   kva_value_new
-                    //
-                    // Snapshots - defined by 1-3 filters. Order determines precedence, as any key can only have one value in a
-                    //      snapshot - meaning if filters with labelA and labelB are defined, the value for 'superTestSetting'
-                    //      will ultimately be determined by which filter is primary.
-                    //
-                    // Define a snapshot with:
-                    //      filter 1: superKeyVaultSetting + labelB
-                    //      filter 2: testSetting
-                    //      filter 3: labelA
-                    //
-
-                    // First, ensure the KeyVault values are populated in Key Vault
-                    SecretClient kvClient = new SecretClient(new Uri($"https://{keyVaultName}.vault.azure.net"), new DefaultAzureCredential());
-                    var kvb_cur = AzureTests.EnsureCurrentSecret(kvClient, "mapped-test-key", "mappedValue");
-                    var kva_old = AzureTests.EnsureActiveSecret(kvClient, "versioned-key", "versionedValue-Older");
-                    var kva_cur = AzureTests.EnsureCurrentSecret(kvClient, "versioned-key", "versionedValue-Current");
-
-                    // Now re-create the config settings
-                    cfgClient = new ConfigurationClient(new Uri(customEndPoint), new DefaultAzureCredential());
-
-                    // Start by clearing all the setting to get a fresh look. (Incidentally, I think clearing these values only does so
-                    // at this point in time. Meaning if you set a SettingSelector with a timestamp from just before this, you'll still
-                    // see the old, dirty value. Which makes establishing this "clean" point with no values before our epoch time
-                    // all the more important.)
-                    ClearConfigSettings(cfgClient);
-
-                    // First create config settings with timestamps before the epoch
-                    UpdateConfigSetting(cfgClient, "testSetting", "oldTestValue");
-                    UpdateConfigSetting(cfgClient, "superTestSetting", "oldSuperValue");
-                    UpdateConfigSecret(cfgClient, "keyVaultSetting", kva_old);
-                    UpdateConfigSecret(cfgClient, "superKeyVaultSetting", kvb_cur);
-
-                    UpdateConfigSetting(cfgClient, "caseTestSetting", "altCaseTestValue", "labelA");
-                    UpdateConfigSetting(cfgClient, "testSetting", "altTestValue", "labelA");
-                    UpdateConfigSecret(cfgClient, "keyVaultSetting", kva_cur, "labelA");
-
-                    // Remember the epoch. Don't take time directly, as machine time might be off from server time.
-                    UpdateConfigSetting(cfgClient, "epochDTO", "useTimeStampOfThisSetting-" + DateTime.Now.Ticks);
-                    System.Threading.Thread.Sleep(3000);
-
-                    // Then ensure/create config settins after the epoch
-                    UpdateConfigSetting(cfgClient, "caseTestSetting", "newCaseTestValue");
-                    UpdateConfigSetting(cfgClient, "testSetting", "newTestValue");
-                    UpdateConfigSetting(cfgClient, "newTestSetting", "ntOGValue");
-                    UpdateConfigSecret(cfgClient, "keyVaultSetting", kva_old);
-                    UpdateConfigSecret(cfgClient, "superKeyVaultSetting", kva_old);
-
-                    UpdateConfigSetting(cfgClient, "testSetting", "newAltValue", "labelA");
-                    UpdateConfigSetting(cfgClient, "newTestSetting", "ntValueA", "labelA");
-                    UpdateConfigSetting(cfgClient, "superTestSetting", "newSuperAlpha", "labelA");
-                    UpdateConfigSecret(cfgClient, "keyVaultSetting", kvb_cur, "labelA");
-
-                    UpdateConfigSetting(cfgClient, "superTestSetting", "newSuperBeta", "labelB");
-                    UpdateConfigSecret(cfgClient, "superKeyVaultSetting", kva_cur, "labelB");
+                    UpdateConfigSetting(cfgClient, key, CommonBuilderTests.CommonKeyValuePairs[key]);
                 }
+            }
 
-                // We always need to know the epoch time, so we can compare against it.
-                customEpoch = ((DateTimeOffset)cfgClient.GetConfigurationSetting("epochDTO").Value.LastModified).AddSeconds(1);
+            // The Custom config store also gets re-filled out, but the store itself is assumed to already exist.
+            // Leverage the custom key vault used in the KV config builder tests.
+            //
+            //      kva:    versioned-key == versionedValue-Current
+            //                               versionedValue-Older
+            //      kvb:    mapped-test-key == mappedValue
 
-                // And setup our test snapshot
+            // Time -->                 Beginning       (labelA)            |epoch|               (labelA)        (labelB)
+            // epochDTO                                                     DateTimeOffset-of-the-epoch (show up after epoch)
+            // caseTestSetting                          altCaseTestValue    newCaseTestValue
+            // testSetting              oldTestValue    altTestValue        newTestValue    newAltValue
+            // newTestSetting                                               ntOGValue       ntValueA
+            // superTestSetting         oldSuperValue                                       newSuperAlpha   newSuperBeta
+            // keyVaultSetting          kva_value_old   kva_value_new       kva_value_old   kvb_value
+            // superKeyVaultSetting     kvb_value                           kva_value_old                   kva_value_new
+            //
+            // Snapshots - defined by 1-3 filters. Order determines precedence, as any key can only have one value in a
+            //      snapshot - meaning if filters with labelA and labelB are defined, the value for 'superTestSetting'
+            //      will ultimately be determined by which filter is primary.
+            //
+            // Define a snapshot with:
+            //      filter 1: superKeyVaultSetting + labelB
+            //      filter 2: testSetting
+            //      filter 3: labelA
+            //
+
+            // First, ensure the KeyVault values are populated in Key Vault
+            SecretClient kvClient = new SecretClient(new Uri($"https://{KeyVaultName}.vault.azure.net"), new DefaultAzureCredential());
+            var kvb_cur = AzureFixture.EnsureCurrentSecret(kvClient, "mapped-test-key", KVB_Value);
+            var kva_old = AzureFixture.EnsureActiveSecret(kvClient, "versioned-key", KVA_Value_Old);
+            var kva_cur = AzureFixture.EnsureCurrentSecret(kvClient, "versioned-key", KVA_Value_New);
+
+            // Now check the custom AppConfig store - starting with the epoch time.
+            cfgClient = new ConfigurationClient(new Uri(CustomEndPoint), new DefaultAzureCredential());
+            var epochSetting = cfgClient.GetConfigurationSetting("epochDTO");
+            bool recreateCustomData = !(epochSetting?.Value?.LastModified > DateTimeOffset.MinValue);
+
+            // Next, check that the data is correct at the epoch.
+            if (!recreateCustomData)
+            {
+                var initialCustomSettings = GetAllConfigSettings(cfgClient, epochSetting.Value.LastModified);
+
+                // These config values should exist...
+                recreateCustomData |= !initialCustomSettings.Exists(s => s.Key == "epochDTO" && string.IsNullOrEmpty(s.Label));
+                recreateCustomData |= !initialCustomSettings.Find(s => s.Key == "epochDTO" && string.IsNullOrEmpty(s.Label)).Value.StartsWith("useTimeStampOfThisSetting-");
+                recreateCustomData |= !initialCustomSettings.Exists(s => s.Key == "testSetting" && string.IsNullOrEmpty(s.Label) && s.Value == "oldTestValue");
+                recreateCustomData |= !initialCustomSettings.Exists(s => s.Key == "superTestSetting" && string.IsNullOrEmpty(s.Label) && s.Value == "oldSuperValue");
+                recreateCustomData |= !initialCustomSettings.Exists(s => s.Key == "keyVaultSetting" && string.IsNullOrEmpty(s.Label) && IsSecret(s, kva_old));
+                recreateCustomData |= !initialCustomSettings.Exists(s => s.Key == "superKeyVaultSetting" && string.IsNullOrEmpty(s.Label) && IsSecret(s, kvb_cur));
+
+                recreateCustomData |= !initialCustomSettings.Exists(s => s.Key == "caseTestSetting" && s.Label == "labelA" && s.Value == "altCaseTestValue");
+                recreateCustomData |= !initialCustomSettings.Exists(s => s.Key == "testSetting" && s.Label == "labelA" && s.Value == "altTestValue");
+                recreateCustomData |= !initialCustomSettings.Exists(s => s.Key == "keyVaultSetting" && s.Label == "labelA" && IsSecret(s, kva_cur));
+
+                // And these should not...
+                recreateCustomData |= initialCustomSettings.Exists(s => s.Key == "caseTestSetting" && string.IsNullOrEmpty(s.Label));
+                recreateCustomData |= initialCustomSettings.Exists(s => s.Key == "newTestSetting" && string.IsNullOrEmpty(s.Label));
+
+                recreateCustomData |= initialCustomSettings.Exists(s => s.Key == "epochDTO" && s.Label == "labelA");
+                recreateCustomData |= initialCustomSettings.Exists(s => s.Key == "newTestSetting" && s.Label == "labelA");
+                recreateCustomData |= initialCustomSettings.Exists(s => s.Key == "superTestSetting" && s.Label == "labelA");
+                recreateCustomData |= initialCustomSettings.Exists(s => s.Key == "superKeyVaultSetting" && s.Label == "labelA");
+
+                recreateCustomData |= initialCustomSettings.Exists(s => s.Label == "labelB");
+            }
+
+            // After that, check the data after the epoch.
+            if (!recreateCustomData)
+            {
+                var currentCustomSettings = GetAllConfigSettings(cfgClient);
+
+                // These config values should exist...
+                recreateCustomData |= !currentCustomSettings.Exists(s => s.Key == "epochDTO" && string.IsNullOrEmpty(s.Label));
+                recreateCustomData |= !currentCustomSettings.Find(s => s.Key == "epochDTO" && string.IsNullOrEmpty(s.Label)).Value.StartsWith("useTimeStampOfThisSetting-");
+                recreateCustomData |= !currentCustomSettings.Exists(s => s.Key == "caseTestSetting" && string.IsNullOrEmpty(s.Label) && s.Value == "newCaseTestValue");
+                recreateCustomData |= !currentCustomSettings.Exists(s => s.Key == "testSetting" && string.IsNullOrEmpty(s.Label) && s.Value == "newTestValue");
+                recreateCustomData |= !currentCustomSettings.Exists(s => s.Key == "newTestSetting" && string.IsNullOrEmpty(s.Label) && s.Value == "ntOGValue");
+                recreateCustomData |= !currentCustomSettings.Exists(s => s.Key == "superTestSetting" && string.IsNullOrEmpty(s.Label) && s.Value == "oldSuperValue");
+                recreateCustomData |= !currentCustomSettings.Exists(s => s.Key == "keyVaultSetting" && string.IsNullOrEmpty(s.Label) && IsSecret(s, kva_old));
+                recreateCustomData |= !currentCustomSettings.Exists(s => s.Key == "superKeyVaultSetting" && string.IsNullOrEmpty(s.Label) && IsSecret(s, kva_old));
+
+                recreateCustomData |= !currentCustomSettings.Exists(s => s.Key == "caseTestSetting" && s.Label == "labelA" && s.Value == "altCaseTestValue");
+                recreateCustomData |= !currentCustomSettings.Exists(s => s.Key == "testSetting" && s.Label == "labelA" && s.Value == "newAltValue");
+                recreateCustomData |= !currentCustomSettings.Exists(s => s.Key == "newTestSetting" && s.Label == "labelA" && s.Value == "ntValueA");
+                recreateCustomData |= !currentCustomSettings.Exists(s => s.Key == "superTestSetting" && s.Label == "labelA" && s.Value == "newSuperAlpha");
+                recreateCustomData |= !currentCustomSettings.Exists(s => s.Key == "keyVaultSetting" && s.Label == "labelA" && IsSecret(s, kvb_cur));
+
+                recreateCustomData |= !currentCustomSettings.Exists(s => s.Key == "superTestSetting" && s.Label == "labelB" && s.Value == "newSuperBeta");
+                recreateCustomData |= !currentCustomSettings.Exists(s => s.Key == "superKeyVaultSetting" && s.Label == "labelB" && IsSecret(s, kva_cur));
+
+                // And these should not...
+                recreateCustomData |= currentCustomSettings.Exists(s => s.Key == "epochDTO" && s.Label == "labelA");
+                recreateCustomData |= currentCustomSettings.Exists(s => s.Key == "superKeyVaultSetting" && s.Label == "labelA");
+
+                recreateCustomData |= currentCustomSettings.Exists(s => s.Key == "epochDTO" && s.Label == "labelB");
+                recreateCustomData |= currentCustomSettings.Exists(s => s.Key == "caseTestSetting" && s.Label == "labelB");
+                recreateCustomData |= currentCustomSettings.Exists(s => s.Key == "testSetting" && s.Label == "labelB");
+                recreateCustomData |= currentCustomSettings.Exists(s => s.Key == "newTestSetting" && s.Label == "labelB");
+                recreateCustomData |= currentCustomSettings.Exists(s => s.Key == "keyVaultSetting" && s.Label == "labelB");
+            }
+
+            // Now, recreate all that custom data... ONLY if we have to
+            if (recreateCustomData)
+            {
+                // Start by clearing all the setting to get a fresh look. (Incidentally, I think clearing these values only does so
+                // at this point in time. Meaning if you set a SettingSelector with a timestamp from just before this, you'll still
+                // see the old, dirty value. Which makes establishing this "clean" point with no values before our epoch time
+                // all the more important.)
+                ClearConfigSettings(cfgClient);
+
+                // First create config settings with timestamps before the epoch
+                UpdateConfigSetting(cfgClient, "testSetting", "oldTestValue");
+                UpdateConfigSetting(cfgClient, "superTestSetting", "oldSuperValue");
+                UpdateConfigSecret(cfgClient, "keyVaultSetting", kva_old);
+                UpdateConfigSecret(cfgClient, "superKeyVaultSetting", kvb_cur);
+
+                UpdateConfigSetting(cfgClient, "caseTestSetting", "altCaseTestValue", "labelA");
+                UpdateConfigSetting(cfgClient, "testSetting", "altTestValue", "labelA");
+                UpdateConfigSecret(cfgClient, "keyVaultSetting", kva_cur, "labelA");
+
+                // Remember the epoch. Don't take time directly, as machine time might be off from server time.
+                UpdateConfigSetting(cfgClient, "epochDTO", "useTimeStampOfThisSetting-" + DateTime.Now.Ticks);
+                System.Threading.Thread.Sleep(3000);
+
+                // Then ensure/create config settins after the epoch
+                UpdateConfigSetting(cfgClient, "caseTestSetting", "newCaseTestValue");
+                UpdateConfigSetting(cfgClient, "testSetting", "newTestValue");
+                UpdateConfigSetting(cfgClient, "newTestSetting", "ntOGValue");
+                UpdateConfigSecret(cfgClient, "keyVaultSetting", kva_old);
+                UpdateConfigSecret(cfgClient, "superKeyVaultSetting", kva_old);
+
+                UpdateConfigSetting(cfgClient, "testSetting", "newAltValue", "labelA");
+                UpdateConfigSetting(cfgClient, "newTestSetting", "ntValueA", "labelA");
+                UpdateConfigSetting(cfgClient, "superTestSetting", "newSuperAlpha", "labelA");
+                UpdateConfigSecret(cfgClient, "keyVaultSetting", kvb_cur, "labelA");
+
+                UpdateConfigSetting(cfgClient, "superTestSetting", "newSuperBeta", "labelB");
+                UpdateConfigSecret(cfgClient, "superKeyVaultSetting", kva_cur, "labelB");
+            }
+
+            // We always need to know the epoch time, so we can compare against it - and it should always exist at this point.
+            // Grab it from the config setting timestamp though, in case of machine time skew.
+            epochSetting = (recreateCustomData) ? cfgClient.GetConfigurationSetting("epochDTO") : epochSetting;
+            CustomEpoch = ((DateTimeOffset)epochSetting.Value.LastModified).AddSeconds(1);
+
+            // Finally, setup a test snapshot if one doesn't already exist. (Use epoch-based name for verification.)
+            TestSnapName = "testSnapshot" + epochSetting.Value.Value.Substring(epochSetting.Value.Value.IndexOf('-'));
+            if (cfgClient.GetSnapshots(new SnapshotSelector() { NameFilter = TestSnapName }).Count() <= 0)
+            {
                 var filters = new List<ConfigurationSettingsFilter> {
-                    // Priority order is reverse of this list for some reason. :/
-                    new ConfigurationSettingsFilter("") { Label = "labelA" },
-                    new ConfigurationSettingsFilter("testSetting"),
-                    new ConfigurationSettingsFilter("superKeyVaultSetting") { Label = "labelB" },
-                };
+                        // Priority order is reverse of this list for some reason. :/
+                        new ConfigurationSettingsFilter("") { Label = "labelA" },
+                        new ConfigurationSettingsFilter("testSetting"),
+                        new ConfigurationSettingsFilter("superKeyVaultSetting") { Label = "labelB" },
+                    };
                 var testSnapshot = new ConfigurationSnapshot(filters);
-                testSnapName = "testSnapshot_" + DateTime.Now.Ticks;
-                var operation = cfgClient.CreateSnapshot(WaitUntil.Completed, testSnapName, testSnapshot);
+                var operation = cfgClient.CreateSnapshot(WaitUntil.Completed, TestSnapName, testSnapshot);
                 if (!operation.HasValue)
                     throw new Exception("Creation of test snapshot for AppConfig failed.");
-                cfgClient.ArchiveSnapshot(testSnapName);
+                cfgClient.ArchiveSnapshot(TestSnapName);
             }
-            catch (Exception ex)
-            {
-                StaticCtorException = ex;
-            }
-        }
-        public AzureAppConfigTests()
-        {
-            // Errors in the static constructor get swallowed by the testrunner. :(
-            // But this hacky method will bubble up any exceptions we encounter there.
-            if (StaticCtorException != null)
-                throw new Exception("Static ctor encountered an exception:", StaticCtorException);
         }
 
+        static List<ConfigurationSetting> GetAllConfigSettings(ConfigurationClient client, DateTimeOffset? asOfTime = null)
+        {
+            List<ConfigurationSetting> allSettings = new List<ConfigurationSetting>();
+            foreach (ConfigurationSetting s in client.GetConfigurationSettings(new SettingSelector() { KeyFilter = "*", LabelFilter = "*", AcceptDateTime = asOfTime }))
+            {
+                allSettings.Add(s);
+            }
+            return allSettings;
+        }
         static ConfigurationSetting UpdateConfigSetting(ConfigurationClient client, string key, string value, string label = null)
             => client.SetConfigurationSetting(new ConfigurationSetting(key, value, label), false);  // Overwrite without exception
         static SecretReferenceConfigurationSetting UpdateConfigSecret(ConfigurationClient client, string key, KeyVaultSecret secret, string label = null)
@@ -215,6 +278,25 @@ namespace Test
             {
                 client.DeleteConfigurationSetting(rev);
             }
+        }
+        static bool IsSecret(ConfigurationSetting setting, KeyVaultSecret secret)
+            => setting is SecretReferenceConfigurationSetting && ((SecretReferenceConfigurationSetting)setting).SecretId == secret.Id;
+
+        public void Dispose() { }
+    }
+
+    public class AzureAppConfigTests : IClassFixture<AppConfigFixture>
+    {
+        private static readonly string kvUriRegex = "{\"uri\":\".+\"}";
+        private static readonly string placeholderEndPoint = "https://placeholder-EndPoint.example.com";
+        private static readonly DateTimeOffset customEpochPlaceholder = DateTimeOffset.Parse("December 31, 1999  11:59pm");
+        private static readonly DateTimeOffset oldTimeFilter = DateTimeOffset.Parse("April 15, 2002 9:00am");
+
+        private readonly AppConfigFixture _fixture;
+
+        public AzureAppConfigTests(AppConfigFixture fixture)
+        {
+            _fixture = fixture;
         }
 
 
@@ -234,7 +316,7 @@ namespace Test
             // checked the value cache before calling GetValue(). So don't try to test KeyFilter here.
             // ProcessConfigurationSection should be able to tackle that scenario in more of a "full-stack" manner.
             CommonBuilderTests.GetValue(() => new AzureAppConfigurationBuilder(), "AzureAppConfigGetValue",
-                new NameValueCollection() { { "endpoint", commonEndPoint } }, caseSensitive: true);
+                new NameValueCollection() { { "endpoint", AppConfigFixture.CommonEndPoint } }, caseSensitive: true);
         }
 
         [AppConfigTheory]
@@ -247,10 +329,10 @@ namespace Test
             // uses this 'GetAllValues' technique in both greedy and non-greedy modes, depending on keyFilter. So we'll test both here.
 
             CommonBuilderTests.GetAllValues(() => new AzureAppConfigurationBuilder(), "AzureAppConfigStrictGetAllValues",
-                new NameValueCollection() { { "endpoint", commonEndPoint }, { "mode", KeyValueMode.Strict.ToString() }, { "keyFilter", keyFilter } });
+                new NameValueCollection() { { "endpoint", AppConfigFixture.CommonEndPoint }, { "mode", KeyValueMode.Strict.ToString() }, { "keyFilter", keyFilter } });
 
             CommonBuilderTests.GetAllValues(() => new AzureAppConfigurationBuilder(), "AzureAppConfigGreedyGetAllValues",
-                new NameValueCollection() { { "endpoint", commonEndPoint }, { "mode", KeyValueMode.Greedy.ToString() }, { "keyFilter", keyFilter } });
+                new NameValueCollection() { { "endpoint", AppConfigFixture.CommonEndPoint }, { "mode", KeyValueMode.Greedy.ToString() }, { "keyFilter", keyFilter } });
         }
 
         [AppConfigTheory]
@@ -259,7 +341,7 @@ namespace Test
         {
             // The common test will try Greedy and Strict modes.
             CommonBuilderTests.ProcessConfigurationSection(() => new AzureAppConfigurationBuilder(), "AzureAppConfigProcessConfig",
-                new NameValueCollection() { { "endpoint", commonEndPoint }, { "keyFilter", keyFilter } });
+                new NameValueCollection() { { "endpoint", AppConfigFixture.CommonEndPoint }, { "keyFilter", keyFilter } });
         }
 
         // ======================================================================
@@ -355,21 +437,21 @@ namespace Test
             Assert.True(builder.UseAzureKeyVault);
 
             // These tests require executing the builder, which needs a valid endpoint.
-            if (AppConfigTestsEnabled)
+            if (AppConfigFixture.FullStackTestsEnabled)
             {
                 // UseKeyVault is case insensitive, allows reading KeyVault values
                 builder = TestHelper.CreateBuilder<AzureAppConfigurationBuilder>(() => new AzureAppConfigurationBuilder(), "AzureAppConfigSettings7",
-                new NameValueCollection() { { "endpoint", customEndPoint }, { "UsEaZuReKeYvAuLt", "tRUe" } });
-                Assert.Equal(customEndPoint, builder.Endpoint);
+                new NameValueCollection() { { "endpoint", AppConfigFixture.CustomEndPoint }, { "UsEaZuReKeYvAuLt", "tRUe" } });
+                Assert.Equal(AppConfigFixture.CustomEndPoint, builder.Endpoint);
                 Assert.True(builder.UseAzureKeyVault);
-                Assert.Equal(kva_value_old, builder.GetValue("keyVaultSetting"));
+                Assert.Equal(_fixture.KVA_Value_Old, builder.GetValue("keyVaultSetting"));
                 var allValues = builder.GetAllValues("");
-                Assert.Equal(kva_value_old, TestHelper.GetValueFromCollection(allValues, "superKeyVaultSetting"));
+                Assert.Equal(_fixture.KVA_Value_Old, TestHelper.GetValueFromCollection(allValues, "superKeyVaultSetting"));
 
                 // UseKeyVault is case insensitive, does not allow reading KeyVault values
                 builder = TestHelper.CreateBuilder<AzureAppConfigurationBuilder>(() => new AzureAppConfigurationBuilder(), "AzureAppConfigSettings8",
-                    new NameValueCollection() { { "endpoint", customEndPoint }, { "useAzureKeyVault", "false" } });
-                Assert.Equal(customEndPoint, builder.Endpoint);
+                    new NameValueCollection() { { "endpoint", AppConfigFixture.CustomEndPoint }, { "useAzureKeyVault", "false" } });
+                Assert.Equal(AppConfigFixture.CustomEndPoint, builder.Endpoint);
                 Assert.False(builder.UseAzureKeyVault);
                 Assert.Matches(kvUriRegex, builder.GetValue("keyVaultSetting"));    // Don't care what the uri is... just that is it a URI instead of a value
                 allValues = builder.GetAllValues("");
@@ -402,18 +484,18 @@ namespace Test
         {
             // xUnit evaluates MemberData before ever constructing this class. Make sure we're using the correct epoch time.
             if (dtFilter == customEpochPlaceholder)
-                dtFilter = customEpoch;
+                dtFilter = _fixture.CustomEpoch;
 
             // MinValue is interpretted as "no filter" by Azure AppConfig. So only our epoch time counts as "old."
             ConfigAge age = ConfigAge.IsNew;
-            if (dtFilter == customEpoch)
+            if (dtFilter == _fixture.CustomEpoch)
                 age = ConfigAge.IsOld;
-            else if (dtFilter < customEpoch && dtFilter != DateTimeOffset.MinValue)
+            else if (dtFilter < _fixture.CustomEpoch && dtFilter != DateTimeOffset.MinValue)
                 age = ConfigAge.IsAncient;
 
             // Trying all sorts of combinations with just one test and lots of theory data
             var builder = TestHelper.CreateBuilder<AzureAppConfigurationBuilder>(() => new AzureAppConfigurationBuilder(), "AzureAppConfigFilters",
-                new NameValueCollection() { { "endpoint", customEndPoint }, { "mode", mode.ToString() }, { "keyFilter", keyFilter }, { "labelFilter", labelFilter },
+                new NameValueCollection() { { "endpoint", AppConfigFixture.CustomEndPoint }, { "mode", mode.ToString() }, { "keyFilter", keyFilter }, { "labelFilter", labelFilter },
                                             { "acceptDateTime", dtFilter.ToString() }, { "useAzureKeyVault", useAzure.ToString() }});
             ValidateExpectedConfig(builder, age);
         }
@@ -425,7 +507,7 @@ namespace Test
         {
             // Trying all sorts of combinations with just one test and lots of theory data
             var builder = TestHelper.CreateBuilder<AzureAppConfigurationBuilder>(() => new AzureAppConfigurationBuilder(), "AzureAppConfigFilters",
-                new NameValueCollection() { { "endpoint", customEndPoint }, { "mode", mode.ToString() }, { "snapshot", testSnapName }, { "useAzureKeyVault", "true" } });
+                new NameValueCollection() { { "endpoint", AppConfigFixture.CustomEndPoint }, { "mode", mode.ToString() }, { "snapshot", _fixture.TestSnapName }, { "useAzureKeyVault", "true" } });
 
             ValidateExpectedConfig(builder, ConfigAge.IsSnapshot);
         }
@@ -517,14 +599,14 @@ namespace Test
                 Assert.Null(exception);
 
             // These tests require executing the builder, which needs a valid endpoint.
-            if (AppConfigTestsEnabled)
+            if (AppConfigFixture.FullStackTestsEnabled)
             {
                 // Invalid key name (can't be '.', '..', or contain '%'... not that we care, but we should handle the error gracefully)
                 // Oddly, AppConfig doesn't return an error here. Just quietly returns nothing. So expect no exception.
                 exception = Record.Exception(() =>
                 {
                     builder = TestHelper.CreateBuilder<AzureAppConfigurationBuilder>(() => new AzureAppConfigurationBuilder(), "AzureAppConfigErrors8",
-                        new NameValueCollection() { { "endpoint", customEndPoint }, { "enabled", enabled.ToString() } });
+                        new NameValueCollection() { { "endpoint", AppConfigFixture.CustomEndPoint }, { "enabled", enabled.ToString() } });
                     Assert.Null(builder.GetValue("bad%keyname"));
                 });
                 Assert.Null(exception);
@@ -534,7 +616,7 @@ namespace Test
                 exception = Record.Exception(() =>
                 {
                     builder = TestHelper.CreateBuilder<AzureAppConfigurationBuilder>(() => new AzureAppConfigurationBuilder(), "AzureAppConfigErrors9",
-                        new NameValueCollection() { { "endpoint", customEndPoint }, { "keyFilter", "bad%Filter*" }, { "enabled", enabled.ToString() } });
+                        new NameValueCollection() { { "endpoint", AppConfigFixture.CustomEndPoint }, { "keyFilter", "bad%Filter*" }, { "enabled", enabled.ToString() } });
                     Assert.Null(builder.GetValue("bad%FilterFetchesThisValue"));
                 });
                 Assert.Null(exception);
@@ -543,7 +625,7 @@ namespace Test
                 exception = Record.Exception(() =>
                 {
                     builder = TestHelper.CreateBuilder<BadCredentialAppConfigBuilder>(() => new BadCredentialAppConfigBuilder(), "AzureAppConfigErrors10",
-                        new NameValueCollection() { { "endpoint", customEndPoint }, { "enabled", enabled.ToString() } });
+                        new NameValueCollection() { { "endpoint", AppConfigFixture.CustomEndPoint }, { "enabled", enabled.ToString() } });
                     // Azure SDK connects lazily, so the invalid credential won't be caught until we make the KV client try to use it.
                     Assert.Null(builder.GetValue("doesNotExist"));
                 });
@@ -603,9 +685,9 @@ namespace Test
                     case "superTestSetting":
                         return "newSuperAlpha";
                     case "keyVaultSetting":
-                        return (builder.UseAzureKeyVault) ? kvb_value : kvUriRegex;
+                        return (builder.UseAzureKeyVault) ? _fixture.KVB_Value : kvUriRegex;
                     case "superKeyVaultSetting":
-                        return (builder.UseAzureKeyVault) ? kva_value_new : kvUriRegex;
+                        return (builder.UseAzureKeyVault) ? _fixture.KVA_Value_New : kvUriRegex;
                 }
 
                 return null;    // Includes epochDTO
@@ -649,12 +731,12 @@ namespace Test
                     return (labelA) ? "newSuperAlpha" : (noLabel) ? "oldSuperValue" : null; // Probably null - unless label was 'labelB' which we are using in tests yet
                 case "keyVaultSetting":
                     if (age == ConfigAge.IsOld)
-                        kvreturn = (labelA) ? kva_value_new : (noLabel) ? kva_value_old : null;
+                        kvreturn = (labelA) ? _fixture.KVA_Value_New : (noLabel) ? _fixture.KVA_Value_Old : null;
                     else
-                        kvreturn = (labelA) ? kvb_value : (noLabel) ? kva_value_old : null;
+                        kvreturn = (labelA) ? _fixture.KVB_Value : (noLabel) ? _fixture.KVA_Value_Old : null;
                     break;
                 case "superKeyVaultSetting":
-                    kvreturn = (!noLabel) ? null : (age == ConfigAge.IsOld) ? kvb_value : kva_value_old;
+                    kvreturn = (!noLabel) ? null : (age == ConfigAge.IsOld) ? _fixture.KVB_Value : _fixture.KVA_Value_Old;
                     break;
             }
 
@@ -671,7 +753,7 @@ namespace Test
             appSettings = (AppSettingsSection)builder.ProcessConfigurationSection(appSettings);
 
             // Validation of values kind of assumes this is true. Make sure of it.
-            Assert.Equal(customEndPoint, builder.Endpoint);
+            Assert.Equal(AppConfigFixture.CustomEndPoint, builder.Endpoint);
 
             // All the System.Configuration side of things should be case-insensitive, so all these should
             // retrieve the same value, regardless of whether that value came from AzConfig or not.
