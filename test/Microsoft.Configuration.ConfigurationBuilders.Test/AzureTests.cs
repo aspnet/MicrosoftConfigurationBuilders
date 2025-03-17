@@ -14,7 +14,7 @@ namespace Test
     public static class AzureConstants
     {
         /* Convenience to keep full-stack out of the way during local development. Leave 'false' when committing.  */
-        public static readonly bool DisableFullStackTests = true;
+        public static readonly bool DisableFullStackTests = false;
     }
 
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]

@@ -16,7 +16,7 @@ namespace Test
     public static class AppConfigConstants
     {
         /* Convenience to keep full-stack out of the way during local development. Leave 'false' when committing.  */
-        public static readonly bool DisableFullStackTests = true;
+        public static readonly bool DisableFullStackTests = false;
     }
 
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
@@ -305,34 +305,41 @@ namespace Test
         // ======================================================================
         public static IEnumerable<object[]> GetCommonTestParameters()
         {
+            // Default parameters
+            yield return new[] { new NameValueCollection() { } };
+
+            // KeyFilter
             foreach (string keyFilter in new[] { null, "", $"{CommonBuilderTests.CommonKVPrefix}*" })
-                yield return new object[] { keyFilter };
+                yield return new[] { new NameValueCollection { { "keyFilter", keyFilter } } };
+
+            // Preload
+            foreach (string preload in new[] { "true", "false" })
+                yield return new[] { new NameValueCollection { { "preloadValues", preload } } };
         }
 
-        [AppConfigFact]
-        public void AzureAppConfig_GetValue()
+        [AppConfigTheory]
+        [MemberData(nameof(GetCommonTestParameters))]
+        public void AzureAppConfig_GetValue(NameValueCollection parameters)
         {
             // The presence of a KeyFilter shortcuts GetValue() to return null under the assumption that we already
             // checked the value cache before calling GetValue(). So don't try to test KeyFilter here.
             // ProcessConfigurationSection should be able to tackle that scenario in more of a "full-stack" manner.
             CommonBuilderTests.GetValue(() => new AzureAppConfigurationBuilder(), "AzureAppConfigGetValue",
-                new NameValueCollection() { { "endpoint", AppConfigFixture.CommonEndPoint } }, caseSensitive: true);
+                new NameValueCollection(parameters) { { "endpoint", AppConfigFixture.CommonEndPoint } }, caseSensitive: true);
         }
 
         [AppConfigTheory]
         [MemberData(nameof(GetCommonTestParameters))]
-        public void AzureAppConfig_GetAllValues(string keyFilter)
+        public void AzureAppConfig_GetAllValues(NameValueCollection parameters)
         {
-            // Keyfilter filters first on server when fetching, then the resulting set with us is again filtered by prefix.
-
             // Normally this common test is reflective of 'Greedy' operations. But AzureAppConfigurationBuilder sometimes
             // uses this 'GetAllValues' technique in both greedy and non-greedy modes, depending on keyFilter. So we'll test both here.
 
             CommonBuilderTests.GetAllValues(() => new AzureAppConfigurationBuilder(), "AzureAppConfigStrictGetAllValues",
-                new NameValueCollection() { { "endpoint", AppConfigFixture.CommonEndPoint }, { "mode", KeyValueMode.Strict.ToString() }, { "keyFilter", keyFilter } });
+                new NameValueCollection(parameters) { { "endpoint", AppConfigFixture.CommonEndPoint }, { "mode", KeyValueMode.Strict.ToString() } });
 
             CommonBuilderTests.GetAllValues(() => new AzureAppConfigurationBuilder(), "AzureAppConfigGreedyGetAllValues",
-                new NameValueCollection() { { "endpoint", AppConfigFixture.CommonEndPoint }, { "mode", KeyValueMode.Greedy.ToString() }, { "keyFilter", keyFilter } });
+                new NameValueCollection(parameters) { { "endpoint", AppConfigFixture.CommonEndPoint }, { "mode", KeyValueMode.Greedy.ToString() } });
         }
 
         [AppConfigTheory]
