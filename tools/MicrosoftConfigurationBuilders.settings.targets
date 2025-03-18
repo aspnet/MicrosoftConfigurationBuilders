@@ -27,7 +27,12 @@
     <VersionStartYear>2025</VersionStartYear>
     <!-- Update version in config.xdt's for major/minor changes. (Don't update for 'release' changes.) -->
     <VersionMajor>3</VersionMajor>
-    <VersionMinor>1</VersionMinor>
+    <!-- Minor versions can differ within a major release according to semver. Use 'Contains' here to catch the main project and the package project. -->
+    <VersionMinor Condition="'$(VersionMinor)' == '' AND $(MSBuildProjectName.Contains('AzureAppConfig'))">1</VersionMinor>
+    <VersionMinor Condition="'$(VersionMinor)' == '' AND $(MSBuildProjectName.Contains('Azure'))">1</VersionMinor>
+    <VersionMinor Condition="'$(VersionMinor)' == '' AND $(MSBuildProjectName.Contains('Base'))">1</VersionMinor>
+    <VersionMinor Condition="'$(VersionMinor)' == '' AND $(MSBuildProjectName.Contains('Json'))">1</VersionMinor>
+    <VersionMinor Condition="'$(VersionMinor)' == ''">0</VersionMinor>
     <VersionRevision>0</VersionRevision>
     <VersionRelease>0</VersionRelease>
     <VersionBuild Condition="'$(VersionBuild)' == '' OR '$(VersionBuild)' == '0'">$([MSBuild]::Add(1, $([MSBuild]::Subtract($([System.DateTime]::Now.Year), $(VersionStartYear)))))$([System.DateTime]::Now.ToString("MMdd"))</VersionBuild>
