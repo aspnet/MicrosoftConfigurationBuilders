@@ -344,11 +344,11 @@ namespace Test
 
         [AppConfigTheory]
         [MemberData(nameof(GetCommonTestParameters))]
-        public void AzureAppConfig_ProcessConfigurationSection(string keyFilter)
+        public void AzureAppConfig_ProcessConfigurationSection(NameValueCollection parameters)
         {
             // The common test will try Greedy and Strict modes.
             CommonBuilderTests.ProcessConfigurationSection(() => new AzureAppConfigurationBuilder(), "AzureAppConfigProcessConfig",
-                new NameValueCollection() { { "endpoint", AppConfigFixture.CommonEndPoint }, { "keyFilter", keyFilter } });
+                new NameValueCollection(parameters) { { "endpoint", AppConfigFixture.CommonEndPoint } });
         }
 
         // ======================================================================

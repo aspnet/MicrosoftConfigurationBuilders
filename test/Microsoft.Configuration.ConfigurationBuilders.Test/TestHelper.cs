@@ -23,15 +23,6 @@ namespace Test
             ensureInitialized = typeof(KeyValueConfigBuilder).GetMethod("EnsureInitialized", BindingFlags.NonPublic | BindingFlags.Instance);
         }
 
-        public static KeyValueConfigBuilder CreateBuilder(Func<KeyValueConfigBuilder> builderFactory, string name, NameValueCollection attrs = null)
-        {
-            KeyValueConfigBuilder builder = builderFactory();
-            NameValueCollection settings = attrs ?? new NameValueCollection();
-            builder.Initialize(name, settings);
-            CallEnsureInitialized(builder);
-            return builder;
-        }
-
         public static T CreateBuilder<T>(Func<T> builderFactory, string name, NameValueCollection attrs = null) where T : KeyValueConfigBuilder
         {
             T builder = builderFactory();

@@ -80,7 +80,7 @@ namespace Microsoft.Configuration.ConfigurationBuilders
 
         private ConcurrentDictionary<Uri, SecretClient> _kvClientCache;
         private ConfigurationClient _client;
-        private FieldInfo _cachedValuesField;
+        private IDictionary<string, string> _cachedValuesRef;
         private bool _valuesPreloaded = false;
 
         /// <summary>
@@ -98,9 +98,12 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             // TODO: This is super hacky. In a major-version update, this should be revamped in cooperation with the KVCB base class.
             // When we cache our values, we drew them from a source where case matters. Case should still matter in our cache.
             // Replace the built-in case-insensitive cache with a case-sensitive one.
-            _cachedValuesField = typeof(KeyValueConfigBuilder).GetField("_cachedValues", BindingFlags.Instance | BindingFlags.NonPublic);
-            if (_cachedValuesField != null)
-                _cachedValuesField.SetValue(this, new Dictionary<string, string>());
+            var cachedValuesField = typeof(KeyValueConfigBuilder).GetField("_cachedValues", BindingFlags.Instance | BindingFlags.NonPublic);
+            if (cachedValuesField != null)
+            {
+                _cachedValuesRef = new Dictionary<string, string>();
+                cachedValuesField.SetValue(this, _cachedValuesRef);
+            }
 
             // At this point, we have our 'Enabled' choice. If we are disabled, we can stop right here.
             if (Enabled == KeyValueEnabled.Disabled) return;
@@ -243,25 +246,23 @@ namespace Microsoft.Configuration.ConfigurationBuilders
             // Special case - Preload
             // If we are to preload values, we need to make sure that we have already done so.
             // If we haven't, then we need to do that now.
-            // If we have though, then the base KVCB has already checked the cache and did not
-            // find what it needed. Going back to the store yet again is likely to be a waste of time.
-            // Avoid the trouble and shortcut return nothing in this case.
-            if (PreloadValues)
+            // If we have preloaded values though... we might be tempted to just return null,
+            // since the base KVCB will have already checked the cache. But this is a public
+            // method, and we can't count on the caller having checked the cache first.
+            // So... 1) don't go back to the store - it will likely be a waste of time.
+            // and   2) look in the cache and return what we find there.
+            if (PreloadValues && _cachedValuesRef != null)
             {
                 if (!_valuesPreloaded)
                 {
-                    string retval = null;
-                    if (_cachedValuesField != null)
+                    if (_cachedValuesRef != null)
                     {
-                        var cachedValues = _cachedValuesField.GetValue(this) as Dictionary<string, string>;
                         foreach (var kvp in GetAllValues(null))
-                            cachedValues.Add(kvp.Key, kvp.Value);
-                        cachedValues.TryGetValue(key, out retval);
+                            _cachedValuesRef.Add(kvp.Key, kvp.Value);
                     }
                     _valuesPreloaded = true;
-                    return retval;
                 }
-                return null;
+                return _cachedValuesRef.TryGetValue(key, out string retval) ? retval : null;
             }
 
             // This is a synchronous method. And in single-threaded contexts like ASP.Net
