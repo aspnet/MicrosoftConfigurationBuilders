@@ -3,8 +3,13 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Configuration;
 using System.Linq;
+using System.Net.Http;
+using System.Net;
+using System.Threading;
+using System.Threading.Tasks;
 using Azure;
 using Azure.Core;
+using Azure.Core.Pipeline;
 using Azure.Data.AppConfiguration;
 using Azure.Identity;
 using Azure.Security.KeyVault.Secrets;
@@ -679,6 +684,20 @@ namespace Test
             else
                 Assert.Null(exception);
 
+            // Throttling should produce an exception
+            // Causing this requires GetValue(), but builder won'te ever call GetValue() when disabled.
+            if (enabled != KeyValueEnabled.Disabled)
+            {
+                exception = Record.Exception(() =>
+                {
+                    // Create a subclass that injects a transport returning HTTP 429
+                    builder = TestHelper.CreateBuilder<ThrottleTestAppConfigBuilder>(() => new ThrottleTestAppConfigBuilder(), "AzureAppConfigThrottleTest",
+                        new NameValueCollection() { { "endpoint", AppConfigFixture.CustomEndPoint }, { "enabled", KeyValueEnabled.Enabled.ToString() } });
+                    builder.GetValue("anyKey");
+                });
+                TestHelper.ValidateBasicException<RequestFailedException>(exception, "Service request failed.", "Too many requests");
+            }
+
             // These tests require executing the builder, which needs a valid endpoint.
             if (AppConfigFixture.FullStackTestsEnabled)
             {
@@ -923,6 +942,30 @@ namespace Test
             {
                 CalledGetAllValues = true;
                 return base.GetAllValues(prefix);
+            }
+        }
+
+        // Minimal override to force a 429 response
+        private class ThrottleTestAppConfigBuilder : AzureAppConfigurationBuilder
+        {
+            protected override Azure.Data.AppConfiguration.ConfigurationClientOptions GetConfigurationClientOptions()
+            {
+                var httpClient = new HttpClient(new ThrottlingHandler());
+                var options = base.GetConfigurationClientOptions();
+                options.Transport = new HttpClientTransport(httpClient);
+                return options;
+            }
+
+            private class ThrottlingHandler : HttpMessageHandler
+            {
+                protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+                {
+                    var response = new HttpResponseMessage((HttpStatusCode)429)
+                    {
+                        Content = new StringContent("Too many requests")
+                    };
+                    return Task.FromResult(response);
+                }
             }
         }
     }
