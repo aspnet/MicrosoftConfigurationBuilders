@@ -157,7 +157,7 @@ extends:
           displayName: Verify Signed Packages
           inputs:
             TargetFolder: $(Build.SourcesDirectory)\.binaries\verify\packages
-            WhiteListPathForCerts: tools/.verif.whitelist
+            WhiteListPathForCerts: $(Build.SourcesDirectory)\tools\.verif.whitelist
             ExcludeFolders: .git MicroBuild decomp *.xml
         # Following article on https://dev.azure.com/devdiv/DevDiv/_wiki/wikis/DevDiv.wiki/25351/APIScan-step-by-step-guide-to-setting-up-a-Pipeline
         # No longer need the old format, and following guideline to use (ApiScanClientId)
@@ -165,7 +165,7 @@ extends:
           displayName: Run APIScan
           inputs:
             softwareFolder: '$(Build.SourcesDirectory)\.binaries\verify\dlls'
-            softwareName: 'Microsoft.Configuration.ConfigurationBuilders.*'
+            softwareName: 'Microsoft.Configuration.ConfigurationBuilders'
             softwareVersionNum: '*'
             softwareBuildNum: '$(Build.BuildId)'
             symbolsFolder: '$(Build.SourcesDirectory)\.binaries\bin\Release;SRV*http://symweb'
