@@ -684,20 +684,6 @@ namespace Test
             else
                 Assert.Null(exception);
 
-            // Throttling should produce an exception
-            // Causing this requires GetValue(), but builder won'te ever call GetValue() when disabled.
-            if (enabled != KeyValueEnabled.Disabled)
-            {
-                exception = Record.Exception(() =>
-                {
-                    // Create a subclass that injects a transport returning HTTP 429
-                    builder = TestHelper.CreateBuilder<ThrottleTestAppConfigBuilder>(() => new ThrottleTestAppConfigBuilder(), "AzureAppConfigThrottleTest",
-                        new NameValueCollection() { { "endpoint", AppConfigFixture.CustomEndPoint }, { "enabled", KeyValueEnabled.Enabled.ToString() } });
-                    builder.GetValue("anyKey");
-                });
-                TestHelper.ValidateBasicException<RequestFailedException>(exception, "Service request failed.", "Too many requests");
-            }
-
             // These tests require executing the builder, which needs a valid endpoint.
             if (AppConfigFixture.FullStackTestsEnabled)
             {
@@ -733,6 +719,20 @@ namespace Test
                     TestHelper.ValidateBasicException<AuthenticationFailedException>(exception, "ClientSecretCredential authentication failed", "not-a-valid");
                 else
                     Assert.Null(exception);
+
+                // Throttling should produce an exception
+                // Causing this requires GetValue(), but builder won'te ever call GetValue() when disabled.
+                if (enabled != KeyValueEnabled.Disabled)
+                {
+                    exception = Record.Exception(() =>
+                    {
+                        // Create a subclass that injects a transport returning HTTP 429
+                        builder = TestHelper.CreateBuilder<ThrottleTestAppConfigBuilder>(() => new ThrottleTestAppConfigBuilder(), "AzureAppConfigThrottleTest",
+                            new NameValueCollection() { { "endpoint", AppConfigFixture.CustomEndPoint }, { "enabled", KeyValueEnabled.Enabled.ToString() } });
+                        builder.GetValue("anyKey");
+                    });
+                    TestHelper.ValidateBasicException<RequestFailedException>(exception, "Service request failed.", "Too many requests");
+                }
 
                 // TODO: Can we do one with an unauthorized access to key-vault?
             }
