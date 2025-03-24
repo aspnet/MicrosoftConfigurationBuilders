@@ -26,6 +26,9 @@ __Tip:__ To use versioned secrets, it is _not_ recommended to use the `version` 
 </appSettings>
 ```
 
+### V3.1 Updates:
+  * Auth failures are "optional" for [Azure Config Builders](https://github.com/aspnet/MicrosoftConfigurationBuilders/blob/main/docs/KeyValueConfigBuilders.md#azure-config-builders).
+
 ### V3 Updates:
 A more complete list of updates [lives here](https://github.com/aspnet/MicrosoftConfigurationBuilders/blob/main/README.md#v3-updates). These are the ones most relevant to this builder:
   * :warning: ***Breaking Change*** - `Expand` mode is gone. It has been [replaced by `Token` mode](https://github.com/aspnet/MicrosoftConfigurationBuilders/blob/main/docs/KeyValueConfigBuilders.md#mode).

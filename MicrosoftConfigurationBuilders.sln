@@ -37,6 +37,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test", "test\Microsoft.Conf
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{91E7BC05-1980-48F2-B3F4-CE56EB3D114F}"
 	ProjectSection(SolutionItems) = preProject
+		azure-pipeline\azure-pipeline.yml = azure-pipeline\azure-pipeline.yml
 		tools\MicrosoftConfigurationBuilders.settings.targets = tools\MicrosoftConfigurationBuilders.settings.targets
 		README.md = README.md
 	EndProjectSection

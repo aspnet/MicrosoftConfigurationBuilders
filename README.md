@@ -14,6 +14,14 @@ For more information about Configuration Builders and the features and builders 
 
 
 <a name="updates"></a>
+### V3.1 Updates:
+  * Added Snapshot capabilities to the [`AzureAppConfigurationBuilder`](docs/KeyValueConfigBuilders.md#azureappconfigurationbuilder).
+  * Added ability to provide "[default values](docs/KeyValueConfigBuilders.md#tokenPattern)" in `Token` mode.
+  * Fixed bug with rooted-paths and `Utils.MapPath` in ASP.Net scenarios.
+  * Fixed `GetCredential()` and related option-overload issues in [`AzureAppConfigurationBuilder`](docs/KeyValueConfigBuilders.md#azureappconfigurationbuilder).
+  * Auth failures are "optional" for [Azure Config Builders](docs/KeyValueConfigBuilders.md#azure-config-builders).
+  * Fixed [`AzureAppConfigurationBuilder`](docs/KeyValueConfigBuilders.md#azureappconfigurationbuilder) bug with key filters in `Strict` mode.
+
 ### V3 Updates:
   * :warning: ***Breaking Change*** - `Expand` mode is gone. It has been [replaced by `Token` mode](docs/KeyValueConfigBuilders.md#mode).
   * `Utils.MapPath` - This was somewhat broken in ASP.Net scenarios previously. It should now reliably go against `Server.MapPath()` in ASP.Net scenarios. It has also been updated to fall back against the directory of the config file being processed when resolving the app root in the case of a `Configuration` object being created by `ConfigurationManager.OpenConfiguration*` API's rather than being part of a fully-initialized runtime configuration stack.
