@@ -23,7 +23,7 @@
             Release:	Third for Info and Package.
          Update package and file without touching assembly, except for major releases.
     -->
-    <BuildQuality Condition="'$(BuildQuality)' == ''">rtm</BuildQuality>
+    <BuildQuality Condition="'$(BuildQuality)' == ''">preview1</BuildQuality>
     <VersionStartYear>2025</VersionStartYear>
     <!-- Update version in config.xdt's for major/minor changes. (Don't update for 'release' changes.) -->
     <VersionMajor>3</VersionMajor>
