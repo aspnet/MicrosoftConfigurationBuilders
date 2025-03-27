@@ -9,32 +9,49 @@ Project global versioning targets.
   <!-- NOTE: The VersionFileAttribute ItemGroup can be used to add assembly-level attributes to the generated version file, ex:
   <VersionFileAttribute Include="[assembly: System.Diagnostics.CodeAnalysis.SuppressMessage(&quot;Microsoft.Usage&quot;, &quot;CA2243:AttributeStringLiteralsShouldParseCorrectly&quot;, Justification = &quot;Justification here&quot;)]" />
   -->
-
   <PropertyGroup>
     <VersionFileGenerationEnabled Condition="'$(VersionFileGenerationEnabled)' == '' AND '$(MSBuildProjectExtension)' == '.csproj'">true</VersionFileGenerationEnabled>
     <VersionFileGenerationEnabled Condition="'$(VersionFileGenerationEnabled)' == ''">false</VersionFileGenerationEnabled>
   </PropertyGroup>
 
+  <!-- Versioning - Different than .Net's Version(Major.Minor.Build.Revision):
+          1)  Major:	'Major' for Assembly, File, Info, and Package.
+          2)  Minor:	'Minor' for Assembly, File, Info, and Package.
+          3a) Revision:	Third for Assembly and File. Strategy - Try to leave this 0 and only rev Major/Minor for big changes and Release for non-dependency-breaking changes.
+          3b) Release:	Third for Info and Package.
+          4)  Build:	(Auto-generated) for File and Info. (Assembly is always 0)
+       Update package and file without touching assembly, except for major releases.
+
+       Most of the interesting ones are already set in each project's individual settings file.
+  -->
   <PropertyGroup>
+    <_PreventVSPropertyCaching>$([System.DateTime]::Now.Ticks)</_PreventVSPropertyCaching>
     <VersionStartYear Condition="'$(VersionStartYear)' == ''">INVALID_VersionStartYear</VersionStartYear>
     <VersionMajor Condition="'$(VersionMajor)' == ''">INVALID_VersionMajor</VersionMajor>
     <VersionMinor Condition="'$(VersionMinor)' == ''">INVALID_VersionMinor</VersionMinor>
-    <VersionRelease Condition="'$(VersionRelease)' == ''">0</VersionRelease>
     <VersionRevision Condition="'$(VersionRevision)' == ''">0</VersionRevision>
-    <VersionBuild Condition="'$(VersionBuild)' == '' OR '$(VersionBuild)' == '0'">$([MSBuild]::Add(1, $([MSBuild]::Subtract($([System.DateTime]::Now.Year), $(VersionStartYear)))))$([System.DateTime]::Now.ToString("MMdd"))</VersionBuild>
+    <VersionRelease Condition="'$(VersionRelease)' == ''">0</VersionRelease>
+    <VersionBuild Condition="'$(VersionBuild)' == ''">0</VersionBuild>
+    <VersionBuild Condition="'$(VersionBuild)' == '0' AND '$(VersionStartYear)' != 'INVALID_VersionStartYear'">$([MSBuild]::Add(1, $([MSBuild]::Subtract($([System.DateTime]::Now.Year), $(VersionStartYear)))))$([System.DateTime]::Now.ToString("MMdd"))</VersionBuild>
   </PropertyGroup>
 
   <!-- Comptued parameters -->
 
   <PropertyGroup>
-    <AssemblyVersion>$(VersionMajor).$(VersionMinor).0.$(VersionRevision)</AssemblyVersion>
-    <AssemblyFileVersion>$(VersionMajor).$(VersionMinor).$(VersionRelease).$(VersionBuild)</AssemblyFileVersion>
+    <_PreventVSPropertyCaching2>$([System.DateTime]::Now.Ticks)</_PreventVSPropertyCaching2>
+    <AssemblyVersion>$(VersionMajor).$(VersionMinor).$(VersionRevision).$(VersionBuild)</AssemblyVersion>
+    <AssemblyFileVersion>$(VersionMajor).$(VersionMinor).$(VersionRevision).$(VersionBuild)</AssemblyFileVersion>
+    <AssemblyInfoVersion>$(VersionMajor).$(VersionMinor).$(VersionRelease)-$(VersionBuild)</AssemblyInfoVersion>
     <AssemblyVersionFile>$(IntermediateOutputPath)$(MSBuildProjectName).version.cs</AssemblyVersionFile>
+    <SatelliteContractVersion Condition="'$(SatelliteContractVersion)' == ''">$(AssemblyVersion)</SatelliteContractVersion>
+    <NuGetPackageVersion Condition="'$(NuGetPackageVersion)' == ''">$(VersionMajor).$(VersionMinor).$(VersionRelease)</NuGetPackageVersion>
   </PropertyGroup>
 
-  <PropertyGroup>
-    <NuGetPackageVersion Condition="'$(NuGetPackageVersion)' == ''">$(VersionMajor).$(VersionMinor).$(VersionRelease)</NuGetPackageVersion>
-    <NuGetPackageVersion Condition="'$(BuildQuality)' != 'rtm'">$(NuGetPackageVersion)-$(BuildQuality)</NuGetPackageVersion>
+  <PropertyGroup Label="Add prerelease tag to non-rtm releases" Condition="'$(BuildQuality)' != 'rtm'">
+    <NuGetPackageVersion>$(NuGetPackageVersion)-$(BuildQuality)</NuGetPackageVersion>
+  </PropertyGroup>
+  <PropertyGroup Label="Add date-stamp to 'preview' releases" Condition="'$(BuildQuality)' == 'preview'">
+    <NuGetPackageVersion>$(NuGetPackageVersion)$(VersionBuild)</NuGetPackageVersion>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(VersionFileGenerationEnabled)' == 'true'">
