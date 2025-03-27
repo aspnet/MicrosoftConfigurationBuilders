@@ -15,13 +15,15 @@
   <!-- Configurable properties-->
 
   <PropertyGroup>
-    <!-- Versioning:
-            Major:	'Major' for Assembly, File, Info, and Package.
-            Minor:	'Minor' for Assembly, File, Info, and Package.
-            Build:	Third (auto-generated) for File and Info. (Assembly is always 0)
-            Revision:	'Revision' for Assembly and File. Strategy - Try to leave this 0 and only rev Major/Minor for big changes and Release for non-dependency-breaking changes.
-            Release:	Third for Info and Package.
-         Update package and file without touching assembly, except for major releases.
+    <!-- Versioning - Different than .Net's Version(Major.Minor.Build.Revision):
+          1)  Major:	'Major' for Assembly, File, Info, and Package.
+          2)  Minor:	'Minor' for Assembly, File, Info, and Package.
+          3a) Revision:	Third for Assembly and File. Strategy - Try to leave this 0 and only rev Major/Minor for big changes and Release for non-dependency-breaking changes.
+          3b) Release:	Third for Info and Package.
+          4)  Build:	(Auto-generated) for File and Info. (Assembly is always 0)
+       Update package and file without touching assembly, except for major releases.
+
+       Most of the interesting ones are already set in each project's individual settings file.
     -->
     <BuildQuality Condition="'$(BuildQuality)' == ''">preview1</BuildQuality>
     <VersionStartYear>2025</VersionStartYear>
@@ -35,8 +37,6 @@
     <VersionMinor Condition="'$(VersionMinor)' == ''">0</VersionMinor>
     <VersionRevision>0</VersionRevision>
     <VersionRelease>0</VersionRelease>
-    <VersionBuild Condition="'$(VersionBuild)' == '' OR '$(VersionBuild)' == '0'">$([MSBuild]::Add(1, $([MSBuild]::Subtract($([System.DateTime]::Now.Year), $(VersionStartYear)))))$([System.DateTime]::Now.ToString("MMdd"))</VersionBuild>
-    <NuGetPackageVersion>$(VersionMajor).$(VersionMinor).$(VersionRelease)</NuGetPackageVersion>
     <NuGetPackageBaseDependencyVersion>"$(VersionMajor).0.0"</NuGetPackageBaseDependencyVersion> <!-- SemVer proposes that non-major updates should be backward compatible. -->
   </PropertyGroup>
 
@@ -49,7 +49,6 @@
 
   <!-- Additionaly, add date stamp to 'preview' releases. -->
   <PropertyGroup Label="Prerelease version adjustments" Condition="'$(BuildQuality)' == 'preview'">
-    <NuGetPackageVersion>$(NuGetPackageVersion)$(VersionBuild)</NuGetPackageVersion>
     <NuGetPackageBaseDependencyVersion>$(NuGetPackageBaseDependencyVersion)$(VersionBuild)</NuGetPackageBaseDependencyVersion>
   </PropertyGroup>
 
