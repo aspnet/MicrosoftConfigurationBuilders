@@ -42,11 +42,11 @@
 
   <!-- Add release type for non-RTM releases. -->
   <PropertyGroup Label="Prerelease version adjustments" Condition="'$(BuildQuality)' != 'rtm'">
-    <NuGetPackageVersion>$(NuGetPackageVersion)-$(BuildQuality)</NuGetPackageVersion>
+    <VersionRelease>$(VersionRelease)-$(BuildQuality)</VersionRelease>
     <NuGetPackageBaseDependencyVersion>$(VersionMajor).$(VersionMinor).$(VersionRelease)-$(BuildQuality)</NuGetPackageBaseDependencyVersion> <!-- Bend SemVer guidelines for preview releases. -->
   </PropertyGroup>
 
-  <!-- Additionaly, add date stamp to 'preview' releases. -->
+  <!-- Additionally, add date stamp to 'preview' releases. -->
   <PropertyGroup Label="Prerelease version adjustments" Condition="'$(BuildQuality)' == 'preview'">
     <NuGetPackageBaseDependencyVersion>$(NuGetPackageBaseDependencyVersion)$(VersionBuild)</NuGetPackageBaseDependencyVersion>
   </PropertyGroup>
