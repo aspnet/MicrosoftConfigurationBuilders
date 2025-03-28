@@ -39,7 +39,7 @@ Project global versioning targets.
 
   <PropertyGroup>
     <_PreventVSPropertyCaching2>$([System.DateTime]::Now.Ticks)</_PreventVSPropertyCaching2>
-    <AssemblyVersion>$(VersionMajor).$(VersionMinor).$(VersionRevision).$(VersionBuild)</AssemblyVersion>
+    <AssemblyVersion>$(VersionMajor).$(VersionMinor).$(VersionRevision).0</AssemblyVersion>
     <AssemblyFileVersion>$(VersionMajor).$(VersionMinor).$(VersionRevision).$(VersionBuild)</AssemblyFileVersion>
     <AssemblyInfoVersion>$(VersionMajor).$(VersionMinor).$(VersionRelease)-$(VersionBuild)</AssemblyInfoVersion>
     <AssemblyVersionFile>$(IntermediateOutputPath)$(MSBuildProjectName).version.cs</AssemblyVersionFile>
