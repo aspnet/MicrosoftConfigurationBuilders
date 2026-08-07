@@ -71,6 +71,8 @@ extends:
         name: AzurePipelines-EO
         image: 1ESPT-Windows2022
         os: windows
+    settings:
+      networkIsolationPolicy: Permissive,CFSClean,CFSClean2,CFSClean3
     customBuildTags:
     - ES365AIMigrationTooling
     stages:
