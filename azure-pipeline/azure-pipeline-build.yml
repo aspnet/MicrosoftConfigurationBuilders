@@ -1,0 +1,114 @@
+parameters:
+- name: signType
+  type: string
+  values:
+  - test
+  - real
+- name: signWithProd
+  type: boolean
+  default: false
+
+stages:
+- stage: Build
+  displayName: Build
+  jobs:
+  - job: Build
+    displayName: Build and sign packages
+    timeoutInMinutes: 120
+    cancelTimeoutInMinutes: 1
+    templateContext:
+      mb:
+        signing:
+          enabled: true
+          zipSources: false
+          signType: ${{ parameters.signType }}
+          ${{ if eq(parameters.signWithProd, true) }}:
+            signWithProd: true
+      outputs:
+      - output: pipelineArtifact
+        displayName: 'Publish Artifact: Nuget packages'
+        artifactName: Nuget packages
+        targetPath: $(Build.SourcesDirectory)\.binaries\Packages\Release
+        sbomEnabled: true
+        sbomBuildComponentPath: $(Build.SourcesDirectory)\.binaries\Packages\Release
+        sbomPackageName: Microsoft.Configuration.ConfigurationBuilders
+        sbomValidate: true
+    steps:
+    - checkout: self
+      clean: true
+      fetchTags: true
+    - task: NuGetToolInstaller@1
+      displayName: Use NuGet 6.4.0
+      inputs:
+        versionSpec: 6.4.0
+        checkLatest: false
+    - task: NuGetAuthenticate@1
+      displayName: Authenticate Azure Artifacts feeds
+    - task: NuGetCommand@2
+      displayName: Install MicroBuild bootstrap package
+      inputs:
+        command: custom
+        arguments: install Microsoft.VisualStudioEng.MicroBuild.Core -Version 0.4.1 -OutputDirectory .\packages -Source https://pkgs.dev.azure.com/devdiv/_packaging/MicroBuildToolset/nuget/v3/index.json -NonInteractive
+    - task: NuGetCommand@2
+      displayName: Restore NuGet packages
+      inputs:
+        command: restore
+        restoreSolution: MicrosoftConfigurationBuilders.sln
+        feedsToUse: config
+        nugetConfigPath: .nuget/NuGet.Config
+    - task: MSBuild@1
+      displayName: Build solution MicrosoftConfigurationBuilders.msbuild
+      inputs:
+        solution: MicrosoftConfigurationBuilders.msbuild
+        msbuildVersion: 17.0
+        msbuildArchitecture: x64
+        configuration: Release
+        msbuildArguments: /p:GitCommit=$(Build.SourceVersion) /p:GitCommitLink="https://github.com/aspnet/MicrosoftConfigurationBuilders/commit/$(Build.SourceVersion)" /p:SignType=${{ parameters.signType }} /p:SignAssembly=true /verbosity:normal
+        clean: true
+        createLogFile: true
+        logFileVerbosity: detailed
+      timeoutInMinutes: 120
+    - task: CopyFiles@2
+      displayName: Stage dll's for verification
+      inputs:
+        SourceFolder: $(Build.SourcesDirectory)\.binaries\bin\Release
+        Contents: Microsoft.Configuration.ConfigurationBuilders.*.dll
+        TargetFolder: $(Build.SourcesDirectory)\.binaries\verify\dlls
+        CleanTargetFolder: true
+        OverWrite: true
+    - task: CopyFiles@2
+      displayName: Stage nupkg's for verification
+      inputs:
+        SourceFolder: $(Build.SourcesDirectory)\.binaries\Packages\Release
+        Contents: |
+          Microsoft.Configuration.ConfigurationBuilders.*.nupkg
+          !*.symbols.nupkg
+        TargetFolder: $(Build.SourcesDirectory)\.binaries\verify\packages
+        CleanTargetFolder: true
+        OverWrite: true
+    - task: ms-vseng.MicroBuildShipTasks.7c429315-71ba-4cb3-94bb-f829c95f7915.MicroBuildCodesignVerify@1
+      displayName: Verify Signed Binaries
+      inputs:
+        TargetFolder: $(Build.SourcesDirectory)\.binaries\verify\dlls
+        ExcludeFolders: .git MicroBuild apiscan
+    - task: ms-vseng.MicroBuildShipTasks.7c429315-71ba-4cb3-94bb-f829c95f7915.MicroBuildCodesignVerify@1
+      displayName: Verify Signed Packages
+      inputs:
+        TargetFolder: $(Build.SourcesDirectory)\.binaries\verify\packages
+        WhiteListPathForCerts: $(Build.SourcesDirectory)\tools\.verif.whitelist
+        ExcludeFolders: .git MicroBuild decomp *.xml
+    # APIScan is an explicit API Usage compliance scan; it is not injected by the 1ES template.
+    - task: APIScan@2
+      displayName: Run APIScan
+      inputs:
+        softwareFolder: '$(Build.SourcesDirectory)\.binaries\verify\dlls'
+        softwareName: 'Microsoft.Configuration.ConfigurationBuilders'
+        softwareVersionNum: '*'
+        softwareBuildNum: '$(Build.BuildId)'
+        symbolsFolder: '$(Build.SourcesDirectory)\.binaries\bin\Release;SRV*http://symweb'
+        verbosityLevel: 'none'
+        toolVersion: 'Latest'
+        azureSubscription: 'VSEng-APIScanSC'
+      env:
+        AzureServicesAuthConnectionString: RunAs=App;AppId=d318cba7-db4d-4fb3-99e1-01879cb74e91;TenantId=72f988bf-86f1-41af-91ab-2d7cd011db47;ServiceConnectionId=93e24264-c5e6-4681-8175-ec8a41668480;
+        SYSTEM_ACCESSTOKEN: $(System.AccessToken)
